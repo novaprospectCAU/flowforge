@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+".gitignore" 27L, 200B
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+
+# Tauri
+src-tauri/target/

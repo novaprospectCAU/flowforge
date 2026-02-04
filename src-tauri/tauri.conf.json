@@ -1,0 +1,65 @@
+{
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist"
+  },
+  "package": {
+    "productName": "FlowForge",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": {
+        "all": false,
+        "open": true
+      },
+      "fs": {
+        "all": false,
+        "readFile": true,
+        "writeFile": true,
+        "readDir": true,
+        "createDir": true,
+        "removeDir": true,
+        "removeFile": true,
+        "renameFile": true,
+        "exists": true,
+        "scope": ["$APP/*", "$DOCUMENT/*", "$DESKTOP/*"]
+      },
+      "dialog": {
+        "all": true
+      },
+      "path": {
+        "all": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "targets": "all",
+      "identifier": "com.flowforge.app",
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ]
+    },
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "resizable": true,
+        "title": "FlowForge - Week 0.5 Contract Test",
+        "width": 1000,
+        "height": 700,
+        "minWidth": 600,
+        "minHeight": 400
+      }
+    ]
+  }
+}
