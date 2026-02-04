@@ -1,6 +1,19 @@
 import type { IRenderer } from './types';
 import type { Viewport, CanvasSize, Color, BezierPoints, RendererCapabilities } from '@flowforge/types';
 
+// WebGPU 타입 (브라우저 내장, 타입만 선언)
+declare global {
+  interface Navigator {
+    gpu?: {
+      requestAdapter(): Promise<GPUAdapter | null>;
+    };
+  }
+  interface GPUAdapter {
+    requestDevice(): Promise<GPUDevice>;
+  }
+  interface GPUDevice {}
+}
+
 /**
  * WebGPU 렌더러
  * 
@@ -10,9 +23,6 @@ import type { Viewport, CanvasSize, Color, BezierPoints, RendererCapabilities } 
 export class WebGPURenderer implements IRenderer {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
-  private viewport: Viewport = { x: 0, y: 0, zoom: 1 };
-  private canvasSize: CanvasSize = { width: 0, height: 0 };
-  private dpr: number = 1;
   private _isWebGPU: boolean = false;
   
   async init(canvas: HTMLCanvasElement): Promise<boolean> {
@@ -21,7 +31,7 @@ export class WebGPURenderer implements IRenderer {
     // WebGPU 지원 체크
     if ('gpu' in navigator) {
       try {
-        const adapter = await navigator.gpu?.requestAdapter();
+        const adapter = await navigator.gpu!.requestAdapter();
         if (adapter) {
           const device = await adapter.requestDevice();
           if (device) {
@@ -62,10 +72,6 @@ export class WebGPURenderer implements IRenderer {
   }
   
   setTransform(viewport: Viewport, canvasSize: CanvasSize, dpr: number): void {
-    this.viewport = viewport;
-    this.canvasSize = canvasSize;
-    this.dpr = dpr;
-    
     if (!this.ctx) return;
     
     this.ctx.setTransform(

@@ -28,7 +28,7 @@ export async function createRenderer(
   }
   
   // 1. WebGPU 시도
-  if (options.force !== 'webgl2' && 'gpu' in navigator) {
+  if ('gpu' in navigator) {
     try {
       const webgpuRenderer = new WebGPURenderer();
       const success = await webgpuRenderer.init(canvas);

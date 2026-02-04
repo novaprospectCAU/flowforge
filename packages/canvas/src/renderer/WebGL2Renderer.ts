@@ -10,9 +10,6 @@ import type { Viewport, CanvasSize, Color, BezierPoints, RendererCapabilities } 
 export class WebGL2Renderer implements IRenderer {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
-  private viewport: Viewport = { x: 0, y: 0, zoom: 1 };
-  private canvasSize: CanvasSize = { width: 0, height: 0 };
-  private dpr: number = 1;
   
   async init(canvas: HTMLCanvasElement): Promise<boolean> {
     this.canvas = canvas;
@@ -46,10 +43,6 @@ export class WebGL2Renderer implements IRenderer {
   }
   
   setTransform(viewport: Viewport, canvasSize: CanvasSize, dpr: number): void {
-    this.viewport = viewport;
-    this.canvasSize = canvasSize;
-    this.dpr = dpr;
-    
     if (!this.ctx) return;
     
     // DPR + viewport 변환 적용

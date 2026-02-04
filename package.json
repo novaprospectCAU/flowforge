@@ -3,6 +3,7 @@
   "version": "0.1.0-alpha.1",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -14,6 +15,9 @@
     "test:canvas": "vite --open /test/canvas"
   },
   "dependencies": {
+    "@flowforge/canvas": "workspace:*",
+    "@flowforge/state": "workspace:*",
+    "@flowforge/types": "workspace:*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
