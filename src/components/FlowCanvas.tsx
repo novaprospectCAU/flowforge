@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { createRenderer, drawNodes, type IRenderer } from '@flowforge/canvas';
+import { createRenderer, drawNodes, screenToWorld, type IRenderer } from '@flowforge/canvas';
 import { createFlowStore, type FlowStore } from '@flowforge/state';
-import type { FlowNode } from '@flowforge/types';
+import type { FlowNode, CanvasSize } from '@flowforge/types';
 
 // 테스트용 노드들
 const DEMO_NODES: FlowNode[] = [
@@ -33,6 +33,8 @@ export function FlowCanvas() {
   const rendererRef = useRef<IRenderer | null>(null);
   const storeRef = useRef<FlowStore | null>(null);
   const rafRef = useRef<number>(0);
+  const isDraggingRef = useRef(false);
+  const lastMouseRef = useRef({ x: 0, y: 0 });
 
   // 렌더 루프
   const render = useCallback(() => {
@@ -100,14 +102,74 @@ export function FlowCanvas() {
     };
   }, [render]);
 
+  // Pan 시작
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button === 0 || e.button === 1) { // 좌클릭 또는 휠클릭
+      isDraggingRef.current = true;
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+    }
+  }, []);
+
+  // Pan 중
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !storeRef.current) return;
+
+    const dx = e.clientX - lastMouseRef.current.x;
+    const dy = e.clientY - lastMouseRef.current.y;
+    lastMouseRef.current = { x: e.clientX, y: e.clientY };
+
+    const state = storeRef.current.getState();
+    // 화면 이동량을 월드 좌표로 변환 (zoom 고려)
+    state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
+  }, []);
+
+  // Pan 종료
+  const handleMouseUp = useCallback(() => {
+    isDraggingRef.current = false;
+  }, []);
+
+  // Zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    if (!storeRef.current || !canvasRef.current) return;
+
+    const state = storeRef.current.getState();
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+
+    // 마우스 위치 (캔버스 기준)
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+
+    // 마우스 위치의 월드 좌표
+    const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
+
+    // 줌 계산
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(0.1, Math.min(5, state.viewport.zoom * zoomFactor));
+
+    // 마우스 위치 기준 줌
+    const newX = worldPos.x - (mouseX - canvasSize.width / 2) / newZoom;
+    const newY = worldPos.y - (mouseY - canvasSize.height / 2) / newZoom;
+
+    state.setViewport({ x: newX, y: newY, zoom: newZoom });
+  }, []);
+
   return (
     <canvas
       ref={canvasRef}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onWheel={handleWheel}
       style={{
         width: '100%',
         height: '100%',
         display: 'block',
         background: '#1e1e1e',
+        cursor: isDraggingRef.current ? 'grabbing' : 'grab',
       }}
     />
   );
