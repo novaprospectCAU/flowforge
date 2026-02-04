@@ -128,7 +128,7 @@ export class WebGPURenderer implements IRenderer {
   
   drawBezier(points: BezierPoints, color: Color, lineWidth: number): void {
     if (!this.ctx) return;
-    
+
     this.ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
     this.ctx.lineWidth = lineWidth;
     this.ctx.lineCap = 'round';
@@ -141,7 +141,16 @@ export class WebGPURenderer implements IRenderer {
     );
     this.ctx.stroke();
   }
-  
+
+  drawText(text: string, x: number, y: number, color: Color, fontSize: number = 14): void {
+    if (!this.ctx) return;
+
+    this.ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+    this.ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    this.ctx.textBaseline = 'top';
+    this.ctx.fillText(text, Math.round(x), Math.round(y));
+  }
+
   getCapabilities(): RendererCapabilities {
     return {
       type: this._isWebGPU ? 'webgpu' : 'webgl2',

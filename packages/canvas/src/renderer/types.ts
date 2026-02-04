@@ -22,6 +22,9 @@ export interface IRenderer {
   drawCircle(x: number, y: number, radius: number, color: Color): void;
   drawLine(x1: number, y1: number, x2: number, y2: number, color: Color, lineWidth: number): void;
   drawBezier(points: BezierPoints, color: Color, lineWidth: number): void;
+
+  // 텍스트
+  drawText(text: string, x: number, y: number, color: Color, fontSize?: number): void;
   
   // 상태
   getCapabilities(): RendererCapabilities;

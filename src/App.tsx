@@ -1,9 +1,9 @@
-import { CanvasContractTest } from './test/CanvasContractTest';
+import { FlowCanvas } from './components/FlowCanvas';
 
 function App() {
   return (
-    <div style={{ width: '100%', height: '100%', background: '#f5f5f5' }}>
-      <CanvasContractTest />
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <FlowCanvas />
     </div>
   );
 }
