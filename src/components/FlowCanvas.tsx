@@ -128,32 +128,35 @@ export function FlowCanvas() {
     isDraggingRef.current = false;
   }, []);
 
-  // Zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    if (!storeRef.current || !canvasRef.current) return;
-
-    const state = storeRef.current.getState();
+  // Zoom (passive: false로 등록해야 preventDefault 가능)
+  useEffect(() => {
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
+    if (!canvas) return;
 
-    // 마우스 위치 (캔버스 기준)
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (!storeRef.current) return;
 
-    // 마우스 위치의 월드 좌표
-    const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
+      const state = storeRef.current.getState();
+      const rect = canvas.getBoundingClientRect();
 
-    // 줌 계산
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.1, Math.min(5, state.viewport.zoom * zoomFactor));
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
 
-    // 마우스 위치 기준 줌
-    const newX = worldPos.x - (mouseX - canvasSize.width / 2) / newZoom;
-    const newY = worldPos.y - (mouseY - canvasSize.height / 2) / newZoom;
+      const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
 
-    state.setViewport({ x: newX, y: newY, zoom: newZoom });
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.1, Math.min(5, state.viewport.zoom * zoomFactor));
+
+      const newX = worldPos.x - (mouseX - canvasSize.width / 2) / newZoom;
+      const newY = worldPos.y - (mouseY - canvasSize.height / 2) / newZoom;
+
+      state.setViewport({ x: newX, y: newY, zoom: newZoom });
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheel);
   }, []);
 
   return (
@@ -163,7 +166,6 @@ export function FlowCanvas() {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
       style={{
         width: '100%',
         height: '100%',
