@@ -41,6 +41,7 @@ flowforge/
 - **엣지 렌더링**: 베지어, 직선, 직각 스타일 (토글 가능), 데이터 타입별 색상
 - **그리드 배경**: 무한 그리드 (minor/major 라인)
 - **미니맵**: 오른쪽 하단, 클릭으로 위치 이동, 드래그로 부드럽게 뷰포트 이동, 선택된 노드 파란색 하이라이트
+- **서브플로우 렌더링**: 접힌 상태(파란색 노드처럼), 펼친 상태(점선 테두리 배경), 내부 노드 자동 숨김
 
 ### 인터랙션
 - **Pan**: Space + 드래그 (Figma 스타일), 휠 클릭 드래그, 또는 Alt + 드래그
@@ -71,7 +72,8 @@ flowforge/
 - **노드 검색**: Ctrl+F (Cmd+F) - 이름/타입으로 검색, Enter로 이동
 - **단축키 도움말**: ? 또는 F1 - 모든 단축키 보기
 - **노드 리사이즈**: 선택된 노드의 모서리/가장자리 드래그 (최소 100x60)
-- **노드 그룹화**: Ctrl+G (그룹 생성), Ctrl+Shift+G (그룹 해제), 그룹 헤더 클릭으로 전체 선택
+- **노드 그룹화**: Ctrl+G (그룹 생성), Ctrl+Shift+U (그룹 해제), 그룹 헤더 클릭으로 전체 선택
+- **서브플로우**: Ctrl+Shift+G (서브플로우 생성), 더블클릭으로 펼치기, 우클릭 메뉴로 접기/펼치기/삭제
 - **키보드 노드 탐색**: [ / ] 이전/다음 노드, 화살표 키 (미선택 시) 해당 방향 노드 선택, Enter 선택 노드로 뷰 이동
 - **코멘트/스티키 노트**: C 키 또는 우클릭 메뉴로 추가, 드래그로 이동/리사이즈, 노드처럼 선택/삭제 가능
 - **파일 저장/불러오기**: Ctrl+S (저장), Ctrl+O (열기), Ctrl+N (새 플로우)
@@ -84,6 +86,7 @@ flowforge/
 - **노드 CRUD**: addNode, updateNode, deleteNode
 - **엣지 CRUD**: addEdge, deleteEdge
 - **뷰포트**: setViewport, pan, zoom
+- **서브플로우**: createSubflow, deleteSubflow, collapseSubflow, expandSubflow, getSubflowForNode
 
 ### 노드 타입 시스템
 - **노드 레지스트리**: 타입별 정의 관리
@@ -139,6 +142,13 @@ worldToScreen(worldPos, viewport, canvasSize): Position
 hitTestNode(worldPos, nodes): FlowNode | null
 hitTestPort(worldPos, nodes): PortHitResult | null
 hitTestEdge(worldPos, edges, nodes): FlowEdge | null
+hitTestCollapsedSubflow(worldPos, subflows): CollapsedSubflowHitResult | null
+hitTestSubflowPort(worldPos, subflows): SubflowPortHitResult | null
+
+// 서브플로우 렌더링
+drawSubflows(renderer, subflows, nodes, selectedSubflowId?)
+drawCollapsedSubflow(renderer, subflow, isSelected)
+drawExpandedSubflow(renderer, subflow, nodes, isSelected)
 ```
 
 ### @flowforge/state
@@ -150,6 +160,7 @@ createFlowStore(): FlowStore
 interface FlowState {
   nodes: FlowNode[]
   edges: FlowEdge[]
+  subflows: Subflow[]
   viewport: Viewport
 
   // 액션
@@ -163,7 +174,19 @@ interface FlowState {
   zoom(factor: number, centerX?: number, centerY?: number): void
   undo(): void
   redo(): void
+
+  // 서브플로우 액션
+  createSubflow(name: string, nodeIds: string[]): string | null
+  deleteSubflow(id: string): void
+  collapseSubflow(id: string): void
+  expandSubflow(id: string): void
+  getSubflowForNode(nodeId: string): Subflow | undefined
 }
+
+// 서브플로우 유틸리티
+getVisibleNodes(nodes, subflows): FlowNode[]  // 접힌 서브플로우 내부 노드 제외
+classifyEdges(edges, nodeIds): { internal, incoming, outgoing }
+resolveEdgeEndpoints(edges, subflows): ResolvedEdge[]
 
 // 노드 타입 레지스트리
 nodeTypeRegistry.register(definition: NodeTypeDefinition): void
@@ -203,6 +226,19 @@ interface Comment {
   position: Position
   size: Size
   color?: string  // 배경색 (hex)
+}
+
+interface Subflow {
+  id: string
+  name: string
+  nodeIds: string[]           // 포함된 노드 ID들
+  internalEdgeIds: string[]   // 내부 엣지 ID들
+  inputMappings: SubflowPortMapping[]
+  outputMappings: SubflowPortMapping[]
+  collapsed: boolean
+  collapsedPosition?: Position
+  collapsedSize?: Size
+  color?: string
 }
 
 interface Viewport {
