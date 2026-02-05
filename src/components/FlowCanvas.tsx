@@ -115,6 +115,17 @@ export function FlowCanvas() {
   } | null>(null);
   const [executionState, setExecutionState] = useState<ExecutionState | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const GRID_SIZE = 20; // 스냅 그리드 크기
+
+  // 그리드에 스냅
+  const snapPosition = (pos: Position): Position => {
+    if (!snapToGrid) return pos;
+    return {
+      x: Math.round(pos.x / GRID_SIZE) * GRID_SIZE,
+      y: Math.round(pos.y / GRID_SIZE) * GRID_SIZE,
+    };
+  };
 
   const setSelectedNodes = (ids: Set<string>) => {
     selectedNodeIdsRef.current = ids;
@@ -341,11 +352,12 @@ export function FlowCanvas() {
       for (const nodeId of selectedIds) {
         const node = state.nodes.find(n => n.id === nodeId);
         if (node) {
+          const newPos = {
+            x: node.position.x + dx / state.viewport.zoom,
+            y: node.position.y + dy / state.viewport.zoom,
+          };
           state.updateNode(nodeId, {
-            position: {
-              x: node.position.x + dx / state.viewport.zoom,
-              y: node.position.y + dy / state.viewport.zoom,
-            },
+            position: snapToGrid ? snapPosition(newPos) : newPos,
           });
         }
       }
@@ -725,14 +737,14 @@ export function FlowCanvas() {
         return;
       }
 
-      // Arrow Keys: 선택된 노드 이동 (10px, Shift 누르면 1px)
+      // Arrow Keys: 선택된 노드 이동 (그리드 또는 10px, Shift 누르면 1px)
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         const selectedIds = selectedNodeIdsRef.current;
         if (selectedIds.size === 0) return;
 
         e.preventDefault();
         const state = store.getState();
-        const step = e.shiftKey ? 1 : 10;
+        const step = e.shiftKey ? 1 : (snapToGrid ? GRID_SIZE : 10);
 
         let dx = 0, dy = 0;
         if (e.key === 'ArrowUp') dy = -step;
@@ -751,6 +763,13 @@ export function FlowCanvas() {
             });
           }
         }
+        return;
+      }
+
+      // Toggle Snap: G 키
+      if (e.key === 'g' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setSnapToGrid(prev => !prev);
         return;
       }
     };
@@ -813,13 +832,15 @@ export function FlowCanvas() {
     const store = storeRef.current;
     if (!store) return;
 
+    const rawPosition = {
+      x: worldPos.x - typeDef.defaultSize.width / 2,
+      y: worldPos.y - typeDef.defaultSize.height / 2,
+    };
+
     const newNode: FlowNode = {
       id: `node-${Date.now()}`,
       type: typeDef.type,
-      position: {
-        x: worldPos.x - typeDef.defaultSize.width / 2,
-        y: worldPos.y - typeDef.defaultSize.height / 2,
-      },
+      position: snapToGrid ? snapPosition(rawPosition) : rawPosition,
       size: typeDef.defaultSize,
       data: { title: typeDef.title },
       inputs: typeDef.inputs,
@@ -913,6 +934,22 @@ export function FlowCanvas() {
           alignItems: 'center',
         }}
       >
+        {/* 스냅 토글 */}
+        <button
+          onClick={() => setSnapToGrid(prev => !prev)}
+          title={`Snap to Grid: ${snapToGrid ? 'ON' : 'OFF'} (G)`}
+          style={{
+            padding: '8px 12px',
+            background: snapToGrid ? '#4a5568' : '#2d3748',
+            color: snapToGrid ? '#68d391' : '#a0aec0',
+            border: snapToGrid ? '1px solid #68d391' : '1px solid #4a5568',
+            borderRadius: 4,
+            fontSize: 12,
+            cursor: 'pointer',
+          }}
+        >
+          Grid: {snapToGrid ? 'ON' : 'OFF'}
+        </button>
         {executionState && (
           <div
             style={{
