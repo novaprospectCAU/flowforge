@@ -664,25 +664,8 @@ export function FlowCanvas() {
 
     const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
 
-    // 리사이즈 핸들 체크 (선택된 노드가 있을 때만)
+    // 포트 히트 테스트 (리사이즈보다 우선)
     const selectedIds = selectedNodeIdsRef.current;
-    if (selectedIds.size > 0) {
-      const resizeHit = hitTestResizeHandle(worldPos, state.nodes, selectedIds);
-      if (resizeHit) {
-        dragModeRef.current = 'resize';
-        lastMouseRef.current = { x: e.clientX, y: e.clientY };
-        resizeRef.current = {
-          node: resizeHit.node,
-          handle: resizeHit.handle,
-          startPos: worldPos,
-          startSize: { ...resizeHit.node.size },
-          startNodePos: { ...resizeHit.node.position },
-        };
-        return;
-      }
-    }
-
-    // 포트 히트 테스트
     const hitPort = hitTestPort(worldPos, state.nodes);
     if (hitPort) {
       dragModeRef.current = 'edge';
@@ -739,6 +722,23 @@ export function FlowCanvas() {
 
       compatiblePortsMapRef.current = compatibleMap;
       return;
+    }
+
+    // 리사이즈 핸들 체크 (선택된 노드가 있을 때만, 포트보다 후순위)
+    if (selectedIds.size > 0) {
+      const resizeHit = hitTestResizeHandle(worldPos, state.nodes, selectedIds);
+      if (resizeHit) {
+        dragModeRef.current = 'resize';
+        lastMouseRef.current = { x: e.clientX, y: e.clientY };
+        resizeRef.current = {
+          node: resizeHit.node,
+          handle: resizeHit.handle,
+          startPos: worldPos,
+          startSize: { ...resizeHit.node.size },
+          startNodePos: { ...resizeHit.node.position },
+        };
+        return;
+      }
     }
 
     // 엣지 클릭 확인 (삭제)
@@ -866,6 +866,14 @@ export function FlowCanvas() {
       const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
       const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
 
+      // 포트 히트 테스트 (리사이즈보다 우선)
+      const hitPort = hitTestPort(worldPos, state.nodes);
+      if (hitPort) {
+        setCursorStyle('crosshair');
+        return;
+      }
+
+      // 리사이즈 핸들 체크 (선택된 노드가 있을 때만)
       const selectedIds = selectedNodeIdsRef.current;
       if (selectedIds.size > 0) {
         const resizeHit = hitTestResizeHandle(worldPos, state.nodes, selectedIds);
