@@ -6,6 +6,8 @@ import {
   drawEdges,
   drawTempEdge,
   drawMinimap,
+  drawSelectionBox,
+  isNodeInSelectionBox,
   screenToWorld,
   hitTestNode,
   hitTestPort,
@@ -26,7 +28,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
 
-type DragMode = 'none' | 'pan' | 'node' | 'edge';
+type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box';
 
 // 테스트용 노드들
 const DEMO_NODES: FlowNode[] = [
@@ -90,6 +92,10 @@ export function FlowCanvas() {
   const edgeDragRef = useRef<{
     startPort: PortHitResult;
     currentPos: Position;
+  } | null>(null);
+  const boxSelectRef = useRef<{
+    start: Position;
+    end: Position;
   } | null>(null);
   const [, forceRender] = useState(0);
   const [contextMenu, setContextMenu] = useState<{
@@ -180,6 +186,12 @@ export function FlowCanvas() {
     }
     drawNodes(renderer, state.nodes, selectedIds, nodeExecStates);
 
+    // 박스 선택
+    const boxSelect = boxSelectRef.current;
+    if (boxSelect) {
+      drawSelectionBox(renderer, boxSelect.start, boxSelect.end);
+    }
+
     // 미니맵 (스크린 좌표로 그림)
     drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr);
 
@@ -231,6 +243,14 @@ export function FlowCanvas() {
 
   // 마우스 다운 - 포트/노드 선택 또는 Pan 시작
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // 중간 버튼 (휠 클릭) = Pan
+    if (e.button === 1) {
+      e.preventDefault();
+      dragModeRef.current = 'pan';
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
     if (e.button !== 0) return; // 좌클릭만
 
     const canvas = canvasRef.current;
@@ -279,10 +299,19 @@ export function FlowCanvas() {
       }
       // 이미 선택된 노드를 Shift 없이 클릭하면 선택 유지
     } else {
-      // Pan 모드
-      dragModeRef.current = 'pan';
-      if (!e.shiftKey) {
-        setSelectedNodes(new Set());
+      // Alt 키 = Pan, 그 외 = 박스 선택
+      if (e.altKey) {
+        dragModeRef.current = 'pan';
+      } else {
+        // 박스 선택 모드 (빈 공간 드래그)
+        dragModeRef.current = 'box';
+        boxSelectRef.current = {
+          start: worldPos,
+          end: worldPos,
+        };
+        if (!e.shiftKey) {
+          setSelectedNodes(new Set());
+        }
       }
     }
   }, []);
@@ -327,6 +356,17 @@ export function FlowCanvas() {
         state.viewport,
         canvasSize
       );
+    } else if (dragModeRef.current === 'box' && boxSelectRef.current) {
+      // 박스 선택 드래그 중
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+      boxSelectRef.current.end = screenToWorld(
+        { x: mouseX, y: mouseY },
+        state.viewport,
+        canvasSize
+      );
     }
   }, []);
 
@@ -366,6 +406,28 @@ export function FlowCanvas() {
       }
 
       edgeDragRef.current = null;
+    }
+
+    // 박스 선택 완료 시 노드 선택
+    if (dragModeRef.current === 'box' && boxSelectRef.current && store) {
+      const box = boxSelectRef.current;
+      const state = store.getState();
+      const newSelection = new Set<string>(e.shiftKey ? selectedNodeIdsRef.current : []);
+
+      for (const node of state.nodes) {
+        if (isNodeInSelectionBox(
+          node.position,
+          node.size.width,
+          node.size.height,
+          box.start,
+          box.end
+        )) {
+          newSelection.add(node.id);
+        }
+      }
+
+      setSelectedNodes(newSelection);
+      boxSelectRef.current = null;
     }
 
     dragModeRef.current = 'none';

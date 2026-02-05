@@ -11,6 +11,7 @@ export { drawNode, drawNodes, NODE_STYLE } from './rendering/drawNode';
 export { drawEdge, drawEdges, drawTempEdge, getPortPosition } from './rendering/drawEdge';
 export { drawGrid } from './rendering/drawGrid';
 export { drawMinimap } from './rendering/drawMinimap';
+export { drawSelectionBox, isNodeInSelectionBox } from './rendering/drawSelectionBox';
 
 // Interaction
 export { hitTestNode, hitTestPort, hitTestEdge, type PortHitResult } from './interaction/hitTest';
