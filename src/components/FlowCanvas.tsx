@@ -36,6 +36,7 @@ import {
   loadFlowFromFile,
   saveToLocalStorage,
   loadFromLocalStorage,
+  validateNodes,
   type FlowStore,
   type NodeTypeDefinition,
   type ExecutionState,
@@ -479,7 +480,11 @@ export function FlowCanvas() {
         nodeExecStates.set(nodeId, nodeState.status);
       }
     }
-    drawNodes(renderer, state.nodes, selectedIds, nodeExecStates, compatiblePortsMapRef.current);
+
+    // 노드 검증 (미연결 필수 포트 경고)
+    const validationMap = validateNodes(state.nodes, state.edges);
+
+    drawNodes(renderer, state.nodes, selectedIds, nodeExecStates, compatiblePortsMapRef.current, null, validationMap);
 
     // 스냅 라인 (노드 드래그 중에만)
     if (dragModeRef.current === 'node' && snapLinesRef.current.length > 0) {

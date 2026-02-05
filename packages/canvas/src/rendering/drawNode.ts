@@ -17,6 +17,9 @@ const NODE_COLORS = {
   running: { r: 255, g: 193, b: 7, a: 255 } as Color,   // 노란색
   success: { r: 40, g: 167, b: 69, a: 255 } as Color,   // 초록색
   error: { r: 220, g: 53, b: 69, a: 255 } as Color,     // 빨간색
+  // 검증 경고 색상
+  warning: { r: 255, g: 152, b: 0, a: 255 } as Color,   // 주황색
+  warningPort: { r: 255, g: 100, b: 100, a: 255 } as Color,  // 미연결 필수 포트 (빨간 테두리)
 };
 
 // 데이터 타입별 포트 색상
@@ -44,6 +47,12 @@ export interface CompatiblePorts {
   isOutput: boolean;
 }
 
+// 노드 검증 경고 정보
+export interface NodeValidation {
+  hasWarning: boolean;
+  unconnectedRequiredPorts: string[];  // 연결되지 않은 필수 포트 ID 목록
+}
+
 export const NODE_STYLE = {
   borderRadius: 8,
   headerHeight: 28,
@@ -64,7 +73,8 @@ export function drawNode(
   selected: boolean = false,
   execStatus?: ExecutionStatus,
   compatiblePorts?: CompatiblePorts | null,
-  hoveredPortId?: string | null
+  hoveredPortId?: string | null,
+  validation?: NodeValidation | null
 ): void {
   const { x, y } = node.position;
   const { width, height } = node.size;
@@ -80,6 +90,8 @@ export function drawNode(
     borderColor = NODE_COLORS.success;
   } else if (execStatus === 'error') {
     borderColor = NODE_COLORS.error;
+  } else if (validation?.hasWarning) {
+    borderColor = NODE_COLORS.warning;
   } else if (selected) {
     borderColor = NODE_COLORS.selected;
   }
@@ -127,6 +139,9 @@ export function drawNode(
   const isConnecting = compatiblePorts !== undefined && compatiblePorts !== null;
   const isCompatibleNode = isConnecting && compatiblePorts.nodeId === node.id;
 
+  // 미연결 필수 포트 목록
+  const unconnectedPorts = new Set(validation?.unconnectedRequiredPorts || []);
+
   // 5. 입력 포트 (왼쪽)
   const inputs = node.inputs || [];
   for (let i = 0; i < inputs.length; i++) {
@@ -155,14 +170,23 @@ export function drawNode(
       portColor = NODE_COLORS.portHover;
     }
 
+    // 미연결 필수 포트 경고 표시 (빨간 링)
+    if (unconnectedPorts.has(port.id)) {
+      renderer.drawCircle(x, portY, NODE_STYLE.portRadius + 3, NODE_COLORS.warningPort);
+    }
+
     renderer.drawCircle(x, portY, NODE_STYLE.portRadius, portColor);
 
     // 포트 라벨 (포트 오른쪽에 표시) - 데이터 타입 색상 사용
+    // 미연결 필수 포트는 경고 색상으로 표시
+    const labelColor = unconnectedPorts.has(port.id)
+      ? NODE_COLORS.warningPort
+      : getPortColorByType(port.dataType);
     renderer.drawText(
-      port.name,
+      port.name + (port.required && unconnectedPorts.has(port.id) ? ' *' : ''),
       x + NODE_STYLE.portLabelOffset,
       portY - NODE_STYLE.portLabelFontSize / 2,
-      getPortColorByType(port.dataType),
+      labelColor,
       NODE_STYLE.portLabelFontSize
     );
   }
@@ -218,12 +242,14 @@ export function drawNodes(
   selectedIds: Set<string> = new Set(),
   nodeExecStates?: Map<string, ExecutionStatus>,
   compatiblePortsMap?: Map<string, CompatiblePorts> | null,
-  hoveredPortInfo?: { nodeId: string; portId: string } | null
+  hoveredPortInfo?: { nodeId: string; portId: string } | null,
+  validationMap?: Map<string, NodeValidation> | null
 ): void {
   for (const node of nodes) {
     const execStatus = nodeExecStates?.get(node.id);
     const compatiblePorts = compatiblePortsMap?.get(node.id) || null;
     const hoveredPortId = hoveredPortInfo?.nodeId === node.id ? hoveredPortInfo.portId : null;
-    drawNode(renderer, node, selectedIds.has(node.id), execStatus, compatiblePorts, hoveredPortId);
+    const validation = validationMap?.get(node.id) || null;
+    drawNode(renderer, node, selectedIds.has(node.id), execStatus, compatiblePorts, hoveredPortId, validation);
   }
 }

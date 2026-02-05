@@ -43,3 +43,10 @@ export {
   clearLocalStorage,
   type SerializedFlow,
 } from './serialization';
+
+// 검증
+export {
+  validateNode,
+  validateNodes,
+  type NodeValidationResult,
+} from './validation';
