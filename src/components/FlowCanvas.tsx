@@ -103,6 +103,8 @@ export function FlowCanvas() {
     start: Position;
     end: Position;
   } | null>(null);
+  // 드래그 중 노드의 "실제" 위치 (스냅 전)
+  const nodeDragPositionsRef = useRef<Map<string, Position>>(new Map());
   const clipboardRef = useRef<{
     nodes: FlowNode[];
     edges: FlowEdge[];
@@ -127,6 +129,19 @@ export function FlowCanvas() {
   const [showSearch, setShowSearch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const GRID_SIZE = 20; // 스냅 그리드 크기
+
+  // Refs for use in callbacks (to avoid stale closures)
+  const snapToGridRef = useRef(snapToGrid);
+  const edgeStyleRef = useRef(edgeStyle);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    snapToGridRef.current = snapToGrid;
+  }, [snapToGrid]);
+
+  useEffect(() => {
+    edgeStyleRef.current = edgeStyle;
+  }, [edgeStyle]);
 
   // 줌 컨트롤 핸들러
   const handleZoomIn = useCallback(() => {
@@ -201,14 +216,14 @@ export function FlowCanvas() {
     setSelectedNodes(new Set([node.id]));
   }, []);
 
-  // 그리드에 스냅
-  const snapPosition = (pos: Position): Position => {
-    if (!snapToGrid) return pos;
+  // 그리드에 스냅 (useRef를 사용하여 항상 최신 값 참조)
+  const snapPosition = useCallback((pos: Position): Position => {
+    if (!snapToGridRef.current) return pos;
     return {
       x: Math.round(pos.x / GRID_SIZE) * GRID_SIZE,
       y: Math.round(pos.y / GRID_SIZE) * GRID_SIZE,
     };
-  };
+  }, []);
 
   const setSelectedNodes = (ids: Set<string>) => {
     selectedNodeIdsRef.current = ids;
@@ -361,7 +376,7 @@ export function FlowCanvas() {
     drawGrid(renderer, state.viewport, canvasSize);
 
     // 엣지 (노드 아래)
-    drawEdges(renderer, state.edges, state.nodes, edgeStyle);
+    drawEdges(renderer, state.edges, state.nodes, edgeStyleRef.current);
 
     // 드래그 중인 임시 엣지
     const edgeDrag = edgeDragRef.current;
@@ -371,7 +386,7 @@ export function FlowCanvas() {
         edgeDrag.startPort.position,
         edgeDrag.currentPos,
         edgeDrag.startPort.isOutput,
-        edgeStyle
+        edgeStyleRef.current
       );
     }
 
@@ -507,6 +522,17 @@ export function FlowCanvas() {
         setSelectedNodes(new Set([hitNode.id]));
       }
       // 이미 선택된 노드를 Shift 없이 클릭하면 선택 유지
+
+      // 드래그 시작 시 선택된 노드들의 현재 위치 저장
+      const dragPositions = new Map<string, Position>();
+      const selectedIds = isAlreadySelected ? selectedNodeIdsRef.current : new Set([hitNode.id]);
+      for (const nodeId of selectedIds) {
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (node) {
+          dragPositions.set(nodeId, { ...node.position });
+        }
+      }
+      nodeDragPositionsRef.current = dragPositions;
     } else {
       // Alt 키 = Pan, 그 외 = 박스 선택
       if (e.altKey) {
@@ -542,18 +568,19 @@ export function FlowCanvas() {
       state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
     } else if (dragModeRef.current === 'node') {
       // 선택된 모든 노드 이동
-      const selectedIds = selectedNodeIdsRef.current;
-      for (const nodeId of selectedIds) {
-        const node = state.nodes.find(n => n.id === nodeId);
-        if (node) {
-          const newPos = {
-            x: node.position.x + dx / state.viewport.zoom,
-            y: node.position.y + dy / state.viewport.zoom,
-          };
-          state.updateNode(nodeId, {
-            position: snapToGrid ? snapPosition(newPos) : newPos,
-          });
-        }
+      const dragPositions = nodeDragPositionsRef.current;
+      for (const [nodeId, floatPos] of dragPositions) {
+        // 실제 위치 업데이트 (스냅 없이)
+        const newFloatPos = {
+          x: floatPos.x + dx / state.viewport.zoom,
+          y: floatPos.y + dy / state.viewport.zoom,
+        };
+        dragPositions.set(nodeId, newFloatPos);
+
+        // 화면에는 스냅된 위치 표시 (스냅 ON일 때만)
+        state.updateNode(nodeId, {
+          position: snapToGridRef.current ? snapPosition(newFloatPos) : newFloatPos,
+        });
       }
     } else if (dragModeRef.current === 'edge' && edgeDragRef.current) {
       // 엣지 드래그 중 - 현재 마우스 위치 업데이트
@@ -646,6 +673,11 @@ export function FlowCanvas() {
 
       setSelectedNodes(newSelection);
       boxSelectRef.current = null;
+    }
+
+    // 노드 드래그 종료 시 위치 맵 정리
+    if (dragModeRef.current === 'node') {
+      nodeDragPositionsRef.current.clear();
     }
 
     dragModeRef.current = 'none';
@@ -986,7 +1018,7 @@ export function FlowCanvas() {
 
         e.preventDefault();
         const state = store.getState();
-        const step = e.shiftKey ? 1 : (snapToGrid ? GRID_SIZE : 10);
+        const step = e.shiftKey ? 1 : (snapToGridRef.current ? GRID_SIZE : 10);
 
         let dx = 0, dy = 0;
         if (e.key === 'ArrowUp') dy = -step;
@@ -1089,7 +1121,7 @@ export function FlowCanvas() {
     const newNode: FlowNode = {
       id: `node-${Date.now()}`,
       type: typeDef.type,
-      position: snapToGrid ? snapPosition(rawPosition) : rawPosition,
+      position: snapToGridRef.current ? snapPosition(rawPosition) : rawPosition,
       size: typeDef.defaultSize,
       data: { title: typeDef.title },
       inputs: typeDef.inputs,
