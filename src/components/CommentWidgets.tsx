@@ -9,7 +9,9 @@ interface CommentWidgetsProps {
   comments: Comment[];
   viewport: Viewport;
   canvasSize: CanvasSize;
+  editingCommentId: string | null;
   onUpdateComment: (commentId: string, text: string, updatedAt: number) => void;
+  onEditingEnd: () => void;
   onWidgetInteraction?: (interacting: boolean) => void;
 }
 
@@ -17,7 +19,9 @@ export function CommentWidgets({
   comments,
   viewport,
   canvasSize,
+  editingCommentId,
   onUpdateComment,
+  onEditingEnd,
   onWidgetInteraction,
 }: CommentWidgetsProps) {
   // 줌이 너무 작으면 위젯 숨김
@@ -41,7 +45,9 @@ export function CommentWidgets({
           comment={comment}
           viewport={viewport}
           canvasSize={canvasSize}
+          isEditing={editingCommentId === comment.id}
           onUpdate={(text) => onUpdateComment(comment.id, text, Date.now())}
+          onEditingEnd={onEditingEnd}
           onInteraction={onWidgetInteraction}
         />
       ))}

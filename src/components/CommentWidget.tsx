@@ -1,5 +1,7 @@
 /**
  * Comment 위젯 - 코멘트 편집 및 시간 표시
+ * - 한 번 클릭: 선택 (캔버스에서 처리)
+ * - 더블클릭: 편집 모드
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -10,7 +12,9 @@ interface CommentWidgetProps {
   comment: Comment;
   viewport: Viewport;
   canvasSize: CanvasSize;
+  isEditing: boolean;
   onUpdate: (text: string) => void;
+  onEditingEnd: () => void;
   onInteraction?: (interacting: boolean) => void;
 }
 
@@ -51,20 +55,28 @@ export function CommentWidget({
   comment,
   viewport,
   canvasSize,
+  isEditing,
   onUpdate,
+  onEditingEnd,
   onInteraction,
 }: CommentWidgetProps) {
   const [localText, setLocalText] = useState(comment.text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isInitialRender = useRef(true);
 
   // 외부 변경 반영
   useEffect(() => {
-    if (!isInitialRender.current) {
-      setLocalText(comment.text);
-    }
-    isInitialRender.current = false;
+    setLocalText(comment.text);
   }, [comment.text]);
+
+  // 편집 모드 진입 시 자동 포커스
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      textareaRef.current.focus();
+      // 커서를 끝으로 이동
+      const len = textareaRef.current.value.length;
+      textareaRef.current.setSelectionRange(len, len);
+    }
+  }, [isEditing]);
 
   // 스크린 좌표 계산
   const screenPos = worldToScreen(comment.position, viewport, canvasSize);
@@ -95,18 +107,25 @@ export function CommentWidget({
     [onUpdate]
   );
 
-  // textarea에서만 이벤트 처리 (드래그 허용을 위해)
+  // textarea 이벤트 핸들러 (편집 모드에서만 활성화)
   const handleTextareaMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation(); // textarea 클릭 시에만 캔버스 이벤트 차단
-    onInteraction?.(true);
-  };
-
-  const handleTextareaFocus = () => {
-    onInteraction?.(true);
+    if (isEditing) {
+      e.stopPropagation(); // 편집 중일 때만 캔버스 이벤트 차단
+      onInteraction?.(true);
+    }
   };
 
   const handleTextareaBlur = () => {
     onInteraction?.(false);
+    onEditingEnd();
+  };
+
+  // Escape 키로 편집 종료
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      textareaRef.current?.blur();
+    }
   };
 
   // 시간 표시
@@ -126,20 +145,21 @@ export function CommentWidget({
         top: screenPos.y,
         width: scaledWidth,
         height: scaledHeight,
-        pointerEvents: 'none', // 컨테이너는 클릭 통과 (드래그 허용)
+        pointerEvents: 'none', // 컨테이너는 항상 클릭 통과
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* 텍스트 입력 영역 - 클릭 시에만 편집 모드 */}
+      {/* 텍스트 입력 영역 - 편집 모드에서만 클릭 가능 */}
       <textarea
         ref={textareaRef}
         value={localText}
         onChange={handleChange}
         placeholder="New comment / 새로운 코멘트"
         onMouseDown={handleTextareaMouseDown}
-        onFocus={handleTextareaFocus}
         onBlur={handleTextareaBlur}
+        onKeyDown={handleKeyDown}
+        readOnly={!isEditing}
         style={{
           flex: 1,
           width: '100%',
@@ -154,8 +174,8 @@ export function CommentWidget({
           outline: 'none',
           resize: 'none',
           overflow: 'hidden',
-          pointerEvents: 'auto', // textarea만 클릭 가능
-          cursor: 'text',
+          pointerEvents: isEditing ? 'auto' : 'none', // 편집 모드에서만 클릭 가능
+          cursor: isEditing ? 'text' : 'default',
         }}
       />
 
@@ -169,7 +189,7 @@ export function CommentWidget({
             color: '#999',
             textAlign: 'right',
             lineHeight: 1,
-            pointerEvents: 'none', // 시간 영역도 클릭 통과
+            pointerEvents: 'none',
           }}
         >
           {isUpdated && <span>(updated) </span>}

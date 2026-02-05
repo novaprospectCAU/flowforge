@@ -152,6 +152,7 @@ export function FlowCanvas() {
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [currentZoom, setCurrentZoom] = useState(1);
   const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('bezier');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
@@ -1067,6 +1068,7 @@ export function FlowCanvas() {
       };
       commentDragRef.current.startPos = newPos;
       state.updateComment(commentDrag.comment.id, { position: newPos });
+      forceRender(n => n + 1); // 위젯 위치 업데이트
     } else if (dragModeRef.current === 'subflow' && subflowDragRef.current) {
       // 서브플로우 드래그
       const subflowDrag = subflowDragRef.current;
@@ -1494,7 +1496,7 @@ export function FlowCanvas() {
         state.updateComment(comment.id, {
           position: { x: startPos.x + totalDx, y: startPos.y + totalDy },
         });
-        forceRender(n => n + 1);
+        forceRender(n => n + 1); // 위젯 위치 업데이트
       } else if (dragModeRef.current === 'subflow' && subflowDragRef.current) {
         // 서브플로우 드래그
         const subflow = subflowDragRef.current.subflow;
@@ -2405,7 +2407,7 @@ export function FlowCanvas() {
     });
   }, []);
 
-  // 더블클릭 - 빈 공간에서 노드 팔레트 열기
+  // 더블클릭 - 코멘트 편집 또는 빈 공간에서 노드 팔레트 열기
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     const canvas = canvasRef.current;
     const store = storeRef.current;
@@ -2424,6 +2426,15 @@ export function FlowCanvas() {
     if (hitSubflow) {
       state.expandSubflow(hitSubflow.subflow.id);
       selectedSubflowIdRef.current = hitSubflow.subflow.id;
+      return;
+    }
+
+    // 코멘트 더블클릭 - 편집 모드
+    const hitComment = hitTestComment(worldPos, state.comments);
+    if (hitComment) {
+      setEditingCommentId(hitComment.id);
+      selectedCommentIdRef.current = hitComment.id;
+      forceRender(n => n + 1);
       return;
     }
 
@@ -2913,9 +2924,11 @@ export function FlowCanvas() {
           comments={storeRef.current.getState().comments}
           viewport={storeRef.current.getState().viewport}
           canvasSize={canvasSizeRef.current}
+          editingCommentId={editingCommentId}
           onUpdateComment={(commentId, text, updatedAt) => {
             storeRef.current?.getState().updateComment(commentId, { text, updatedAt });
           }}
+          onEditingEnd={() => setEditingCommentId(null)}
           onWidgetInteraction={setWidgetInteracting}
         />
       )}
