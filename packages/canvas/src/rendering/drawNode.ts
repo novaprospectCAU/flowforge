@@ -8,13 +8,17 @@ const NODE_COLORS = {
   border: { r: 100, g: 100, b: 105, a: 255 } as Color,
   selected: { r: 66, g: 135, b: 245, a: 255 } as Color,
   text: { r: 255, g: 255, b: 255, a: 255 } as Color,
+  port: { r: 160, g: 160, b: 165, a: 255 } as Color,
+  portHover: { r: 100, g: 180, b: 255, a: 255 } as Color,
 };
 
-const NODE_STYLE = {
+export const NODE_STYLE = {
   borderRadius: 8,
   headerHeight: 28,
   padding: 12,
   fontSize: 13,
+  portRadius: 6,
+  portSpacing: 24,
 };
 
 /**
@@ -65,6 +69,20 @@ export function drawNode(renderer: IRenderer, node: FlowNode, selected: boolean 
     NODE_COLORS.text,
     NODE_STYLE.fontSize
   );
+
+  // 5. 입력 포트 (왼쪽)
+  const inputs = node.inputs || [];
+  for (let i = 0; i < inputs.length; i++) {
+    const portY = y + NODE_STYLE.headerHeight + NODE_STYLE.portSpacing * (i + 0.5);
+    renderer.drawCircle(x, portY, NODE_STYLE.portRadius, NODE_COLORS.port);
+  }
+
+  // 6. 출력 포트 (오른쪽)
+  const outputs = node.outputs || [];
+  for (let i = 0; i < outputs.length; i++) {
+    const portY = y + NODE_STYLE.headerHeight + NODE_STYLE.portSpacing * (i + 0.5);
+    renderer.drawCircle(x + width, portY, NODE_STYLE.portRadius, NODE_COLORS.port);
+  }
 }
 
 /**

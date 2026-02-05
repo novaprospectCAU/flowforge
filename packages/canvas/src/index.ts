@@ -7,7 +7,8 @@ export { snapToHalfPixel, snapLineCoords } from './renderer/types';
 export { screenToWorld, worldToScreen, getViewportBounds } from './viewport/transform';
 
 // Rendering
-export { drawNode, drawNodes } from './rendering/drawNode';
+export { drawNode, drawNodes, NODE_STYLE } from './rendering/drawNode';
+export { drawEdge, drawEdges, drawTempEdge, getPortPosition } from './rendering/drawEdge';
 
 // Interaction
-export { hitTestNode } from './interaction/hitTest';
+export { hitTestNode, hitTestPort, type PortHitResult } from './interaction/hitTest';

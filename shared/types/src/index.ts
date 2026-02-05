@@ -50,6 +50,8 @@ export interface FlowNode {
   position: Position;
   size: Size;
   data: Record<string, unknown>;
+  inputs?: PortDefinition[];
+  outputs?: PortDefinition[];
 }
 
 // === 엣지 ===
@@ -90,6 +92,11 @@ export interface PortDefinition {
   defaultValue?: unknown;
   required?: boolean;
   multi?: boolean;
+}
+
+export interface NodePorts {
+  inputs: PortDefinition[];
+  outputs: PortDefinition[];
 }
 
 // === 렌더러 ===

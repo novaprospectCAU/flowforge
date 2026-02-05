@@ -1,9 +1,19 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { createRenderer, drawNodes, screenToWorld, hitTestNode, type IRenderer } from '@flowforge/canvas';
+import {
+  createRenderer,
+  drawNodes,
+  drawEdges,
+  drawTempEdge,
+  screenToWorld,
+  hitTestNode,
+  hitTestPort,
+  type IRenderer,
+  type PortHitResult,
+} from '@flowforge/canvas';
 import { createFlowStore, type FlowStore } from '@flowforge/state';
-import type { FlowNode, CanvasSize } from '@flowforge/types';
+import type { FlowNode, FlowEdge, CanvasSize, Position } from '@flowforge/types';
 
-type DragMode = 'none' | 'pan' | 'node';
+type DragMode = 'none' | 'pan' | 'node' | 'edge';
 
 // 테스트용 노드들
 const DEMO_NODES: FlowNode[] = [
@@ -11,22 +21,48 @@ const DEMO_NODES: FlowNode[] = [
     id: 'node-1',
     type: 'Input',
     position: { x: -200, y: -100 },
-    size: { width: 180, height: 120 },
+    size: { width: 180, height: 100 },
     data: { title: 'Load Image' },
+    inputs: [],
+    outputs: [
+      { id: 'out-1', name: 'image', dataType: 'any' },
+    ],
   },
   {
     id: 'node-2',
     type: 'Process',
-    position: { x: 50, y: -50 },
-    size: { width: 180, height: 140 },
+    position: { x: 100, y: -80 },
+    size: { width: 180, height: 120 },
     data: { title: 'Resize' },
+    inputs: [
+      { id: 'in-1', name: 'image', dataType: 'any' },
+      { id: 'in-2', name: 'scale', dataType: 'number' },
+    ],
+    outputs: [
+      { id: 'out-1', name: 'image', dataType: 'any' },
+    ],
   },
   {
     id: 'node-3',
     type: 'Output',
-    position: { x: 300, y: 0 },
+    position: { x: 400, y: -60 },
     size: { width: 180, height: 100 },
     data: { title: 'Save Image' },
+    inputs: [
+      { id: 'in-1', name: 'image', dataType: 'any' },
+    ],
+    outputs: [],
+  },
+];
+
+// 테스트용 엣지
+const DEMO_EDGES: FlowEdge[] = [
+  {
+    id: 'edge-1',
+    source: 'node-1',
+    sourcePort: 'out-1',
+    target: 'node-2',
+    targetPort: 'in-1',
   },
 ];
 
@@ -38,6 +74,10 @@ export function FlowCanvas() {
   const dragModeRef = useRef<DragMode>('none');
   const lastMouseRef = useRef({ x: 0, y: 0 });
   const selectedNodeIdRef = useRef<string | null>(null);
+  const edgeDragRef = useRef<{
+    startPort: PortHitResult;
+    currentPos: Position;
+  } | null>(null);
   const [, forceRender] = useState(0);
 
   const setSelectedNodeId = (id: string | null) => {
@@ -74,6 +114,22 @@ export function FlowCanvas() {
     // 렌더링
     renderer.beginFrame();
     renderer.setTransform(state.viewport, canvasSize, dpr);
+
+    // 엣지 먼저 (노드 아래)
+    drawEdges(renderer, state.edges, state.nodes);
+
+    // 드래그 중인 임시 엣지
+    const edgeDrag = edgeDragRef.current;
+    if (edgeDrag) {
+      drawTempEdge(
+        renderer,
+        edgeDrag.startPort.position,
+        edgeDrag.currentPos,
+        edgeDrag.startPort.isOutput
+      );
+    }
+
+    // 노드
     drawNodes(renderer, state.nodes, selectedIds);
     renderer.endFrame();
 
@@ -105,6 +161,11 @@ export function FlowCanvas() {
         store.getState().addNode(node);
       }
 
+      // 데모 엣지 추가
+      for (const edge of DEMO_EDGES) {
+        store.getState().addEdge(edge);
+      }
+
       // 렌더 루프 시작
       rafRef.current = requestAnimationFrame(render);
     })();
@@ -116,7 +177,7 @@ export function FlowCanvas() {
     };
   }, []);
 
-  // 마우스 다운 - 노드 선택 또는 Pan 시작
+  // 마우스 다운 - 포트/노드 선택 또는 Pan 시작
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return; // 좌클릭만
 
@@ -131,8 +192,19 @@ export function FlowCanvas() {
 
     const state = store.getState();
     const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
-    const hitNode = hitTestNode(worldPos, state.nodes);
 
+    // 포트 히트 테스트 먼저
+    const hitPort = hitTestPort(worldPos, state.nodes);
+    if (hitPort) {
+      dragModeRef.current = 'edge';
+      edgeDragRef.current = {
+        startPort: hitPort,
+        currentPos: worldPos,
+      };
+      return;
+    }
+
+    const hitNode = hitTestNode(worldPos, state.nodes);
     lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
     if (hitNode) {
@@ -146,9 +218,12 @@ export function FlowCanvas() {
     }
   }, []);
 
-  // 마우스 이동 - 노드 드래그 또는 Pan
+  // 마우스 이동 - 노드/엣지 드래그 또는 Pan
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (dragModeRef.current === 'none' || !storeRef.current) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const dx = e.clientX - lastMouseRef.current.x;
     const dy = e.clientY - lastMouseRef.current.y;
@@ -169,11 +244,58 @@ export function FlowCanvas() {
           },
         });
       }
+    } else if (dragModeRef.current === 'edge' && edgeDragRef.current) {
+      // 엣지 드래그 중 - 현재 마우스 위치 업데이트
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+      edgeDragRef.current.currentPos = screenToWorld(
+        { x: mouseX, y: mouseY },
+        state.viewport,
+        canvasSize
+      );
     }
   }, []);
 
-  // 마우스 업 - 드래그 종료
-  const handleMouseUp = useCallback(() => {
+  // 마우스 업 - 드래그 종료, 엣지 생성
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    const store = storeRef.current;
+
+    // 엣지 드래그 완료 시 연결 시도
+    if (dragModeRef.current === 'edge' && edgeDragRef.current && canvas && store) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+
+      const state = store.getState();
+      const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
+      const targetPort = hitTestPort(worldPos, state.nodes);
+
+      const startPort = edgeDragRef.current.startPort;
+
+      // 유효한 연결인지 확인 (출력→입력 또는 입력→출력, 다른 노드)
+      if (
+        targetPort &&
+        targetPort.node.id !== startPort.node.id &&
+        targetPort.isOutput !== startPort.isOutput
+      ) {
+        const isFromOutput = startPort.isOutput;
+        const newEdge: FlowEdge = {
+          id: `edge-${Date.now()}`,
+          source: isFromOutput ? startPort.node.id : targetPort.node.id,
+          sourcePort: isFromOutput ? startPort.port.id : targetPort.port.id,
+          target: isFromOutput ? targetPort.node.id : startPort.node.id,
+          targetPort: isFromOutput ? targetPort.port.id : startPort.port.id,
+        };
+        state.addEdge(newEdge);
+      }
+
+      edgeDragRef.current = null;
+    }
+
     dragModeRef.current = 'none';
   }, []);
 
