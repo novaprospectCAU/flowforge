@@ -185,7 +185,7 @@ export function FlowCanvas() {
   const autoSaveTimerRef = useRef<number | null>(null);
   const canvasSizeRef = useRef<CanvasSize>({ width: 0, height: 0 });
   const [widgetInteracting, setWidgetInteracting] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [draggingNodeIds, setDraggingNodeIds] = useState<Set<string>>(new Set());
   const [spacePressed, setSpacePressed] = useState(false); // Space 키로 Pan 모드
   const lastSaveRef = useRef<string>(''); // 마지막 저장 상태 해시
   const GRID_SIZE = 20; // 스냅 그리드 크기
@@ -755,7 +755,7 @@ export function FlowCanvas() {
       const groupNodeIds = new Set(hitGroup.nodeIds);
       setSelectedNodes(groupNodeIds);
       dragModeRef.current = 'node';
-      setIsDragging(true);
+            setDraggingNodeIds(groupNodeIds); // 드래그 중인 노드 ID 설정
       lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
       // 드래그 시작 시 선택된 노드들의 현재 위치 저장
@@ -774,8 +774,7 @@ export function FlowCanvas() {
     const hitSubflow = hitTestCollapsedSubflow(worldPos, state.subflows);
     if (hitSubflow) {
       dragModeRef.current = 'subflow';
-      setIsDragging(true);
-      selectedSubflowIdRef.current = hitSubflow.subflow.id;
+            selectedSubflowIdRef.current = hitSubflow.subflow.id;
       selectedCommentIdRef.current = null;
       setSelectedNodes(new Set());
       subflowDragRef.current = {
@@ -790,8 +789,7 @@ export function FlowCanvas() {
     const hitComment = hitTestComment(worldPos, state.comments);
     if (hitComment) {
       dragModeRef.current = 'comment';
-      setIsDragging(true);
-      selectedCommentIdRef.current = hitComment.id;
+            selectedCommentIdRef.current = hitComment.id;
       selectedSubflowIdRef.current = null;
       setSelectedNodes(new Set()); // 노드 선택 해제
       commentDragRef.current = {
@@ -810,8 +808,7 @@ export function FlowCanvas() {
     if (hitNode) {
       // 노드 드래그 모드
       dragModeRef.current = 'node';
-      setIsDragging(true);
-      selectedCommentIdRef.current = null; // 코멘트 선택 해제
+            selectedCommentIdRef.current = null; // 코멘트 선택 해제
 
       // 이미 선택된 노드면 선택 유지, 아니면 선택 변경
       const isAlreadySelected = selectedNodeIdsRef.current.has(hitNode.id);
@@ -832,6 +829,7 @@ export function FlowCanvas() {
         }
       }
       nodeDragPositionsRef.current = dragPositions;
+      setDraggingNodeIds(new Set(selectedIds)); // 드래그 중인 노드 ID 설정
     } else {
       selectedCommentIdRef.current = null; // 빈 공간 클릭 시 코멘트 선택 해제
       // Alt 키 = Pan, 그 외 = 박스 선택
@@ -1177,7 +1175,7 @@ export function FlowCanvas() {
     }
 
     dragModeRef.current = 'none';
-    setIsDragging(false);
+        setDraggingNodeIds(new Set()); // 드래그 중인 노드 초기화
     setCursorStyle('grab');
   }, []);
 
@@ -2326,7 +2324,7 @@ export function FlowCanvas() {
             storeRef.current?.getState().updateNode(nodeId, { data });
           }}
           onWidgetInteraction={setWidgetInteracting}
-          draggingNodeIds={isDragging && dragModeRef.current === 'node' ? selectedNodeIdsRef.current : undefined}
+          draggingNodeIds={draggingNodeIds.size > 0 ? draggingNodeIds : undefined}
         />
       )}
       {contextMenu && (
