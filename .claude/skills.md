@@ -73,6 +73,7 @@ flowforge/
 - **노드 리사이즈**: 선택된 노드의 모서리/가장자리 드래그 (최소 100x60)
 - **노드 그룹화**: Ctrl+G (그룹 생성), Ctrl+Shift+G (그룹 해제), 그룹 헤더 클릭으로 전체 선택
 - **키보드 노드 탐색**: [ / ] 이전/다음 노드, 화살표 키 (미선택 시) 해당 방향 노드 선택, Enter 선택 노드로 뷰 이동
+- **코멘트/스티키 노트**: C 키 또는 우클릭 메뉴로 추가, 드래그로 이동/리사이즈, 노드처럼 선택/삭제 가능
 - **파일 저장/불러오기**: Ctrl+S (저장), Ctrl+O (열기), Ctrl+N (새 플로우)
 - **자동 저장**: 30초마다 localStorage에 자동 저장, 브라우저 새로고침 후에도 데이터 유지
 - **이미지 내보내기**: Ctrl+Shift+E - PNG 이미지로 내보내기 (2x 해상도)
@@ -194,6 +195,14 @@ interface FlowEdge {
   sourcePort: string
   target: string
   targetPort: string
+}
+
+interface Comment {
+  id: string
+  text: string
+  position: Position
+  size: Size
+  color?: string  // 배경색 (hex)
 }
 
 interface Viewport {
