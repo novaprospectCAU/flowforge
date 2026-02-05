@@ -84,6 +84,8 @@ function isTypeCompatible(sourceType: DataType, targetType: DataType): boolean {
 export function FlowCanvas() {
   const isMobile = useIsMobile();
   const isTouchDevice = useIsTouchDevice();
+  const isTouchDeviceRef = useRef(isTouchDevice);
+  isTouchDeviceRef.current = isTouchDevice;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<IRenderer | null>(null);
   const storeRef = useRef<FlowStore | null>(null);
@@ -499,8 +501,10 @@ export function FlowCanvas() {
       drawSelectionBox(renderer, boxSelect.start, boxSelect.end);
     }
 
-    // 미니맵 (스크린 좌표로 그림, 선택된 노드 하이라이트, 서브플로우 표시)
-    drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr, selectedIds, state.subflows);
+    // 미니맵 (터치 기기에서는 숨김)
+    if (!isTouchDeviceRef.current) {
+      drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr, selectedIds, state.subflows);
+    }
 
     renderer.endFrame();
 
@@ -618,8 +622,8 @@ export function FlowCanvas() {
 
     const state = store.getState();
 
-    // 미니맵 클릭 체크 (먼저)
-    if (isInMinimap({ x: mouseX, y: mouseY }, canvasSize)) {
+    // 미니맵 클릭 체크 (터치 기기에서는 미니맵 숨김)
+    if (!isTouchDeviceRef.current && isInMinimap({ x: mouseX, y: mouseY }, canvasSize)) {
       dragModeRef.current = 'minimap';
       lastMouseRef.current = { x: e.clientX, y: e.clientY };
       // 클릭 위치로 즉시 이동
@@ -1207,8 +1211,9 @@ export function FlowCanvas() {
 
     const worldPos = screenToWorld({ x: touchX, y: touchY }, state.viewport, canvasSize);
 
-    // 미니맵 터치
-    if (isInMinimap({ x: touchX, y: touchY }, canvasSize)) {
+    // 미니맵 터치 (터치 기기에서는 미니맵 숨김이므로 이 코드는 실행되지 않음)
+    // Desktop 터치스크린 지원을 위해 남겨둠
+    if (!isTouchDeviceRef.current && isInMinimap({ x: touchX, y: touchY }, canvasSize)) {
       dragModeRef.current = 'minimap';
       const mapWorldPos = minimapToWorld({ x: touchX, y: touchY }, state.nodes, state.viewport, canvasSize);
       state.setViewport({ ...state.viewport, x: mapWorldPos.x, y: mapWorldPos.y });
@@ -2656,6 +2661,46 @@ export function FlowCanvas() {
           snapToGrid={snapToGrid}
           onToggleSnap={() => setSnapToGrid(prev => !prev)}
         />
+      )}
+      {/* 터치 기기에서 화면 중심 버튼 (미니맵 대체) */}
+      {isTouchDevice && (
+        <button
+          onClick={() => {
+            const store = storeRef.current;
+            if (!store) return;
+            const state = store.getState();
+            if (state.nodes.length === 0) {
+              // 노드가 없으면 원점으로
+              state.setViewport({ x: 0, y: 0, zoom: 1 });
+              setCurrentZoom(1);
+            } else {
+              // 노드가 있으면 모두 보이게
+              handleFitView();
+            }
+            forceRender(n => n + 1);
+          }}
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            background: 'rgba(45, 55, 72, 0.9)',
+            border: '1px solid #4a5568',
+            color: '#e2e8f0',
+            fontSize: 20,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          }}
+          title="Center View"
+        >
+          ⌖
+        </button>
       )}
       {/* 데스크톱 툴바 */}
       {!isMobile && (
