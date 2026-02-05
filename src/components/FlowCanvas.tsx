@@ -38,7 +38,7 @@ import {
   type NodeTypeDefinition,
   type ExecutionState,
 } from '@flowforge/state';
-import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus } from '@flowforge/types';
+import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
@@ -47,6 +47,19 @@ import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group';
+
+/**
+ * 데이터 타입 호환성 검사
+ * - 'any'는 모든 타입과 호환
+ * - 같은 타입끼리 호환
+ * - 다른 특정 타입끼리는 비호환
+ */
+function isTypeCompatible(sourceType: DataType, targetType: DataType): boolean {
+  if (sourceType === 'any' || targetType === 'any') {
+    return true;
+  }
+  return sourceType === targetType;
+}
 
 // 테스트용 노드들
 const DEMO_NODES: FlowNode[] = [
@@ -573,7 +586,9 @@ export function FlowCanvas() {
       // 호환 가능한 포트 계산
       const compatibleMap = new Map<string, CompatiblePorts>();
       const sourceNode = hitPort.node;
+      const sourcePort = hitPort.port;
       const isOutput = hitPort.isOutput;
+      const sourceDataType = sourcePort.dataType;
 
       for (const node of state.nodes) {
         if (node.id === sourceNode.id) continue; // 같은 노드 제외
@@ -585,7 +600,11 @@ export function FlowCanvas() {
 
         const portIds = new Set<string>();
         for (const port of targetPorts) {
-          // 이미 연결된 포트인지 확인 (입력 포트는 하나의 연결만 허용)
+          // 데이터 타입 호환성 검사
+          if (!isTypeCompatible(sourceDataType, port.dataType)) {
+            continue; // 비호환 타입은 제외
+          }
+
           if (!isOutput) {
             // 입력에서 드래그 → 출력 포트 대상
             portIds.add(port.id);
@@ -885,11 +904,12 @@ export function FlowCanvas() {
 
       const startPort = edgeDragRef.current.startPort;
 
-      // 유효한 연결인지 확인 (출력→입력 또는 입력→출력, 다른 노드)
+      // 유효한 연결인지 확인 (출력→입력 또는 입력→출력, 다른 노드, 타입 호환)
       if (
         targetPort &&
         targetPort.node.id !== startPort.node.id &&
-        targetPort.isOutput !== startPort.isOutput
+        targetPort.isOutput !== startPort.isOutput &&
+        isTypeCompatible(startPort.port.dataType, targetPort.port.dataType)
       ) {
         const isFromOutput = startPort.isOutput;
         const newEdge: FlowEdge = {
