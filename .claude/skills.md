@@ -110,6 +110,12 @@ flowforge/
 - **줌 적응**: 줌 레벨에 따라 위젯 크기 조절, 50% 미만에서 숨김
 - **인터랙션 분리**: 위젯 편집 중 캔버스 이벤트 차단
 
+### 노드 검증
+- **필수 포트 검증**: 연결되지 않은 필수 입력 포트 자동 감지
+- **경고 표시**: 검증 실패 노드에 주황색 테두리
+- **포트 경고**: 미연결 필수 포트에 빨간 링 + 라벨에 * 표시
+- **필수 포트 정의**: Math(A,B), Resize(image), Filter(image), Merge(A), Display(input), SaveImage(image), Condition(condition)
+
 ## 주요 API
 
 ### @flowforge/canvas
