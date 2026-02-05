@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Comment, Viewport, CanvasSize } from '@flowforge/types';
 import { worldToScreen } from '@flowforge/canvas';
+import { useLanguage } from '../i18n';
 
 interface CommentWidgetProps {
   comment: Comment;
@@ -62,6 +63,8 @@ export function CommentWidget({
 }: CommentWidgetProps) {
   const [localText, setLocalText] = useState(comment.text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const language = useLanguage();
+  const placeholder = language === 'ko' ? '새로운 코멘트' : 'New comment';
 
   // 외부 변경 반영
   useEffect(() => {
@@ -161,7 +164,7 @@ export function CommentWidget({
         ref={textareaRef}
         value={localText}
         onChange={handleChange}
-        placeholder="New comment / 새로운 코멘트"
+        placeholder={placeholder}
         onMouseDown={handleTextareaMouseDown}
         onBlur={handleTextareaBlur}
         onKeyDown={handleKeyDown}
