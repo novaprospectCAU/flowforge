@@ -10,7 +10,6 @@ interface MobileToolbarProps {
   onRun: () => void;
   isRunning: boolean;
   onHelp: () => void;
-  onAddNode: () => void;
   saveStatus: 'saved' | 'saving' | 'unsaved';
   snapToGrid: boolean;
   onToggleSnap: () => void;
@@ -24,7 +23,6 @@ export function MobileToolbar({
   onRun,
   isRunning,
   onHelp,
-  onAddNode,
   saveStatus,
   snapToGrid,
   onToggleSnap,
@@ -83,28 +81,17 @@ export function MobileToolbar({
         </div>
       </div>
 
-      {/* 플로팅 액션 버튼들 */}
-      <div style={styles.fabContainer}>
-        {/* 노드 추가 버튼 */}
-        <button
-          onClick={onAddNode}
-          style={styles.fabSecondary}
-          title={t.addNode}
-        >
-          +
-        </button>
-        {/* 실행 버튼 */}
-        <button
-          onClick={onRun}
-          disabled={isRunning}
-          style={{
-            ...styles.fab,
-            background: isRunning ? '#4a5568' : '#3182ce',
-          }}
-        >
-          {isRunning ? '...' : '▶'}
-        </button>
-      </div>
+      {/* 플로팅 실행 버튼 */}
+      <button
+        onClick={onRun}
+        disabled={isRunning}
+        style={{
+          ...styles.fab,
+          background: isRunning ? '#4a5568' : '#3182ce',
+        }}
+      >
+        {isRunning ? '...' : '▶'}
+      </button>
 
       {/* 드롭다운 메뉴 */}
       {menuOpen && (
@@ -188,16 +175,10 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     borderRadius: 8,
   },
-  fabContainer: {
-    position: 'absolute',
-    bottom: 24,
-    right: 16,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-    zIndex: 100,
-  },
   fab: {
+    position: 'absolute',
+    bottom: 80,
+    right: 16,
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -210,21 +191,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  fabSecondary: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    background: '#4a5568',
-    border: 'none',
-    color: '#fff',
-    fontSize: 24,
-    cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'flex-end',
+    zIndex: 100,
   },
   menuOverlay: {
     position: 'fixed',

@@ -2709,17 +2709,6 @@ export function FlowCanvas() {
           onRun={handleRunFlow}
           isRunning={isRunning}
           onHelp={() => setShowHelp(true)}
-          onAddNode={() => {
-            const canvas = canvasRef.current;
-            const store = storeRef.current;
-            if (!canvas || !store) return;
-            const rect = canvas.getBoundingClientRect();
-            const state = store.getState();
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const worldPos = screenToWorld({ x: centerX, y: centerY }, state.viewport, { width: rect.width, height: rect.height });
-            setNodePalette({ x: centerX - 140, y: centerY - 100, worldPos });
-          }}
           saveStatus={saveStatus}
           snapToGrid={snapToGrid}
           onToggleSnap={() => setSnapToGrid(prev => !prev)}
