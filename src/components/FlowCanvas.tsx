@@ -147,6 +147,105 @@ export function FlowCanvas() {
     }
   };
 
+  // 노드 정렬 함수들
+  type AlignType = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom';
+  type DistributeType = 'horizontal' | 'vertical';
+
+  const alignNodes = (type: AlignType) => {
+    const store = storeRef.current;
+    if (!store) return;
+
+    const selectedIds = selectedNodeIdsRef.current;
+    if (selectedIds.size < 2) return;
+
+    const state = store.getState();
+    const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
+
+    let targetValue: number;
+
+    switch (type) {
+      case 'left':
+        targetValue = Math.min(...selectedNodes.map(n => n.position.x));
+        for (const node of selectedNodes) {
+          state.updateNode(node.id, { position: { ...node.position, x: targetValue } });
+        }
+        break;
+      case 'center':
+        const centers = selectedNodes.map(n => n.position.x + n.size.width / 2);
+        targetValue = (Math.min(...centers) + Math.max(...centers)) / 2;
+        for (const node of selectedNodes) {
+          state.updateNode(node.id, { position: { ...node.position, x: targetValue - node.size.width / 2 } });
+        }
+        break;
+      case 'right':
+        targetValue = Math.max(...selectedNodes.map(n => n.position.x + n.size.width));
+        for (const node of selectedNodes) {
+          state.updateNode(node.id, { position: { ...node.position, x: targetValue - node.size.width } });
+        }
+        break;
+      case 'top':
+        targetValue = Math.min(...selectedNodes.map(n => n.position.y));
+        for (const node of selectedNodes) {
+          state.updateNode(node.id, { position: { ...node.position, y: targetValue } });
+        }
+        break;
+      case 'middle':
+        const middles = selectedNodes.map(n => n.position.y + n.size.height / 2);
+        targetValue = (Math.min(...middles) + Math.max(...middles)) / 2;
+        for (const node of selectedNodes) {
+          state.updateNode(node.id, { position: { ...node.position, y: targetValue - node.size.height / 2 } });
+        }
+        break;
+      case 'bottom':
+        targetValue = Math.max(...selectedNodes.map(n => n.position.y + n.size.height));
+        for (const node of selectedNodes) {
+          state.updateNode(node.id, { position: { ...node.position, y: targetValue - node.size.height } });
+        }
+        break;
+    }
+  };
+
+  const distributeNodes = (type: DistributeType) => {
+    const store = storeRef.current;
+    if (!store) return;
+
+    const selectedIds = selectedNodeIdsRef.current;
+    if (selectedIds.size < 3) return; // 최소 3개 필요
+
+    const state = store.getState();
+    const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
+
+    if (type === 'horizontal') {
+      // X 위치로 정렬
+      const sorted = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
+      const totalWidth = last.position.x + last.size.width - first.position.x;
+      const nodesWidth = sorted.reduce((sum, n) => sum + n.size.width, 0);
+      const gap = (totalWidth - nodesWidth) / (sorted.length - 1);
+
+      let currentX = first.position.x;
+      for (const node of sorted) {
+        state.updateNode(node.id, { position: { ...node.position, x: currentX } });
+        currentX += node.size.width + gap;
+      }
+    } else {
+      // Y 위치로 정렬
+      const sorted = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
+      const totalHeight = last.position.y + last.size.height - first.position.y;
+      const nodesHeight = sorted.reduce((sum, n) => sum + n.size.height, 0);
+      const gap = (totalHeight - nodesHeight) / (sorted.length - 1);
+
+      let currentY = first.position.y;
+      for (const node of sorted) {
+        state.updateNode(node.id, { position: { ...node.position, y: currentY } });
+        currentY += node.size.height + gap;
+      }
+    }
+  };
+
   // 렌더 루프
   const render = useCallback(() => {
     const renderer = rendererRef.current;
@@ -737,8 +836,40 @@ export function FlowCanvas() {
         return;
       }
 
+      // Alt + Arrow: 노드 정렬
+      if (e.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === 'ArrowLeft') alignNodes('left');
+        if (e.key === 'ArrowRight') alignNodes('right');
+        if (e.key === 'ArrowUp') alignNodes('top');
+        if (e.key === 'ArrowDown') alignNodes('bottom');
+        return;
+      }
+
+      // Alt + Shift + Arrow: 중앙 정렬
+      if (e.altKey && e.shiftKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') alignNodes('center');
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') alignNodes('middle');
+        return;
+      }
+
+      // Ctrl + Shift + H/V: 균등 분배
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+        if (e.key === 'h' || e.key === 'H') {
+          e.preventDefault();
+          distributeNodes('horizontal');
+          return;
+        }
+        if (e.key === 'v' || e.key === 'V') {
+          e.preventDefault();
+          distributeNodes('vertical');
+          return;
+        }
+      }
+
       // Arrow Keys: 선택된 노드 이동 (그리드 또는 10px, Shift 누르면 1px)
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && !e.altKey) {
         const selectedIds = selectedNodeIdsRef.current;
         if (selectedIds.size === 0) return;
 
@@ -860,7 +991,7 @@ export function FlowCanvas() {
 
     if (targetNode) {
       // 노드 위에서 우클릭
-      return [
+      const items: MenuItem[] = [
         {
           label: 'Delete Node',
           action: () => {
@@ -886,6 +1017,26 @@ export function FlowCanvas() {
           },
         },
       ];
+
+      // 다중 선택 시 정렬 옵션 추가
+      if (selectedNodeIdsRef.current.size >= 2) {
+        items.push({ label: '', action: () => {}, divider: true });
+        items.push({ label: 'Align Left', action: () => alignNodes('left') });
+        items.push({ label: 'Align Center', action: () => alignNodes('center') });
+        items.push({ label: 'Align Right', action: () => alignNodes('right') });
+        items.push({ label: '', action: () => {}, divider: true });
+        items.push({ label: 'Align Top', action: () => alignNodes('top') });
+        items.push({ label: 'Align Middle', action: () => alignNodes('middle') });
+        items.push({ label: 'Align Bottom', action: () => alignNodes('bottom') });
+
+        if (selectedNodeIdsRef.current.size >= 3) {
+          items.push({ label: '', action: () => {}, divider: true });
+          items.push({ label: 'Distribute Horizontal', action: () => distributeNodes('horizontal') });
+          items.push({ label: 'Distribute Vertical', action: () => distributeNodes('vertical') });
+        }
+      }
+
+      return items;
     } else {
       // 빈 공간에서 우클릭 - 카테고리별 노드 추가 메뉴
       const categories = nodeTypeRegistry.getCategories();
