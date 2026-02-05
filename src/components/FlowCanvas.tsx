@@ -27,6 +27,7 @@ import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus } from '
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
+import { ZoomControls } from './ZoomControls';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box';
 
@@ -116,7 +117,68 @@ export function FlowCanvas() {
   const [executionState, setExecutionState] = useState<ExecutionState | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
+  const [currentZoom, setCurrentZoom] = useState(1);
   const GRID_SIZE = 20; // 스냅 그리드 크기
+
+  // 줌 컨트롤 핸들러
+  const handleZoomIn = useCallback(() => {
+    const store = storeRef.current;
+    if (!store) return;
+    const state = store.getState();
+    const newZoom = Math.min(5, state.viewport.zoom * 1.2);
+    state.setViewport({ ...state.viewport, zoom: newZoom });
+    setCurrentZoom(newZoom);
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    const store = storeRef.current;
+    if (!store) return;
+    const state = store.getState();
+    const newZoom = Math.max(0.1, state.viewport.zoom / 1.2);
+    state.setViewport({ ...state.viewport, zoom: newZoom });
+    setCurrentZoom(newZoom);
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    const store = storeRef.current;
+    if (!store) return;
+    const state = store.getState();
+    state.setViewport({ ...state.viewport, zoom: 1 });
+    setCurrentZoom(1);
+  }, []);
+
+  const handleFitView = useCallback(() => {
+    const store = storeRef.current;
+    const canvas = canvasRef.current;
+    if (!store || !canvas) return;
+
+    const state = store.getState();
+    if (state.nodes.length === 0) return;
+
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+
+    for (const node of state.nodes) {
+      minX = Math.min(minX, node.position.x);
+      minY = Math.min(minY, node.position.y);
+      maxX = Math.max(maxX, node.position.x + node.size.width);
+      maxY = Math.max(maxY, node.position.y + node.size.height);
+    }
+
+    const padding = 50;
+    const contentWidth = maxX - minX + padding * 2;
+    const contentHeight = maxY - minY + padding * 2;
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width / contentWidth;
+    const scaleY = rect.height / contentHeight;
+    const zoom = Math.min(scaleX, scaleY, 2);
+
+    state.setViewport({ x: centerX, y: centerY, zoom });
+    setCurrentZoom(zoom);
+  }, []);
 
   // 그리드에 스냅
   const snapPosition = (pos: Position): Position => {
@@ -573,6 +635,7 @@ export function FlowCanvas() {
       const newY = worldPos.y - (mouseY - canvasSize.height / 2) / newZoom;
 
       state.setViewport({ x: newX, y: newY, zoom: newZoom });
+      setCurrentZoom(newZoom);
     };
 
     canvas.addEventListener('wheel', handleWheel, { passive: false });
@@ -1187,6 +1250,14 @@ export function FlowCanvas() {
           />
         );
       })()}
+      {/* 줌 컨트롤 */}
+      <ZoomControls
+        zoom={currentZoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+        onFitView={handleFitView}
+      />
     </div>
   );
 }
