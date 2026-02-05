@@ -74,16 +74,31 @@ export function FlowCanvas() {
   const rafRef = useRef<number>(0);
   const dragModeRef = useRef<DragMode>('none');
   const lastMouseRef = useRef({ x: 0, y: 0 });
-  const selectedNodeIdRef = useRef<string | null>(null);
+  const selectedNodeIdsRef = useRef<Set<string>>(new Set());
   const edgeDragRef = useRef<{
     startPort: PortHitResult;
     currentPos: Position;
   } | null>(null);
   const [, forceRender] = useState(0);
 
-  const setSelectedNodeId = (id: string | null) => {
-    selectedNodeIdRef.current = id;
+  const setSelectedNodes = (ids: Set<string>) => {
+    selectedNodeIdsRef.current = ids;
     forceRender(n => n + 1);
+  };
+
+  const toggleNodeSelection = (id: string, addToSelection: boolean) => {
+    const current = selectedNodeIdsRef.current;
+    if (addToSelection) {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      setSelectedNodes(next);
+    } else {
+      setSelectedNodes(new Set([id]));
+    }
   };
 
   // 렌더 루프
@@ -108,9 +123,7 @@ export function FlowCanvas() {
     }
 
     // 선택된 노드 Set (ref에서 읽기)
-    const selectedIds = selectedNodeIdRef.current
-      ? new Set([selectedNodeIdRef.current])
-      : new Set<string>();
+    const selectedIds = selectedNodeIdsRef.current;
 
     // 렌더링
     renderer.beginFrame();
@@ -214,11 +227,13 @@ export function FlowCanvas() {
     if (hitNode) {
       // 노드 드래그 모드
       dragModeRef.current = 'node';
-      setSelectedNodeId(hitNode.id);
+      toggleNodeSelection(hitNode.id, e.shiftKey);
     } else {
       // Pan 모드
       dragModeRef.current = 'pan';
-      setSelectedNodeId(null);
+      if (!e.shiftKey) {
+        setSelectedNodes(new Set());
+      }
     }
   }, []);
 
@@ -234,19 +249,22 @@ export function FlowCanvas() {
     lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
     const state = storeRef.current.getState();
-    const selectedId = selectedNodeIdRef.current;
 
     if (dragModeRef.current === 'pan') {
       state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
-    } else if (dragModeRef.current === 'node' && selectedId) {
-      const node = state.nodes.find(n => n.id === selectedId);
-      if (node) {
-        state.updateNode(selectedId, {
-          position: {
-            x: node.position.x + dx / state.viewport.zoom,
-            y: node.position.y + dy / state.viewport.zoom,
-          },
-        });
+    } else if (dragModeRef.current === 'node') {
+      // 선택된 모든 노드 이동
+      const selectedIds = selectedNodeIdsRef.current;
+      for (const nodeId of selectedIds) {
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (node) {
+          state.updateNode(nodeId, {
+            position: {
+              x: node.position.x + dx / state.viewport.zoom,
+              y: node.position.y + dy / state.viewport.zoom,
+            },
+          });
+        }
       }
     } else if (dragModeRef.current === 'edge' && edgeDragRef.current) {
       // 엣지 드래그 중 - 현재 마우스 위치 업데이트
