@@ -30,6 +30,7 @@ import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
 import { ZoomControls } from './ZoomControls';
 import { SearchDialog } from './SearchDialog';
+import { ShortcutsHelp } from './ShortcutsHelp';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box';
 
@@ -122,6 +123,7 @@ export function FlowCanvas() {
   const [currentZoom, setCurrentZoom] = useState(1);
   const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('bezier');
   const [showSearch, setShowSearch] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const GRID_SIZE = 20; // 스냅 그리드 크기
 
   // 줌 컨트롤 핸들러
@@ -991,6 +993,13 @@ export function FlowCanvas() {
         setSnapToGrid(prev => !prev);
         return;
       }
+
+      // Help: ? 키 또는 F1
+      if (e.key === '?' || e.key === 'F1') {
+        e.preventDefault();
+        setShowHelp(prev => !prev);
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -1313,6 +1322,10 @@ export function FlowCanvas() {
           }}
           onClose={() => setShowSearch(false)}
         />
+      )}
+      {/* 단축키 도움말 */}
+      {showHelp && (
+        <ShortcutsHelp onClose={() => setShowHelp(false)} />
       )}
     </div>
   );
