@@ -880,6 +880,19 @@ export function FlowCanvas() {
       const store = storeRef.current;
       if (!store) return;
 
+      // 입력 필드에서는 일부 단축키 무시 (Delete, Backspace, 일반 문자 등)
+      const target = e.target as HTMLElement;
+      const isInputFocused = (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      );
+
+      // 입력 중일 때는 Ctrl/Cmd 조합 외의 단축키 무시
+      if (isInputFocused && !e.ctrlKey && !e.metaKey) {
+        return;
+      }
+
       // Undo: Ctrl+Z / Cmd+Z
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
