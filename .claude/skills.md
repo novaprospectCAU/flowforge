@@ -97,9 +97,17 @@ flowforge/
 ### 실행 엔진
 - **위상 정렬**: 노드 실행 순서 결정 (순환 감지)
 - **실행자 레지스트리**: 노드 타입별 실행 함수
-- **이벤트 시스템**: 실행 상태 변화 콜백
+- **이벤트 시스템**: 실행 상태 변화 콜백 (node-start, node-complete, node-error, node-data-update)
 - **Run 버튼**: 플로우 실행 UI
 - **실행 상태 시각화**: 노드 테두리 색상 (노란색=실행중, 초록색=완료, 빨간색=에러)
+
+### 이미지 처리
+- **ImageInput**: 파일 선택 시 Data URL로 로드, 미리보기 제공
+- **Resize**: Canvas API로 이미지 스케일 조정 (0.1x ~ 10x)
+- **Filter**: CSS 필터 적용 (none, grayscale, blur, sharpen, invert, sepia, brightness)
+- **Display**: 실행 결과를 노드에 표시 (nodeDataUpdate 이벤트로 UI 업데이트)
+- **SaveImage**: 이미지 파일 다운로드 (브라우저 다운로드 API)
+- **데이터 포맷**: `{ type: 'image', imageData: string (Data URL), fileName?: string }`
 
 ### 프로퍼티 패널
 - **노드 설정**: 단일 노드 선택 시 좌측에 패널 표시
@@ -111,7 +119,10 @@ flowforge/
 - **노드 위젯**: 노드 위에 HTML 오버레이로 인라인 편집 지원
 - **NumberInput**: 숫자 입력 (드래그로 값 조절 가능)
 - **TextInput**: 텍스트 영역
-- **드롭다운**: Math(연산), Filter(필터), Resize(스케일 슬라이더), Merge(모드), Condition(조건)
+- **ImageInput**: 파일 선택 버튼 + 이미지 미리보기, 클릭으로 이미지 로드
+- **Display**: 실행 결과 미리보기 (이미지는 썸네일, 텍스트/숫자/객체는 포맷팅)
+- **SaveImage**: 파일명 입력 필드
+- **드롭다운**: Math(연산), Filter(필터 7종), Resize(스케일 슬라이더), Merge(모드), Condition(조건)
 - **줌 적응**: 줌 레벨에 따라 위젯 크기 조절, 50% 미만에서 숨김
 - **인터랙션 분리**: 위젯 편집 중 캔버스 이벤트 차단
 
