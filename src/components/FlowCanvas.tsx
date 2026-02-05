@@ -478,8 +478,8 @@ export function FlowCanvas() {
       drawSelectionBox(renderer, boxSelect.start, boxSelect.end);
     }
 
-    // 미니맵 (스크린 좌표로 그림)
-    drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr);
+    // 미니맵 (스크린 좌표로 그림, 선택된 노드 하이라이트)
+    drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr, selectedIds);
 
     renderer.endFrame();
 

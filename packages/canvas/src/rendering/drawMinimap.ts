@@ -11,6 +11,8 @@ export const MINIMAP = {
 const COLORS = {
   bg: { r: 30, g: 30, b: 32, a: 230 } as Color,
   node: { r: 100, g: 100, b: 105, a: 255 } as Color,
+  nodeSelected: { r: 66, g: 135, b: 245, a: 255 } as Color,  // 선택된 노드
+  nodeHasOutput: { r: 80, g: 80, b: 85, a: 255 } as Color,   // 연결 있는 노드
   viewport: { r: 0, g: 122, b: 204, a: 255 } as Color,
 };
 
@@ -24,7 +26,8 @@ export function drawMinimap(
   nodes: FlowNode[],
   viewport: Viewport,
   canvasSize: CanvasSize,
-  dpr: number
+  dpr: number,
+  selectedIds?: Set<string>
 ): void {
   // transform 리셋
   renderer.resetTransform(dpr);
@@ -84,14 +87,38 @@ export function drawMinimap(
     y: innerY + innerH / 2 + (wy - worldCenterY) * scale,
   });
 
-  // 노드 렌더링
-  for (const node of nodes) {
+  // 노드 렌더링 (선택되지 않은 노드 먼저, 선택된 노드 나중에 - 레이어링)
+  const unselectedNodes = nodes.filter(n => !selectedIds?.has(n.id));
+  const selectedNodes = nodes.filter(n => selectedIds?.has(n.id));
+
+  // 선택되지 않은 노드
+  for (const node of unselectedNodes) {
     const pos = toMinimap(node.position.x, node.position.y);
     renderer.drawRect(
       pos.x, pos.y,
       Math.max(2, node.size.width * scale),
       Math.max(2, node.size.height * scale),
       COLORS.node
+    );
+  }
+
+  // 선택된 노드 (하이라이트)
+  for (const node of selectedNodes) {
+    const pos = toMinimap(node.position.x, node.position.y);
+    const nodeW = Math.max(2, node.size.width * scale);
+    const nodeH = Math.max(2, node.size.height * scale);
+
+    // 선택 테두리 (약간 크게)
+    renderer.drawRect(
+      pos.x - 1, pos.y - 1,
+      nodeW + 2, nodeH + 2,
+      COLORS.nodeSelected
+    );
+    // 노드 본체
+    renderer.drawRect(
+      pos.x, pos.y,
+      nodeW, nodeH,
+      COLORS.nodeSelected
     );
   }
 
