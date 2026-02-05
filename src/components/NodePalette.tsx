@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { nodeTypeRegistry, type NodeTypeDefinition } from '@flowforge/state';
 import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface NodePaletteProps {
   x: number;
@@ -17,6 +18,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const lang = useLanguage();
   const t = uiTranslations[lang];
+  const isMobile = useIsMobile();
 
   const allTypes = nodeTypeRegistry.getAll();
   const filteredTypes = search
@@ -38,8 +40,11 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
   }, {} as Record<string, NodeTypeDefinition[]>);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    // 모바일에서는 자동 포커스 안 함 (키보드가 바로 뜨는 것 방지)
+    if (!isMobile) {
+      inputRef.current?.focus();
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     setSelectedIndex(0);
