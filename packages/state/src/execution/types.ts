@@ -24,6 +24,8 @@ export interface ExecutionResult {
   outputs: Record<string, unknown>;
   /** 에러 메시지 (실패 시) */
   error?: string;
+  /** 노드 데이터 업데이트 (UI 반영용) */
+  nodeDataUpdate?: Record<string, unknown>;
 }
 
 /**
@@ -60,6 +62,7 @@ export type ExecutionEvent =
   | { type: 'node-start'; nodeId: string }
   | { type: 'node-complete'; nodeId: string; outputs: Record<string, unknown> }
   | { type: 'node-error'; nodeId: string; error: string }
+  | { type: 'node-data-update'; nodeId: string; data: Record<string, unknown> }
   | { type: 'complete' }
   | { type: 'error'; error: string };
 

@@ -157,6 +157,11 @@ export class ExecutionEngine {
       nodeState.outputs = result.outputs;
       nodeState.endTime = Date.now();
 
+      // nodeDataUpdate가 있으면 이벤트 발생 (UI에서 노드 데이터 업데이트용)
+      if (result.nodeDataUpdate) {
+        emit({ type: 'node-data-update', nodeId: node.id, data: result.nodeDataUpdate });
+      }
+
       emit({ type: 'node-complete', nodeId: node.id, outputs: result.outputs });
 
     } catch (error) {

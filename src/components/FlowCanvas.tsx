@@ -1929,6 +1929,15 @@ export function FlowCanvas() {
           if (event.type === 'node-start' || event.type === 'node-complete' || event.type === 'node-error') {
             forceRender(n => n + 1);
           }
+          // 노드 데이터 업데이트 이벤트 처리 (Display 노드 등에서 사용)
+          if (event.type === 'node-data-update') {
+            const node = store.getState().nodes.find(n => n.id === event.nodeId);
+            if (node) {
+              store.getState().updateNode(event.nodeId, {
+                data: { ...node.data, ...event.data },
+              });
+            }
+          }
         },
       });
       setExecutionState(result);

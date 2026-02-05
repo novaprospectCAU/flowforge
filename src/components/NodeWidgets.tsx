@@ -16,7 +16,7 @@ const HEADER_HEIGHT = 28;
 const WIDGET_PADDING = 8;
 
 // 위젯이 지원되는 노드 타입
-const WIDGET_SUPPORTED_TYPES = ['NumberInput', 'TextInput', 'Math', 'Filter', 'Resize', 'Merge', 'Condition'];
+const WIDGET_SUPPORTED_TYPES = ['NumberInput', 'TextInput', 'ImageInput', 'Math', 'Filter', 'Resize', 'Merge', 'Condition', 'Display', 'SaveImage'];
 
 export function NodeWidgets({
   nodes,
@@ -143,6 +143,8 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction }: Nod
               { value: 'blur', label: 'Blur' },
               { value: 'sharpen', label: 'Sharpen' },
               { value: 'invert', label: 'Invert' },
+              { value: 'sepia', label: 'Sepia' },
+              { value: 'brightness', label: 'Brightness' },
             ]}
             onChange={(v) => handleChange('filter', v)}
             fontSize={fontSize}
@@ -188,6 +190,35 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction }: Nod
               { value: 'lessEqual', label: '<=' },
             ]}
             onChange={(v) => handleChange('condition', v)}
+            fontSize={fontSize}
+          />
+        );
+
+      case 'ImageInput':
+        return (
+          <ImageWidget
+            imageData={node.data.imageData as string | undefined}
+            fileName={node.data.fileName as string | undefined}
+            onChange={(imageData, fileName) => {
+              onUpdate({ ...node.data, imageData, fileName });
+            }}
+            fontSize={fontSize}
+          />
+        );
+
+      case 'Display':
+        return (
+          <DisplayWidget
+            data={node.data.displayValue}
+            fontSize={fontSize}
+          />
+        );
+
+      case 'SaveImage':
+        return (
+          <SaveImageWidget
+            path={node.data.path as string ?? 'output.png'}
+            onChange={(path) => handleChange('path', path)}
             fontSize={fontSize}
           />
         );
@@ -386,6 +417,196 @@ function SelectWidget({ value, options, onChange, fontSize }: SelectWidgetProps)
         </option>
       ))}
     </select>
+  );
+}
+
+// 이미지 위젯 (파일 선택 + 미리보기)
+interface ImageWidgetProps {
+  imageData: string | undefined;
+  fileName: string | undefined;
+  onChange: (imageData: string, fileName: string) => void;
+  fontSize: number;
+}
+
+function ImageWidget({ imageData, fileName, onChange, fontSize }: ImageWidgetProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      onChange(dataUrl, file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', height: '100%' }}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+      />
+      {imageData ? (
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            overflow: 'hidden',
+          }}
+        >
+          <img
+            src={imageData}
+            alt={fileName}
+            style={{
+              flex: 1,
+              objectFit: 'contain',
+              maxHeight: '100%',
+              borderRadius: 4,
+              background: '#1e1e1e',
+            }}
+            onClick={handleClick}
+          />
+          <div
+            style={{
+              fontSize: fontSize * 0.8,
+              color: '#888',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {fileName}
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={handleClick}
+          style={{
+            flex: 1,
+            background: '#2d2d30',
+            border: '2px dashed #4a4a4a',
+            borderRadius: 4,
+            color: '#888',
+            fontSize,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          Click to load image
+        </button>
+      )}
+    </div>
+  );
+}
+
+// 디스플레이 위젯 (결과 미리보기)
+interface DisplayWidgetProps {
+  data: unknown;
+  fontSize: number;
+}
+
+function DisplayWidget({ data, fontSize }: DisplayWidgetProps) {
+  // 이미지 데이터인 경우
+  if (data && typeof data === 'object' && 'imageData' in (data as Record<string, unknown>)) {
+    const imageData = (data as Record<string, unknown>).imageData as string;
+    return (
+      <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+        <img
+          src={imageData}
+          alt="Preview"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            borderRadius: 4,
+            background: '#1e1e1e',
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 문자열이나 숫자
+  const displayText = data === undefined
+    ? '(no input)'
+    : typeof data === 'object'
+      ? JSON.stringify(data, null, 2)
+      : String(data);
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        overflow: 'auto',
+        background: '#1e1e1e',
+        borderRadius: 4,
+        padding: 6,
+        fontSize,
+        fontFamily: 'monospace',
+        color: '#e0e0e0',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-all',
+      }}
+    >
+      {displayText}
+    </div>
+  );
+}
+
+// SaveImage 위젯 (파일명 입력)
+interface SaveImageWidgetProps {
+  path: string;
+  onChange: (path: string) => void;
+  fontSize: number;
+}
+
+function SaveImageWidget({ path, onChange, fontSize }: SaveImageWidgetProps) {
+  const [localPath, setLocalPath] = useState(path);
+
+  useEffect(() => {
+    setLocalPath(path);
+  }, [path]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalPath(e.target.value);
+    onChange(e.target.value);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+      <div style={{ fontSize: fontSize * 0.9, color: '#888' }}>Filename:</div>
+      <input
+        type="text"
+        value={localPath}
+        onChange={handleChange}
+        placeholder="output.png"
+        style={{
+          background: '#2d2d30',
+          border: '1px solid #3c3c3c',
+          borderRadius: 4,
+          color: '#e0e0e0',
+          fontSize,
+          padding: '4px 8px',
+          outline: 'none',
+          width: '100%',
+        }}
+      />
+    </div>
   );
 }
 

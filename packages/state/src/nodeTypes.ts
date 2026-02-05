@@ -44,7 +44,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Load an image file',
     inputs: [],
     outputs: [{ id: 'out', name: 'image', dataType: 'image' }],
-    defaultSize: { width: 180, height: 100 },
+    defaultSize: { width: 180, height: 140 },
   },
 
   // Process 카테고리
@@ -102,7 +102,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Display result',
     inputs: [{ id: 'in', name: 'input', dataType: 'any', required: true }],
     outputs: [],
-    defaultSize: { width: 180, height: 100 },
+    defaultSize: { width: 180, height: 140 },
   },
   {
     type: 'SaveImage',
