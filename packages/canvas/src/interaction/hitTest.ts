@@ -14,6 +14,16 @@ export interface PortHitResult {
   position: Position;
 }
 
+export type ResizeHandle =
+  | 'top-left' | 'top' | 'top-right'
+  | 'left' | 'right'
+  | 'bottom-left' | 'bottom' | 'bottom-right';
+
+export interface ResizeHitResult {
+  node: FlowNode;
+  handle: ResizeHandle;
+}
+
 /**
  * 월드 좌표에서 노드 찾기 (위에서부터, 즉 나중에 그려진 것 우선)
  */
@@ -130,6 +140,69 @@ function distanceToBezier(
 /**
  * 월드 좌표에서 엣지 찾기
  */
+/**
+ * 선택된 노드의 리사이즈 핸들 히트 테스트
+ */
+export function hitTestResizeHandle(
+  worldPos: Position,
+  nodes: FlowNode[],
+  selectedIds: Set<string>
+): ResizeHitResult | null {
+  const handleSize = 8; // 핸들 크기
+  const edgeThreshold = 6; // 가장자리 감지 두께
+
+  // 선택된 노드만 검사 (역순)
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const node = nodes[i];
+    if (!selectedIds.has(node.id)) continue;
+
+    const { x, y } = node.position;
+    const { width, height } = node.size;
+    const right = x + width;
+    const bottom = y + height;
+
+    // 코너 핸들 체크 (우선순위 높음)
+    const corners: { handle: ResizeHandle; cx: number; cy: number }[] = [
+      { handle: 'top-left', cx: x, cy: y },
+      { handle: 'top-right', cx: right, cy: y },
+      { handle: 'bottom-left', cx: x, cy: bottom },
+      { handle: 'bottom-right', cx: right, cy: bottom },
+    ];
+
+    for (const corner of corners) {
+      if (
+        Math.abs(worldPos.x - corner.cx) <= handleSize &&
+        Math.abs(worldPos.y - corner.cy) <= handleSize
+      ) {
+        return { node, handle: corner.handle };
+      }
+    }
+
+    // 가장자리 핸들 체크
+    const isInHorizontalRange = worldPos.x >= x + handleSize && worldPos.x <= right - handleSize;
+    const isInVerticalRange = worldPos.y >= y + handleSize && worldPos.y <= bottom - handleSize;
+
+    // 상단 가장자리
+    if (isInHorizontalRange && Math.abs(worldPos.y - y) <= edgeThreshold) {
+      return { node, handle: 'top' };
+    }
+    // 하단 가장자리
+    if (isInHorizontalRange && Math.abs(worldPos.y - bottom) <= edgeThreshold) {
+      return { node, handle: 'bottom' };
+    }
+    // 좌측 가장자리
+    if (isInVerticalRange && Math.abs(worldPos.x - x) <= edgeThreshold) {
+      return { node, handle: 'left' };
+    }
+    // 우측 가장자리
+    if (isInVerticalRange && Math.abs(worldPos.x - right) <= edgeThreshold) {
+      return { node, handle: 'right' };
+    }
+  }
+
+  return null;
+}
+
 export function hitTestEdge(
   worldPos: Position,
   edges: FlowEdge[],

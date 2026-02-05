@@ -14,4 +14,12 @@ export { drawMinimap, isInMinimap, minimapToWorld, MINIMAP } from './rendering/d
 export { drawSelectionBox, isNodeInSelectionBox } from './rendering/drawSelectionBox';
 
 // Interaction
-export { hitTestNode, hitTestPort, hitTestEdge, type PortHitResult } from './interaction/hitTest';
+export {
+  hitTestNode,
+  hitTestPort,
+  hitTestEdge,
+  hitTestResizeHandle,
+  type PortHitResult,
+  type ResizeHandle,
+  type ResizeHitResult,
+} from './interaction/hitTest';

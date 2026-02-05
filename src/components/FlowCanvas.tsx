@@ -14,9 +14,11 @@ import {
   hitTestNode,
   hitTestPort,
   hitTestEdge,
+  hitTestResizeHandle,
   type IRenderer,
   type PortHitResult,
   type EdgeStyle,
+  type ResizeHandle,
 } from '@flowforge/canvas';
 import {
   createFlowStore,
@@ -34,7 +36,7 @@ import { ZoomControls } from './ZoomControls';
 import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
 
-type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap';
+type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize';
 
 // 테스트용 노드들
 const DEMO_NODES: FlowNode[] = [
@@ -105,6 +107,14 @@ export function FlowCanvas() {
   } | null>(null);
   // 드래그 중 노드의 "실제" 위치 (스냅 전)
   const nodeDragPositionsRef = useRef<Map<string, Position>>(new Map());
+  // 리사이즈 상태
+  const resizeRef = useRef<{
+    node: FlowNode;
+    handle: ResizeHandle;
+    startPos: Position;
+    startSize: { width: number; height: number };
+    startNodePos: Position;
+  } | null>(null);
   const clipboardRef = useRef<{
     nodes: FlowNode[];
     edges: FlowEdge[];
@@ -128,7 +138,9 @@ export function FlowCanvas() {
   const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('bezier');
   const [showSearch, setShowSearch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [cursorStyle, setCursorStyle] = useState<string>('grab');
   const GRID_SIZE = 20; // 스냅 그리드 크기
+  const MIN_NODE_SIZE = { width: 100, height: 60 }; // 최소 노드 크기
 
   // Refs for use in callbacks (to avoid stale closures)
   const snapToGridRef = useRef(snapToGrid);
@@ -224,6 +236,24 @@ export function FlowCanvas() {
       y: Math.round(pos.y / GRID_SIZE) * GRID_SIZE,
     };
   }, []);
+
+  // 리사이즈 핸들에 따른 커서 스타일
+  const getResizeCursor = (handle: ResizeHandle): string => {
+    switch (handle) {
+      case 'top-left':
+      case 'bottom-right':
+        return 'nwse-resize';
+      case 'top-right':
+      case 'bottom-left':
+        return 'nesw-resize';
+      case 'top':
+      case 'bottom':
+        return 'ns-resize';
+      case 'left':
+      case 'right':
+        return 'ew-resize';
+    }
+  };
 
   const setSelectedNodes = (ids: Set<string>) => {
     selectedNodeIdsRef.current = ids;
@@ -489,7 +519,25 @@ export function FlowCanvas() {
 
     const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
 
-    // 포트 히트 테스트 먼저
+    // 리사이즈 핸들 체크 (선택된 노드가 있을 때만)
+    const selectedIds = selectedNodeIdsRef.current;
+    if (selectedIds.size > 0) {
+      const resizeHit = hitTestResizeHandle(worldPos, state.nodes, selectedIds);
+      if (resizeHit) {
+        dragModeRef.current = 'resize';
+        lastMouseRef.current = { x: e.clientX, y: e.clientY };
+        resizeRef.current = {
+          node: resizeHit.node,
+          handle: resizeHit.handle,
+          startPos: worldPos,
+          startSize: { ...resizeHit.node.size },
+          startNodePos: { ...resizeHit.node.position },
+        };
+        return;
+      }
+    }
+
+    // 포트 히트 테스트
     const hitPort = hitTestPort(worldPos, state.nodes);
     if (hitPort) {
       dragModeRef.current = 'edge';
@@ -551,18 +599,36 @@ export function FlowCanvas() {
     }
   }, []);
 
-  // 마우스 이동 - 노드/엣지 드래그 또는 Pan
+  // 마우스 이동 - 노드/엣지 드래그 또는 Pan, 커서 변경
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (dragModeRef.current === 'none' || !storeRef.current) return;
-
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !storeRef.current) return;
+
+    const state = storeRef.current.getState();
+
+    // 드래그 중이 아닐 때 커서 업데이트
+    if (dragModeRef.current === 'none') {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+      const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
+
+      const selectedIds = selectedNodeIdsRef.current;
+      if (selectedIds.size > 0) {
+        const resizeHit = hitTestResizeHandle(worldPos, state.nodes, selectedIds);
+        if (resizeHit) {
+          setCursorStyle(getResizeCursor(resizeHit.handle));
+          return;
+        }
+      }
+      setCursorStyle('grab');
+      return;
+    }
 
     const dx = e.clientX - lastMouseRef.current.x;
     const dy = e.clientY - lastMouseRef.current.y;
     lastMouseRef.current = { x: e.clientX, y: e.clientY };
-
-    const state = storeRef.current.getState();
 
     if (dragModeRef.current === 'pan') {
       state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
@@ -612,6 +678,73 @@ export function FlowCanvas() {
       const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
       const worldPos = minimapToWorld({ x: mouseX, y: mouseY }, state.nodes, state.viewport, canvasSize);
       state.setViewport({ ...state.viewport, x: worldPos.x, y: worldPos.y });
+    } else if (dragModeRef.current === 'resize' && resizeRef.current) {
+      // 노드 리사이즈
+      const resize = resizeRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+      const currentWorldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
+
+      const deltaX = currentWorldPos.x - resize.startPos.x;
+      const deltaY = currentWorldPos.y - resize.startPos.y;
+
+      let newWidth = resize.startSize.width;
+      let newHeight = resize.startSize.height;
+      let newX = resize.startNodePos.x;
+      let newY = resize.startNodePos.y;
+
+      // 핸들에 따라 크기/위치 조정
+      switch (resize.handle) {
+        case 'right':
+          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width + deltaX);
+          break;
+        case 'bottom':
+          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height + deltaY);
+          break;
+        case 'left':
+          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width - deltaX);
+          newX = resize.startNodePos.x + resize.startSize.width - newWidth;
+          break;
+        case 'top':
+          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height - deltaY);
+          newY = resize.startNodePos.y + resize.startSize.height - newHeight;
+          break;
+        case 'bottom-right':
+          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width + deltaX);
+          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height + deltaY);
+          break;
+        case 'bottom-left':
+          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width - deltaX);
+          newX = resize.startNodePos.x + resize.startSize.width - newWidth;
+          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height + deltaY);
+          break;
+        case 'top-right':
+          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width + deltaX);
+          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height - deltaY);
+          newY = resize.startNodePos.y + resize.startSize.height - newHeight;
+          break;
+        case 'top-left':
+          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width - deltaX);
+          newX = resize.startNodePos.x + resize.startSize.width - newWidth;
+          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height - deltaY);
+          newY = resize.startNodePos.y + resize.startSize.height - newHeight;
+          break;
+      }
+
+      // 스냅 적용
+      if (snapToGridRef.current) {
+        newWidth = Math.round(newWidth / GRID_SIZE) * GRID_SIZE;
+        newHeight = Math.round(newHeight / GRID_SIZE) * GRID_SIZE;
+        newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+        newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+      }
+
+      state.updateNode(resize.node.id, {
+        size: { width: newWidth, height: newHeight },
+        position: { x: newX, y: newY },
+      });
     }
   }, []);
 
@@ -680,7 +813,13 @@ export function FlowCanvas() {
       nodeDragPositionsRef.current.clear();
     }
 
+    // 리사이즈 종료 시 정리
+    if (dragModeRef.current === 'resize') {
+      resizeRef.current = null;
+    }
+
     dragModeRef.current = 'none';
+    setCursorStyle('grab');
   }, []);
 
   // Zoom (passive: false로 등록해야 preventDefault 가능)
@@ -1319,7 +1458,7 @@ export function FlowCanvas() {
           height: '100%',
           display: 'block',
           background: '#1e1e1e',
-          cursor: dragModeRef.current !== 'none' ? 'grabbing' : 'grab',
+          cursor: dragModeRef.current !== 'none' ? 'grabbing' : cursorStyle,
         }}
       />
       {contextMenu && (
