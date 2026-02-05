@@ -1,4 +1,5 @@
-import type { FlowNode, Position, PortDefinition } from '@flowforge/types';
+import type { FlowNode, FlowEdge, Position, PortDefinition } from '@flowforge/types';
+import { getPortPosition } from '../rendering/drawEdge';
 
 const NODE_STYLE = {
   headerHeight: 28,
@@ -82,6 +83,81 @@ export function hitTestPort(
           position: { x: portX, y: portY },
         };
       }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 점과 베지어 커브 사이의 거리 (근사치)
+ */
+function distanceToBezier(
+  px: number, py: number,
+  x1: number, y1: number,
+  x2: number, y2: number,
+  controlOffset: number
+): number {
+  // 베지어 커브를 여러 점으로 샘플링하여 최소 거리 계산
+  let minDist = Infinity;
+  const samples = 20;
+
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const mt3 = mt2 * mt;
+
+    // 베지어 컨트롤 포인트
+    const cx1 = x1 + controlOffset;
+    const cy1 = y1;
+    const cx2 = x2 - controlOffset;
+    const cy2 = y2;
+
+    // 베지어 포인트
+    const bx = mt3 * x1 + 3 * mt2 * t * cx1 + 3 * mt * t2 * cx2 + t3 * x2;
+    const by = mt3 * y1 + 3 * mt2 * t * cy1 + 3 * mt * t2 * cy2 + t3 * y2;
+
+    const dist = Math.sqrt((px - bx) ** 2 + (py - by) ** 2);
+    minDist = Math.min(minDist, dist);
+  }
+
+  return minDist;
+}
+
+/**
+ * 월드 좌표에서 엣지 찾기
+ */
+export function hitTestEdge(
+  worldPos: Position,
+  edges: FlowEdge[],
+  nodes: FlowNode[]
+): FlowEdge | null {
+  const hitDistance = 8;
+
+  for (const edge of edges) {
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    const targetNode = nodes.find(n => n.id === edge.target);
+    if (!sourceNode || !targetNode) continue;
+
+    const sourcePos = getPortPosition(sourceNode, edge.sourcePort, true);
+    const targetPos = getPortPosition(targetNode, edge.targetPort, false);
+    if (!sourcePos || !targetPos) continue;
+
+    const dx = Math.abs(targetPos.x - sourcePos.x);
+    const controlOffset = Math.max(50, dx * 0.5);
+
+    const dist = distanceToBezier(
+      worldPos.x, worldPos.y,
+      sourcePos.x, sourcePos.y,
+      targetPos.x, targetPos.y,
+      controlOffset
+    );
+
+    if (dist <= hitDistance) {
+      return edge;
     }
   }
 

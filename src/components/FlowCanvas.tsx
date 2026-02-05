@@ -9,6 +9,7 @@ import {
   screenToWorld,
   hitTestNode,
   hitTestPort,
+  hitTestEdge,
   type IRenderer,
   type PortHitResult,
 } from '@flowforge/canvas';
@@ -226,6 +227,13 @@ export function FlowCanvas() {
       return;
     }
 
+    // 엣지 클릭 확인 (삭제)
+    const hitEdge = hitTestEdge(worldPos, state.edges, state.nodes);
+    if (hitEdge) {
+      state.deleteEdge(hitEdge.id);
+      return;
+    }
+
     const hitNode = hitTestNode(worldPos, state.nodes);
     lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
@@ -365,8 +373,31 @@ export function FlowCanvas() {
     return () => canvas.removeEventListener('wheel', handleWheel);
   }, []);
 
+  // 키보드 이벤트 (Delete로 선택 삭제)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const store = storeRef.current;
+        if (!store) return;
+
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size === 0) return;
+
+        const state = store.getState();
+        for (const nodeId of selectedIds) {
+          state.deleteNode(nodeId);
+        }
+        setSelectedNodes(new Set());
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <canvas
+      tabIndex={0}
       ref={canvasRef}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

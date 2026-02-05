@@ -13,4 +13,4 @@ export { drawGrid } from './rendering/drawGrid';
 export { drawMinimap } from './rendering/drawMinimap';
 
 // Interaction
-export { hitTestNode, hitTestPort, type PortHitResult } from './interaction/hitTest';
+export { hitTestNode, hitTestPort, hitTestEdge, type PortHitResult } from './interaction/hitTest';
