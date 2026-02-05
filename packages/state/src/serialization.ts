@@ -83,6 +83,51 @@ export function downloadFlow(
   URL.revokeObjectURL(url);
 }
 
+// localStorage 키
+const AUTOSAVE_KEY = 'flowforge_autosave';
+
+/**
+ * localStorage에 플로우 저장
+ */
+export function saveToLocalStorage(
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  groups: NodeGroup[],
+  viewport: Viewport
+): void {
+  try {
+    const json = serializeFlow(nodes, edges, groups, viewport, 'Autosave');
+    localStorage.setItem(AUTOSAVE_KEY, json);
+  } catch (err) {
+    console.error('Failed to save to localStorage:', err);
+  }
+}
+
+/**
+ * localStorage에서 플로우 불러오기
+ */
+export function loadFromLocalStorage(): SerializedFlow | null {
+  try {
+    const json = localStorage.getItem(AUTOSAVE_KEY);
+    if (!json) return null;
+    return deserializeFlow(json);
+  } catch (err) {
+    console.error('Failed to load from localStorage:', err);
+    return null;
+  }
+}
+
+/**
+ * localStorage의 자동 저장 데이터 삭제
+ */
+export function clearLocalStorage(): void {
+  try {
+    localStorage.removeItem(AUTOSAVE_KEY);
+  } catch (err) {
+    console.error('Failed to clear localStorage:', err);
+  }
+}
+
 /**
  * 파일에서 플로우 불러오기 (Promise 반환)
  */

@@ -38,5 +38,8 @@ export {
   deserializeFlow,
   downloadFlow,
   loadFlowFromFile,
+  saveToLocalStorage,
+  loadFromLocalStorage,
+  clearLocalStorage,
   type SerializedFlow,
 } from './serialization';

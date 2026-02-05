@@ -34,6 +34,8 @@ import {
   executeFlow,
   downloadFlow,
   loadFlowFromFile,
+  saveToLocalStorage,
+  loadFromLocalStorage,
   type FlowStore,
   type NodeTypeDefinition,
   type ExecutionState,
@@ -167,8 +169,12 @@ export function FlowCanvas() {
   const [showSearch, setShowSearch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [cursorStyle, setCursorStyle] = useState<string>('grab');
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const autoSaveTimerRef = useRef<number | null>(null);
+  const lastSaveRef = useRef<string>(''); // 마지막 저장 상태 해시
   const GRID_SIZE = 20; // 스냅 그리드 크기
   const MIN_NODE_SIZE = { width: 100, height: 60 }; // 최소 노드 크기
+  const AUTO_SAVE_INTERVAL = 30000; // 30초
 
   // Refs for use in callbacks (to avoid stale closures)
   const snapToGridRef = useRef(snapToGrid);
@@ -481,6 +487,27 @@ export function FlowCanvas() {
   }, []);
 
   // 초기화
+  // 자동 저장 함수
+  const performAutoSave = useCallback(() => {
+    const store = storeRef.current;
+    if (!store) return;
+
+    const state = store.getState();
+    // 상태가 변경되었는지 확인 (간단한 해시)
+    const currentHash = JSON.stringify({
+      nodes: state.nodes.length,
+      edges: state.edges.length,
+      groups: state.groups.length,
+    });
+
+    if (currentHash !== lastSaveRef.current) {
+      setSaveStatus('saving');
+      saveToLocalStorage(state.nodes, state.edges, state.groups, state.viewport);
+      lastSaveRef.current = currentHash;
+      setTimeout(() => setSaveStatus('saved'), 500);
+    }
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -496,30 +523,49 @@ export function FlowCanvas() {
       }
       rendererRef.current = renderer;
 
-      // 스토어 생성 및 데모 노드 추가
+      // 스토어 생성
       const store = createFlowStore();
       storeRef.current = store;
 
-      // 데모 노드 추가
-      for (const node of DEMO_NODES) {
-        store.getState().addNode(node);
-      }
-
-      // 데모 엣지 추가
-      for (const edge of DEMO_EDGES) {
-        store.getState().addEdge(edge);
+      // localStorage에서 불러오기 시도
+      const savedFlow = loadFromLocalStorage();
+      if (savedFlow && savedFlow.nodes.length > 0) {
+        // 저장된 데이터 불러오기
+        store.getState().loadFlow(
+          savedFlow.nodes,
+          savedFlow.edges,
+          savedFlow.groups,
+          savedFlow.viewport
+        );
+        setCurrentZoom(savedFlow.viewport.zoom);
+      } else {
+        // 저장된 데이터가 없으면 데모 노드 추가
+        for (const node of DEMO_NODES) {
+          store.getState().addNode(node);
+        }
+        for (const edge of DEMO_EDGES) {
+          store.getState().addEdge(edge);
+        }
       }
 
       // 렌더 루프 시작
       rafRef.current = requestAnimationFrame(render);
+
+      // 자동 저장 타이머 시작
+      autoSaveTimerRef.current = window.setInterval(() => {
+        performAutoSave();
+      }, AUTO_SAVE_INTERVAL);
     })();
 
     return () => {
       mounted = false;
       cancelAnimationFrame(rafRef.current);
       rendererRef.current?.dispose();
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+      }
     };
-  }, []);
+  }, [performAutoSave]);
 
   // 마우스 다운 - 포트/노드 선택 또는 Pan 시작
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -1672,6 +1718,29 @@ export function FlowCanvas() {
           alignItems: 'center',
         }}
       >
+        {/* 자동 저장 상태 */}
+        <div
+          title="Auto-save status"
+          style={{
+            padding: '8px 12px',
+            background: '#2d3748',
+            color: saveStatus === 'saved' ? '#68d391' : saveStatus === 'saving' ? '#f6e05e' : '#a0aec0',
+            border: '1px solid #4a5568',
+            borderRadius: 4,
+            fontSize: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <span style={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: saveStatus === 'saved' ? '#68d391' : saveStatus === 'saving' ? '#f6e05e' : '#a0aec0',
+          }} />
+          {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
+        </div>
         {/* 스냅 토글 */}
         <button
           onClick={() => setSnapToGrid(prev => !prev)}
