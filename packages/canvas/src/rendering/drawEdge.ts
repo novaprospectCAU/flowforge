@@ -2,6 +2,8 @@ import type { IRenderer } from '../renderer/types';
 import type { FlowNode, FlowEdge, Color, Position } from '@flowforge/types';
 import { NODE_STYLE } from './drawNode';
 
+export type EdgeStyle = 'bezier' | 'straight' | 'step';
+
 const EDGE_COLORS = {
   default: { r: 150, g: 150, b: 155, a: 255 } as Color,
   active: { r: 100, g: 180, b: 255, a: 255 } as Color,
@@ -29,23 +31,14 @@ export function getPortPosition(
 }
 
 /**
- * 단일 엣지 렌더링 (베지어 커브)
+ * 베지어 커브로 엣지 그리기
  */
-export function drawEdge(
+function drawBezierEdge(
   renderer: IRenderer,
-  edge: FlowEdge,
-  nodes: FlowNode[],
-  active: boolean = false
+  sourcePos: Position,
+  targetPos: Position,
+  color: Color
 ): void {
-  const sourceNode = nodes.find(n => n.id === edge.source);
-  const targetNode = nodes.find(n => n.id === edge.target);
-  if (!sourceNode || !targetNode) return;
-
-  const sourcePos = getPortPosition(sourceNode, edge.sourcePort, true);
-  const targetPos = getPortPosition(targetNode, edge.targetPort, false);
-  if (!sourcePos || !targetPos) return;
-
-  // 베지어 커브 컨트롤 포인트
   const dx = Math.abs(targetPos.x - sourcePos.x);
   const controlOffset = Math.max(50, dx * 0.5);
 
@@ -60,9 +53,72 @@ export function drawEdge(
       x2: targetPos.x,
       y2: targetPos.y,
     },
-    active ? EDGE_COLORS.active : EDGE_COLORS.default,
+    color,
     2
   );
+}
+
+/**
+ * 직선으로 엣지 그리기
+ */
+function drawStraightEdge(
+  renderer: IRenderer,
+  sourcePos: Position,
+  targetPos: Position,
+  color: Color
+): void {
+  renderer.drawLine(sourcePos.x, sourcePos.y, targetPos.x, targetPos.y, color, 2);
+}
+
+/**
+ * 직각(Step)으로 엣지 그리기
+ */
+function drawStepEdge(
+  renderer: IRenderer,
+  sourcePos: Position,
+  targetPos: Position,
+  color: Color
+): void {
+  const midX = (sourcePos.x + targetPos.x) / 2;
+
+  // 수평 -> 수직 -> 수평 경로
+  renderer.drawLine(sourcePos.x, sourcePos.y, midX, sourcePos.y, color, 2);
+  renderer.drawLine(midX, sourcePos.y, midX, targetPos.y, color, 2);
+  renderer.drawLine(midX, targetPos.y, targetPos.x, targetPos.y, color, 2);
+}
+
+/**
+ * 단일 엣지 렌더링
+ */
+export function drawEdge(
+  renderer: IRenderer,
+  edge: FlowEdge,
+  nodes: FlowNode[],
+  active: boolean = false,
+  style: EdgeStyle = 'bezier'
+): void {
+  const sourceNode = nodes.find(n => n.id === edge.source);
+  const targetNode = nodes.find(n => n.id === edge.target);
+  if (!sourceNode || !targetNode) return;
+
+  const sourcePos = getPortPosition(sourceNode, edge.sourcePort, true);
+  const targetPos = getPortPosition(targetNode, edge.targetPort, false);
+  if (!sourcePos || !targetPos) return;
+
+  const color = active ? EDGE_COLORS.active : EDGE_COLORS.default;
+
+  switch (style) {
+    case 'straight':
+      drawStraightEdge(renderer, sourcePos, targetPos, color);
+      break;
+    case 'step':
+      drawStepEdge(renderer, sourcePos, targetPos, color);
+      break;
+    case 'bezier':
+    default:
+      drawBezierEdge(renderer, sourcePos, targetPos, color);
+      break;
+  }
 }
 
 /**
@@ -71,10 +127,11 @@ export function drawEdge(
 export function drawEdges(
   renderer: IRenderer,
   edges: FlowEdge[],
-  nodes: FlowNode[]
+  nodes: FlowNode[],
+  style: EdgeStyle = 'bezier'
 ): void {
   for (const edge of edges) {
-    drawEdge(renderer, edge, nodes);
+    drawEdge(renderer, edge, nodes, false, style);
   }
 }
 
@@ -85,32 +142,22 @@ export function drawTempEdge(
   renderer: IRenderer,
   startPos: Position,
   endPos: Position,
-  isFromOutput: boolean
+  isFromOutput: boolean,
+  style: EdgeStyle = 'bezier'
 ): void {
-  const dx = Math.abs(endPos.x - startPos.x);
-  const controlOffset = Math.max(50, dx * 0.5);
+  const sourcePos = isFromOutput ? startPos : endPos;
+  const targetPos = isFromOutput ? endPos : startPos;
 
-  const points = isFromOutput
-    ? {
-        x1: startPos.x,
-        y1: startPos.y,
-        cx1: startPos.x + controlOffset,
-        cy1: startPos.y,
-        cx2: endPos.x - controlOffset,
-        cy2: endPos.y,
-        x2: endPos.x,
-        y2: endPos.y,
-      }
-    : {
-        x1: endPos.x,
-        y1: endPos.y,
-        cx1: endPos.x + controlOffset,
-        cy1: endPos.y,
-        cx2: startPos.x - controlOffset,
-        cy2: startPos.y,
-        x2: startPos.x,
-        y2: startPos.y,
-      };
-
-  renderer.drawBezier(points, EDGE_COLORS.active, 2);
+  switch (style) {
+    case 'straight':
+      drawStraightEdge(renderer, sourcePos, targetPos, EDGE_COLORS.active);
+      break;
+    case 'step':
+      drawStepEdge(renderer, sourcePos, targetPos, EDGE_COLORS.active);
+      break;
+    case 'bezier':
+    default:
+      drawBezierEdge(renderer, sourcePos, targetPos, EDGE_COLORS.active);
+      break;
+  }
 }

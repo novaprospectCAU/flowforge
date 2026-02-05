@@ -14,6 +14,7 @@ import {
   hitTestEdge,
   type IRenderer,
   type PortHitResult,
+  type EdgeStyle,
 } from '@flowforge/canvas';
 import {
   createFlowStore,
@@ -118,6 +119,7 @@ export function FlowCanvas() {
   const [isRunning, setIsRunning] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [currentZoom, setCurrentZoom] = useState(1);
+  const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('bezier');
   const GRID_SIZE = 20; // 스냅 그리드 크기
 
   // 줌 컨트롤 핸들러
@@ -340,7 +342,7 @@ export function FlowCanvas() {
     drawGrid(renderer, state.viewport, canvasSize);
 
     // 엣지 (노드 아래)
-    drawEdges(renderer, state.edges, state.nodes);
+    drawEdges(renderer, state.edges, state.nodes, edgeStyle);
 
     // 드래그 중인 임시 엣지
     const edgeDrag = edgeDragRef.current;
@@ -349,7 +351,8 @@ export function FlowCanvas() {
         renderer,
         edgeDrag.startPort.position,
         edgeDrag.currentPos,
-        edgeDrag.startPort.isOutput
+        edgeDrag.startPort.isOutput,
+        edgeStyle
       );
     }
 
@@ -1163,6 +1166,26 @@ export function FlowCanvas() {
           }}
         >
           Grid: {snapToGrid ? 'ON' : 'OFF'}
+        </button>
+        {/* 엣지 스타일 토글 */}
+        <button
+          onClick={() => {
+            const styles: EdgeStyle[] = ['bezier', 'straight', 'step'];
+            const currentIndex = styles.indexOf(edgeStyle);
+            setEdgeStyle(styles[(currentIndex + 1) % styles.length]);
+          }}
+          title="Edge Style (Click to cycle)"
+          style={{
+            padding: '8px 12px',
+            background: '#4a5568',
+            color: '#a0aec0',
+            border: '1px solid #4a5568',
+            borderRadius: 4,
+            fontSize: 12,
+            cursor: 'pointer',
+          }}
+        >
+          Edge: {edgeStyle.charAt(0).toUpperCase() + edgeStyle.slice(1)}
         </button>
         {executionState && (
           <div

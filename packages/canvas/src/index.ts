@@ -8,7 +8,7 @@ export { screenToWorld, worldToScreen, getViewportBounds } from './viewport/tran
 
 // Rendering
 export { drawNode, drawNodes, NODE_STYLE } from './rendering/drawNode';
-export { drawEdge, drawEdges, drawTempEdge, getPortPosition } from './rendering/drawEdge';
+export { drawEdge, drawEdges, drawTempEdge, getPortPosition, type EdgeStyle } from './rendering/drawEdge';
 export { drawGrid } from './rendering/drawGrid';
 export { drawMinimap } from './rendering/drawMinimap';
 export { drawSelectionBox, isNodeInSelectionBox } from './rendering/drawSelectionBox';
