@@ -13,7 +13,14 @@ import {
   type IRenderer,
   type PortHitResult,
 } from '@flowforge/canvas';
-import { createFlowStore, nodeTypeRegistry, type FlowStore, type NodeTypeDefinition } from '@flowforge/state';
+import {
+  createFlowStore,
+  nodeTypeRegistry,
+  executeFlow,
+  type FlowStore,
+  type NodeTypeDefinition,
+  type ExecutionState,
+} from '@flowforge/state';
 import type { FlowNode, FlowEdge, CanvasSize, Position } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
@@ -95,6 +102,8 @@ export function FlowCanvas() {
     y: number;
     worldPos: Position;
   } | null>(null);
+  const [executionState, setExecutionState] = useState<ExecutionState | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
 
   const setSelectedNodes = (ids: Set<string>) => {
     selectedNodeIdsRef.current = ids;
@@ -470,6 +479,30 @@ export function FlowCanvas() {
     });
   }, []);
 
+  // 플로우 실행
+  const handleRunFlow = useCallback(async () => {
+    const store = storeRef.current;
+    if (!store || isRunning) return;
+
+    setIsRunning(true);
+    const state = store.getState();
+
+    try {
+      const result = await executeFlow(state.nodes, state.edges, {
+        onEvent: (event) => {
+          if (event.type === 'node-start' || event.type === 'node-complete' || event.type === 'node-error') {
+            forceRender(n => n + 1);
+          }
+        },
+      });
+      setExecutionState(result);
+    } catch (error) {
+      console.error('Execution error:', error);
+    } finally {
+      setIsRunning(false);
+    }
+  }, [isRunning]);
+
   // 노드 추가 함수 (레지스트리 기반)
   const addNodeFromType = useCallback((typeDef: NodeTypeDefinition, worldPos: Position) => {
     const store = storeRef.current;
@@ -563,6 +596,53 @@ export function FlowCanvas() {
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {/* 실행 버튼 */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          zIndex: 100,
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center',
+        }}
+      >
+        {executionState && (
+          <div
+            style={{
+              padding: '8px 12px',
+              background: executionState.status === 'success' ? '#28a745' :
+                         executionState.status === 'error' ? '#dc3545' : '#6c757d',
+              color: '#fff',
+              borderRadius: 4,
+              fontSize: 12,
+            }}
+          >
+            {executionState.status === 'success' ? 'Completed' :
+             executionState.status === 'error' ? 'Error' : 'Running...'}
+          </div>
+        )}
+        <button
+          onClick={handleRunFlow}
+          disabled={isRunning}
+          style={{
+            padding: '10px 20px',
+            background: isRunning ? '#4a5568' : '#3182ce',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            fontSize: 14,
+            fontWeight: 500,
+            cursor: isRunning ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          {isRunning ? 'Running...' : 'Run Flow'}
+        </button>
+      </div>
       <canvas
         tabIndex={0}
         ref={canvasRef}

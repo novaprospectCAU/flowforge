@@ -22,7 +22,9 @@ flowforge/
 │   └── state/           # @flowforge/state - 상태 관리
 │       └── src/
 │           ├── store.ts      # Zustand 스토어
-│           └── yjsDoc.ts     # Yjs 문서
+│           ├── yjsDoc.ts     # Yjs 문서
+│           ├── nodeTypes.ts  # 노드 타입 레지스트리
+│           └── execution/    # 실행 엔진
 ├── shared/
 │   └── types/           # @flowforge/types - 공유 타입
 └── src/                 # React 앱
@@ -56,6 +58,18 @@ flowforge/
 - **노드 CRUD**: addNode, updateNode, deleteNode
 - **엣지 CRUD**: addEdge, deleteEdge
 - **뷰포트**: setViewport, pan, zoom
+
+### 노드 타입 시스템
+- **노드 레지스트리**: 타입별 정의 관리
+- **내장 타입**: NumberInput, TextInput, ImageInput, Math, Resize, Filter, Merge, Display, SaveImage, Condition
+- **카테고리**: Input, Process, Output, Logic
+- **검색 팔레트**: Tab 키로 노드 검색 및 추가
+
+### 실행 엔진
+- **위상 정렬**: 노드 실행 순서 결정 (순환 감지)
+- **실행자 레지스트리**: 노드 타입별 실행 함수
+- **이벤트 시스템**: 실행 상태 변화 콜백
+- **Run 버튼**: 플로우 실행 UI
 
 ## 주요 API
 
@@ -100,7 +114,20 @@ interface FlowState {
   setViewport(viewport: Viewport): void
   pan(dx: number, dy: number): void
   zoom(factor: number, centerX?: number, centerY?: number): void
+  undo(): void
+  redo(): void
 }
+
+// 노드 타입 레지스트리
+nodeTypeRegistry.register(definition: NodeTypeDefinition): void
+nodeTypeRegistry.get(type: string): NodeTypeDefinition | undefined
+nodeTypeRegistry.getAll(): NodeTypeDefinition[]
+nodeTypeRegistry.getByCategory(category: string): NodeTypeDefinition[]
+
+// 실행 엔진
+executeFlow(nodes, edges, options): Promise<ExecutionState>
+executorRegistry.register(nodeType: string, executor: NodeExecutor): void
+topologicalSort(nodes, edges): string[]  // 실행 순서 반환
 ```
 
 ### @flowforge/types
@@ -139,8 +166,8 @@ pnpm build            # 프로덕션 빌드
 ```
 
 ## 다음 단계 (예정)
-- 노드 타입 시스템 (레지스트리)
-- 실행 엔진
 - 실시간 협업 (Yjs provider)
-- 노드 검색/추가 팔레트
+- 노드 설정 패널 (프로퍼티 에디터)
+- 실행 상태 시각화 (노드 테두리 색상)
 - 키보드 단축키 확장
+- 커스텀 노드 타입 플러그인
