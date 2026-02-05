@@ -24,6 +24,7 @@ import {
 import type { FlowNode, FlowEdge, CanvasSize, Position } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
+import { PropertyPanel } from './PropertyPanel';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge';
 
@@ -678,6 +679,22 @@ export function FlowCanvas() {
           onClose={() => setNodePalette(null)}
         />
       )}
+      {/* 프로퍼티 패널 - 단일 노드 선택 시 */}
+      {(() => {
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size !== 1 || !storeRef.current) return null;
+        const nodeId = Array.from(selectedIds)[0];
+        const node = storeRef.current.getState().nodes.find(n => n.id === nodeId);
+        if (!node) return null;
+        return (
+          <PropertyPanel
+            node={node}
+            onUpdate={(id, data) => {
+              storeRef.current?.getState().updateNode(id, { data });
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

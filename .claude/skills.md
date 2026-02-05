@@ -71,6 +71,12 @@ flowforge/
 - **이벤트 시스템**: 실행 상태 변화 콜백
 - **Run 버튼**: 플로우 실행 UI
 
+### 프로퍼티 패널
+- **노드 설정**: 단일 노드 선택 시 좌측에 패널 표시
+- **공통 필드**: Title 편집
+- **타입별 필드**: NumberInput(값), TextInput(텍스트), Math(연산), Filter(필터), Merge(모드), SaveImage(경로)
+- **노드 정보**: ID, Position, Size 표시
+
 ## 주요 API
 
 ### @flowforge/canvas
@@ -167,7 +173,6 @@ pnpm build            # 프로덕션 빌드
 
 ## 다음 단계 (예정)
 - 실시간 협업 (Yjs provider)
-- 노드 설정 패널 (프로퍼티 에디터)
 - 실행 상태 시각화 (노드 테두리 색상)
 - 키보드 단축키 확장
 - 커스텀 노드 타입 플러그인
