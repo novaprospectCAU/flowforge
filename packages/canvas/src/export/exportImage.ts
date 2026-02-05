@@ -143,6 +143,7 @@ export async function exportFlowToImage(
     const targetNode = nodes.find(n => n.id === edge.target);
     if (!sourceNode || !targetNode) continue;
 
+    const sourcePort = sourceNode.outputs?.find(p => p.id === edge.sourcePort);
     const sourcePortIndex = sourceNode.outputs?.findIndex(p => p.id === edge.sourcePort) ?? 0;
     const targetPortIndex = targetNode.inputs?.findIndex(p => p.id === edge.targetPort) ?? 0;
 
@@ -154,7 +155,9 @@ export async function exportFlowToImage(
     const x2 = targetNode.position.x;
     const y2 = targetNode.position.y + headerHeight + portSpacing * (targetPortIndex + 0.5);
 
-    ctx.strokeStyle = 'rgba(150, 150, 155, 0.8)';
+    // 소스 포트의 데이터 타입 색상 사용
+    const edgeColor = getPortColor(sourcePort?.dataType || 'any');
+    ctx.strokeStyle = edgeColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
 

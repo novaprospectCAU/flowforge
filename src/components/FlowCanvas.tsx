@@ -434,7 +434,8 @@ export function FlowCanvas() {
         edgeDrag.startPort.position,
         edgeDrag.currentPos,
         edgeDrag.startPort.isOutput,
-        edgeStyleRef.current
+        edgeStyleRef.current,
+        edgeDrag.startPort.port.dataType
       );
     }
 
