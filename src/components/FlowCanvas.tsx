@@ -80,58 +80,6 @@ function isTypeCompatible(sourceType: DataType, targetType: DataType): boolean {
   return sourceType === targetType;
 }
 
-// 테스트용 노드들
-const DEMO_NODES: FlowNode[] = [
-  {
-    id: 'node-1',
-    type: 'Input',
-    position: { x: -200, y: -100 },
-    size: { width: 180, height: 100 },
-    data: { title: 'Load Image' },
-    inputs: [],
-    outputs: [
-      { id: 'out-1', name: 'image', dataType: 'image' },
-    ],
-  },
-  {
-    id: 'node-2',
-    type: 'Process',
-    position: { x: 100, y: -80 },
-    size: { width: 180, height: 120 },
-    data: { title: 'Resize' },
-    inputs: [
-      { id: 'in-1', name: 'image', dataType: 'image' },
-      { id: 'in-2', name: 'scale', dataType: 'number' },
-    ],
-    outputs: [
-      { id: 'out-1', name: 'image', dataType: 'image' },
-    ],
-  },
-  {
-    id: 'node-3',
-    type: 'Output',
-    position: { x: 400, y: -60 },
-    size: { width: 180, height: 100 },
-    data: { title: 'Save Image' },
-    inputs: [
-      { id: 'in-1', name: 'image', dataType: 'image' },
-      { id: 'in-2', name: 'path', dataType: 'string' },
-    ],
-    outputs: [],
-  },
-];
-
-// 테스트용 엣지
-const DEMO_EDGES: FlowEdge[] = [
-  {
-    id: 'edge-1',
-    source: 'node-1',
-    sourcePort: 'out-1',
-    target: 'node-2',
-    targetPort: 'in-1',
-  },
-];
-
 export function FlowCanvas() {
   const isMobile = useIsMobile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -613,15 +561,8 @@ export function FlowCanvas() {
           savedFlow.subflows
         );
         setCurrentZoom(savedFlow.viewport.zoom);
-      } else {
-        // 저장된 데이터가 없으면 데모 노드 추가
-        for (const node of DEMO_NODES) {
-          store.getState().addNode(node);
-        }
-        for (const edge of DEMO_EDGES) {
-          store.getState().addEdge(edge);
-        }
       }
+      // 저장된 데이터가 없으면 빈 캔버스로 시작
 
       // 렌더 루프 시작
       rafRef.current = requestAnimationFrame(render);
