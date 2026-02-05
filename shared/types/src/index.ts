@@ -81,6 +81,31 @@ export interface Comment {
   color?: string;  // 배경 색상 (hex)
 }
 
+// === 서브플로우 ===
+// 서브플로우 포트 매핑
+export interface SubflowPortMapping {
+  exposedPortId: string;      // 서브플로우에 노출된 포트 ID
+  exposedPortName: string;    // 표시 이름
+  internalNodeId: string;     // 내부 노드 ID
+  internalPortId: string;     // 내부 노드의 포트 ID
+  dataType: DataType;
+  isOutput: boolean;
+}
+
+// 서브플로우 정의
+export interface Subflow {
+  id: string;
+  name: string;
+  nodeIds: string[];           // 포함된 노드 ID들
+  internalEdgeIds: string[];   // 내부 엣지 ID들
+  inputMappings: SubflowPortMapping[];
+  outputMappings: SubflowPortMapping[];
+  collapsed: boolean;
+  collapsedPosition?: Position;
+  collapsedSize?: Size;
+  color?: string;
+}
+
 // === 그래프 ===
 export interface FlowGraph {
   id: string;

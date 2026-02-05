@@ -1,4 +1,4 @@
-import type { FlowNode, FlowEdge, NodeGroup, Viewport, Comment } from '@flowforge/types';
+import type { FlowNode, FlowEdge, NodeGroup, Viewport, Comment, Subflow } from '@flowforge/types';
 
 /**
  * 저장 가능한 플로우 데이터 형식
@@ -10,12 +10,13 @@ export interface SerializedFlow {
   edges: FlowEdge[];
   groups: NodeGroup[];
   comments: Comment[];
+  subflows: Subflow[];
   viewport: Viewport;
   createdAt: string;
   updatedAt: string;
 }
 
-const CURRENT_VERSION = '1.1.0';
+const CURRENT_VERSION = '1.2.0';
 
 /**
  * 플로우를 JSON 문자열로 직렬화
@@ -26,7 +27,8 @@ export function serializeFlow(
   groups: NodeGroup[],
   viewport: Viewport,
   name: string = 'Untitled Flow',
-  comments: Comment[] = []
+  comments: Comment[] = [],
+  subflows: Subflow[] = []
 ): string {
   const flow: SerializedFlow = {
     version: CURRENT_VERSION,
@@ -35,6 +37,7 @@ export function serializeFlow(
     edges,
     groups,
     comments,
+    subflows,
     viewport,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -59,6 +62,7 @@ export function deserializeFlow(json: string): SerializedFlow {
   if (!flow.edges) flow.edges = [];
   if (!flow.groups) flow.groups = [];
   if (!flow.comments) flow.comments = [];
+  if (!flow.subflows) flow.subflows = [];
   if (!flow.viewport) flow.viewport = { x: 0, y: 0, zoom: 1 };
 
   return flow;
@@ -73,9 +77,10 @@ export function downloadFlow(
   groups: NodeGroup[],
   viewport: Viewport,
   filename: string = 'flow.json',
-  comments: Comment[] = []
+  comments: Comment[] = [],
+  subflows: Subflow[] = []
 ): void {
-  const json = serializeFlow(nodes, edges, groups, viewport, filename.replace('.json', ''), comments);
+  const json = serializeFlow(nodes, edges, groups, viewport, filename.replace('.json', ''), comments, subflows);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
 
@@ -99,10 +104,11 @@ export function saveToLocalStorage(
   edges: FlowEdge[],
   groups: NodeGroup[],
   viewport: Viewport,
-  comments: Comment[] = []
+  comments: Comment[] = [],
+  subflows: Subflow[] = []
 ): void {
   try {
-    const json = serializeFlow(nodes, edges, groups, viewport, 'Autosave', comments);
+    const json = serializeFlow(nodes, edges, groups, viewport, 'Autosave', comments, subflows);
     localStorage.setItem(AUTOSAVE_KEY, json);
   } catch (err) {
     console.error('Failed to save to localStorage:', err);

@@ -1,5 +1,5 @@
 import * as Y from 'yjs';
-import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment } from '@flowforge/types';
+import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment, Subflow } from '@flowforge/types';
 
 /**
  * Yjs 문서 구조:
@@ -7,6 +7,7 @@ import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment } from '@flowforg
  * - edges: Y.Map<FlowEdge>  (id -> edge)
  * - groups: Y.Map<NodeGroup> (id -> group)
  * - comments: Y.Map<Comment> (id -> comment)
+ * - subflows: Y.Map<Subflow> (id -> subflow)
  * - viewport: Y.Map<number> (x, y, zoom)
  */
 export interface FlowYjsDoc {
@@ -15,6 +16,7 @@ export interface FlowYjsDoc {
   edges: Y.Map<FlowEdge>;
   groups: Y.Map<NodeGroup>;
   comments: Y.Map<Comment>;
+  subflows: Y.Map<Subflow>;
   viewport: Y.Map<number>;
 }
 
@@ -24,6 +26,7 @@ export function createFlowDoc(): FlowYjsDoc {
   const edges = doc.getMap<FlowEdge>('edges');
   const groups = doc.getMap<NodeGroup>('groups');
   const comments = doc.getMap<Comment>('comments');
+  const subflows = doc.getMap<Subflow>('subflows');
   const viewport = doc.getMap<number>('viewport');
 
   // 기본 뷰포트 초기화
@@ -35,7 +38,7 @@ export function createFlowDoc(): FlowYjsDoc {
     });
   }
 
-  return { doc, nodes, edges, groups, comments, viewport };
+  return { doc, nodes, edges, groups, comments, subflows, viewport };
 }
 
 export function getViewportFromYjs(viewport: Y.Map<number>): Viewport {
@@ -68,4 +71,8 @@ export function getGroupsFromYjs(groups: Y.Map<NodeGroup>): NodeGroup[] {
 
 export function getCommentsFromYjs(comments: Y.Map<Comment>): Comment[] {
   return Array.from(comments.values());
+}
+
+export function getSubflowsFromYjs(subflows: Y.Map<Subflow>): Subflow[] {
+  return Array.from(subflows.values());
 }

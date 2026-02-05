@@ -10,6 +10,7 @@ import {
   drawGroups,
   drawSnapLines,
   drawComments,
+  drawSubflows,
   calculateSnap,
   isNodeInSelectionBox,
   isInMinimap,
@@ -21,6 +22,7 @@ import {
   hitTestResizeHandle,
   hitTestGroups,
   hitTestComment,
+  hitTestCollapsedSubflow,
   type IRenderer,
   type PortHitResult,
   type EdgeStyle,
@@ -39,11 +41,12 @@ import {
   saveToLocalStorage,
   loadFromLocalStorage,
   validateNodes,
+  getVisibleNodes,
   type FlowStore,
   type NodeTypeDefinition,
   type ExecutionState,
 } from '@flowforge/state';
-import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType, Comment } from '@flowforge/types';
+import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType, Comment, Subflow } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
@@ -53,7 +56,7 @@ import { ShortcutsHelp } from './ShortcutsHelp';
 import { SelectionBar } from './SelectionBar';
 import { NodeWidgets } from './NodeWidgets';
 
-type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment';
+type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment' | 'subflow';
 
 /**
  * 데이터 타입 호환성 검사
@@ -129,7 +132,9 @@ export function FlowCanvas() {
   const lastMouseRef = useRef({ x: 0, y: 0 });
   const selectedNodeIdsRef = useRef<Set<string>>(new Set());
   const selectedCommentIdRef = useRef<string | null>(null);
+  const selectedSubflowIdRef = useRef<string | null>(null);
   const commentDragRef = useRef<{ comment: Comment; startPos: Position } | null>(null);
+  const subflowDragRef = useRef<{ subflow: Subflow; startPos: Position } | null>(null);
   const edgeDragRef = useRef<{
     startPort: PortHitResult;
     currentPos: Position;
@@ -463,14 +468,21 @@ export function FlowCanvas() {
     // 그룹 (노드/엣지 아래)
     drawGroups(renderer, state.groups, state.nodes);
 
+    // 펼쳐진 서브플로우 배경 (노드 아래)
+    const expandedSubflows = state.subflows.filter(s => !s.collapsed);
+    drawSubflows(renderer, expandedSubflows, state.nodes, selectedSubflowIdRef.current ?? undefined);
+
     // 코멘트 (노드 아래)
     const selectedCommentIds = selectedCommentIdRef.current
       ? new Set([selectedCommentIdRef.current])
       : new Set<string>();
     drawComments(renderer, state.comments, selectedCommentIds);
 
-    // 엣지 (노드 아래)
-    drawEdges(renderer, state.edges, state.nodes, edgeStyleRef.current);
+    // 보이는 노드만 필터링 (접힌 서브플로우 내부 노드 제외)
+    const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
+
+    // 엣지 (노드 아래) - 보이는 노드만 사용
+    drawEdges(renderer, state.edges, visibleNodes, edgeStyleRef.current);
 
     // 드래그 중인 임시 엣지
     const edgeDrag = edgeDragRef.current;
@@ -496,7 +508,12 @@ export function FlowCanvas() {
     // 노드 검증 (미연결 필수 포트 경고)
     const validationMap = validateNodes(state.nodes, state.edges);
 
-    drawNodes(renderer, state.nodes, selectedIds, nodeExecStates, compatiblePortsMapRef.current, null, validationMap);
+    // 보이는 노드만 렌더링
+    drawNodes(renderer, visibleNodes, selectedIds, nodeExecStates, compatiblePortsMapRef.current, null, validationMap);
+
+    // 접힌 서브플로우 렌더링 (노드 위에)
+    const collapsedSubflows = state.subflows.filter(s => s.collapsed);
+    drawSubflows(renderer, collapsedSubflows, state.nodes, selectedSubflowIdRef.current ?? undefined);
 
     // 스냅 라인 (노드 드래그 중에만)
     if (dragModeRef.current === 'node' && snapLinesRef.current.length > 0) {
@@ -530,11 +547,12 @@ export function FlowCanvas() {
       edges: state.edges.length,
       groups: state.groups.length,
       comments: state.comments.length,
+      subflows: state.subflows.length,
     });
 
     if (currentHash !== lastSaveRef.current) {
       setSaveStatus('saving');
-      saveToLocalStorage(state.nodes, state.edges, state.groups, state.viewport, state.comments);
+      saveToLocalStorage(state.nodes, state.edges, state.groups, state.viewport, state.comments, state.subflows);
       lastSaveRef.current = currentHash;
       setTimeout(() => setSaveStatus('saved'), 500);
     }
@@ -568,7 +586,8 @@ export function FlowCanvas() {
           savedFlow.edges,
           savedFlow.groups,
           savedFlow.viewport,
-          savedFlow.comments
+          savedFlow.comments,
+          savedFlow.subflows
         );
         setCurrentZoom(savedFlow.viewport.zoom);
       } else {
@@ -751,12 +770,29 @@ export function FlowCanvas() {
       return;
     }
 
+    // 접힌 서브플로우 히트 테스트 (노드보다 먼저)
+    const hitSubflow = hitTestCollapsedSubflow(worldPos, state.subflows);
+    if (hitSubflow) {
+      dragModeRef.current = 'subflow';
+      setIsDragging(true);
+      selectedSubflowIdRef.current = hitSubflow.subflow.id;
+      selectedCommentIdRef.current = null;
+      setSelectedNodes(new Set());
+      subflowDragRef.current = {
+        subflow: hitSubflow.subflow,
+        startPos: hitSubflow.subflow.collapsedPosition ? { ...hitSubflow.subflow.collapsedPosition } : { x: 0, y: 0 },
+      };
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
     // 코멘트 히트 테스트 (노드보다 먼저)
     const hitComment = hitTestComment(worldPos, state.comments);
     if (hitComment) {
       dragModeRef.current = 'comment';
       setIsDragging(true);
       selectedCommentIdRef.current = hitComment.id;
+      selectedSubflowIdRef.current = null;
       setSelectedNodes(new Set()); // 노드 선택 해제
       commentDragRef.current = {
         comment: hitComment,
@@ -766,7 +802,9 @@ export function FlowCanvas() {
       return;
     }
 
-    const hitNode = hitTestNode(worldPos, state.nodes);
+    // 보이는 노드만 히트 테스트에 사용
+    const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
+    const hitNode = hitTestNode(worldPos, visibleNodes);
     lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
     if (hitNode) {
@@ -1035,6 +1073,15 @@ export function FlowCanvas() {
       };
       commentDragRef.current.startPos = newPos;
       state.updateComment(commentDrag.comment.id, { position: newPos });
+    } else if (dragModeRef.current === 'subflow' && subflowDragRef.current) {
+      // 서브플로우 드래그
+      const subflowDrag = subflowDragRef.current;
+      const newPos = {
+        x: subflowDrag.startPos.x + dx / state.viewport.zoom,
+        y: subflowDrag.startPos.y + dy / state.viewport.zoom,
+      };
+      subflowDragRef.current.startPos = newPos;
+      state.updateSubflow(subflowDrag.subflow.id, { collapsedPosition: newPos });
     }
   }, []);
 
@@ -1104,6 +1151,11 @@ export function FlowCanvas() {
     if (dragModeRef.current === 'node') {
       nodeDragPositionsRef.current.clear();
       snapLinesRef.current = [];
+    }
+
+    // 서브플로우 드래그 종료 시 정리
+    if (dragModeRef.current === 'subflow') {
+      subflowDragRef.current = null;
     }
 
     // 리사이즈 종료 시 정리
@@ -1703,8 +1755,24 @@ export function FlowCanvas() {
         return;
       }
 
-      // Ungroup: Ctrl+Shift+G / Cmd+Shift+G
+      // Create Subflow: Ctrl+Shift+G / Cmd+Shift+G
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'g' || e.key === 'G')) {
+        e.preventDefault();
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size >= 2) {
+          const state = store.getState();
+          const subflowId = state.createSubflow('New Subflow', Array.from(selectedIds));
+          if (subflowId) {
+            selectedSubflowIdRef.current = subflowId;
+            setSelectedNodes(new Set());
+            forceRender(n => n + 1);
+          }
+        }
+        return;
+      }
+
+      // Ungroup: Ctrl+Shift+U / Cmd+Shift+U
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'u' || e.key === 'U')) {
         e.preventDefault();
         const selectedIds = selectedNodeIdsRef.current;
         if (selectedIds.size > 0) {
@@ -1783,7 +1851,26 @@ export function FlowCanvas() {
 
     const state = store.getState();
     const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
-    const targetNode = hitTestNode(worldPos, state.nodes);
+
+    // 접힌 서브플로우 체크 먼저
+    const hitSubflow = hitTestCollapsedSubflow(worldPos, state.subflows);
+    if (hitSubflow) {
+      // 서브플로우 컨텍스트 메뉴 (서브플로우 내 첫 노드를 타겟으로)
+      const firstNodeId = hitSubflow.subflow.nodeIds[0];
+      const firstNode = state.nodes.find(n => n.id === firstNodeId);
+      selectedSubflowIdRef.current = hitSubflow.subflow.id;
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        worldPos,
+        targetNode: firstNode ?? null,
+      });
+      return;
+    }
+
+    // 보이는 노드만 히트 테스트
+    const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
+    const targetNode = hitTestNode(worldPos, visibleNodes);
 
     setContextMenu({
       x: e.clientX,
@@ -1807,8 +1894,17 @@ export function FlowCanvas() {
     const state = store.getState();
     const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
 
-    // 노드 위에서 더블클릭하면 무시 (노드 편집용으로 예약)
-    const hitNode = hitTestNode(worldPos, state.nodes);
+    // 접힌 서브플로우 더블클릭 - 펼치기
+    const hitSubflow = hitTestCollapsedSubflow(worldPos, state.subflows);
+    if (hitSubflow) {
+      state.expandSubflow(hitSubflow.subflow.id);
+      selectedSubflowIdRef.current = hitSubflow.subflow.id;
+      return;
+    }
+
+    // 보이는 노드만 히트 테스트
+    const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
+    const hitNode = hitTestNode(worldPos, visibleNodes);
     if (hitNode) return;
 
     // 빈 공간에서 더블클릭 - 노드 팔레트 열기
@@ -1938,6 +2034,43 @@ export function FlowCanvas() {
             action: () => {
               state.createGroup('New Group', Array.from(selectedNodeIdsRef.current));
               forceRender(n => n + 1);
+            },
+          });
+        }
+
+        // 서브플로우 옵션
+        const existingSubflow = state.getSubflowForNode(targetNode.id);
+        if (existingSubflow) {
+          items.push({
+            label: existingSubflow.collapsed ? 'Expand Subflow' : 'Collapse Subflow',
+            action: () => {
+              if (existingSubflow.collapsed) {
+                state.expandSubflow(existingSubflow.id);
+              } else {
+                state.collapseSubflow(existingSubflow.id);
+              }
+              selectedSubflowIdRef.current = existingSubflow.id;
+              forceRender(n => n + 1);
+            },
+          });
+          items.push({
+            label: `Delete Subflow "${existingSubflow.name}"`,
+            action: () => {
+              state.deleteSubflow(existingSubflow.id);
+              selectedSubflowIdRef.current = null;
+              forceRender(n => n + 1);
+            },
+          });
+        } else {
+          items.push({
+            label: 'Create Subflow (Ctrl+Shift+G)',
+            action: () => {
+              const subflowId = state.createSubflow('New Subflow', Array.from(selectedNodeIdsRef.current));
+              if (subflowId) {
+                selectedSubflowIdRef.current = subflowId;
+                setSelectedNodes(new Set());
+                forceRender(n => n + 1);
+              }
             },
           });
         }

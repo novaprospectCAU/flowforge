@@ -1,4 +1,5 @@
-import type { FlowNode, FlowEdge, Position, PortDefinition } from '@flowforge/types';
+import type { FlowNode, FlowEdge, Position, PortDefinition, Subflow } from '@flowforge/types';
+import { calculateCollapsedSize, SUBFLOW_STYLE } from '../rendering/drawSubflow';
 import { getPortPosition } from '../rendering/drawEdge';
 
 const NODE_STYLE = {
@@ -231,6 +232,104 @@ export function hitTestEdge(
 
     if (dist <= hitDistance) {
       return edge;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 접힌 서브플로우 히트 테스트
+ */
+export interface CollapsedSubflowHitResult {
+  subflow: Subflow;
+  isHeader: boolean;
+}
+
+export function hitTestCollapsedSubflow(
+  worldPos: Position,
+  subflows: Subflow[]
+): CollapsedSubflowHitResult | null {
+  // 역순으로 검사 (위에 있는 것 우선)
+  for (let i = subflows.length - 1; i >= 0; i--) {
+    const subflow = subflows[i];
+    if (!subflow.collapsed || !subflow.collapsedPosition) continue;
+
+    const { x, y } = subflow.collapsedPosition;
+    const size = calculateCollapsedSize(subflow);
+    const { width, height } = size;
+
+    if (
+      worldPos.x >= x &&
+      worldPos.x <= x + width &&
+      worldPos.y >= y &&
+      worldPos.y <= y + height
+    ) {
+      const isHeader = worldPos.y <= y + SUBFLOW_STYLE.headerHeight;
+      return { subflow, isHeader };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 접힌 서브플로우의 포트 히트 테스트
+ */
+export interface SubflowPortHitResult {
+  subflow: Subflow;
+  portId: string;
+  isOutput: boolean;
+  position: Position;
+  dataType: string;
+}
+
+export function hitTestSubflowPort(
+  worldPos: Position,
+  subflows: Subflow[]
+): SubflowPortHitResult | null {
+  const hitRadius = SUBFLOW_STYLE.portRadius + 4;
+
+  for (let i = subflows.length - 1; i >= 0; i--) {
+    const subflow = subflows[i];
+    if (!subflow.collapsed || !subflow.collapsedPosition) continue;
+
+    const { x, y } = subflow.collapsedPosition;
+    const size = calculateCollapsedSize(subflow);
+    const { width } = size;
+
+    // 입력 포트 (왼쪽)
+    for (let j = 0; j < subflow.inputMappings.length; j++) {
+      const mapping = subflow.inputMappings[j];
+      const portX = x;
+      const portY = y + SUBFLOW_STYLE.headerHeight + SUBFLOW_STYLE.portSpacing * (j + 0.5);
+      const dist = Math.sqrt((worldPos.x - portX) ** 2 + (worldPos.y - portY) ** 2);
+      if (dist <= hitRadius) {
+        return {
+          subflow,
+          portId: mapping.exposedPortId,
+          isOutput: false,
+          position: { x: portX, y: portY },
+          dataType: mapping.dataType,
+        };
+      }
+    }
+
+    // 출력 포트 (오른쪽)
+    for (let j = 0; j < subflow.outputMappings.length; j++) {
+      const mapping = subflow.outputMappings[j];
+      const portX = x + width;
+      const portY = y + SUBFLOW_STYLE.headerHeight + SUBFLOW_STYLE.portSpacing * (j + 0.5);
+      const dist = Math.sqrt((worldPos.x - portX) ** 2 + (worldPos.y - portY) ** 2);
+      if (dist <= hitRadius) {
+        return {
+          subflow,
+          portId: mapping.exposedPortId,
+          isOutput: true,
+          position: { x: portX, y: portY },
+          dataType: mapping.dataType,
+        };
+      }
     }
   }
 

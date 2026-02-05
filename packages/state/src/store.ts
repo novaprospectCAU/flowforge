@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as Y from 'yjs';
-import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment } from '@flowforge/types';
+import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment, Subflow, SubflowPortMapping } from '@flowforge/types';
 import type { FlowYjsDoc } from './yjsDoc';
 import {
   createFlowDoc,
@@ -10,6 +10,7 @@ import {
   getEdgesFromYjs,
   getGroupsFromYjs,
   getCommentsFromYjs,
+  getSubflowsFromYjs,
 } from './yjsDoc';
 
 export interface FlowState {
@@ -21,6 +22,7 @@ export interface FlowState {
   edges: FlowEdge[];
   groups: NodeGroup[];
   comments: Comment[];
+  subflows: Subflow[];
   viewport: Viewport;
 
   // 노드 액션
@@ -45,6 +47,14 @@ export interface FlowState {
   updateComment: (id: string, partial: Partial<Comment>) => void;
   deleteComment: (id: string) => void;
 
+  // 서브플로우 액션
+  createSubflow: (name: string, nodeIds: string[]) => string | null;
+  deleteSubflow: (id: string) => void;
+  updateSubflow: (id: string, partial: Partial<Subflow>) => void;
+  collapseSubflow: (id: string) => void;
+  expandSubflow: (id: string) => void;
+  getSubflowForNode: (nodeId: string) => Subflow | undefined;
+
   // 뷰포트 액션
   setViewport: (viewport: Viewport) => void;
   pan: (dx: number, dy: number) => void;
@@ -55,7 +65,7 @@ export interface FlowState {
 
   // 플로우 관리
   clearFlow: () => void;
-  loadFlow: (nodes: FlowNode[], edges: FlowEdge[], groups: NodeGroup[], viewport: Viewport, comments?: Comment[]) => void;
+  loadFlow: (nodes: FlowNode[], edges: FlowEdge[], groups: NodeGroup[], viewport: Viewport, comments?: Comment[], subflows?: Subflow[]) => void;
 
   // Undo/Redo
   undo: () => void;
@@ -67,8 +77,8 @@ export interface FlowState {
 export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
   const yjsDoc = initialDoc ?? createFlowDoc();
 
-  // UndoManager 생성 (nodes, edges, groups, comments 추적, viewport는 제외)
-  const undoManager = new Y.UndoManager([yjsDoc.nodes, yjsDoc.edges, yjsDoc.groups, yjsDoc.comments], {
+  // UndoManager 생성 (nodes, edges, groups, comments, subflows 추적, viewport는 제외)
+  const undoManager = new Y.UndoManager([yjsDoc.nodes, yjsDoc.edges, yjsDoc.groups, yjsDoc.comments, yjsDoc.subflows], {
     trackedOrigins: new Set([null]),
   });
 
@@ -81,6 +91,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
         edges: getEdgesFromYjs(yjsDoc.edges),
         groups: getGroupsFromYjs(yjsDoc.groups),
         comments: getCommentsFromYjs(yjsDoc.comments),
+        subflows: getSubflowsFromYjs(yjsDoc.subflows),
         viewport: getViewportFromYjs(yjsDoc.viewport),
       });
     };
@@ -90,6 +101,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
     yjsDoc.edges.observe(syncFromYjs);
     yjsDoc.groups.observe(syncFromYjs);
     yjsDoc.comments.observe(syncFromYjs);
+    yjsDoc.subflows.observe(syncFromYjs);
     yjsDoc.viewport.observe(syncFromYjs);
 
     return {
@@ -98,6 +110,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       edges: getEdgesFromYjs(yjsDoc.edges),
       groups: getGroupsFromYjs(yjsDoc.groups),
       comments: getCommentsFromYjs(yjsDoc.comments),
+      subflows: getSubflowsFromYjs(yjsDoc.subflows),
       viewport: getViewportFromYjs(yjsDoc.viewport),
 
       addNode: (node) => {
@@ -227,6 +240,146 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
         yjsDoc.comments.delete(id);
       },
 
+      // 서브플로우 생성
+      createSubflow: (name, nodeIds) => {
+        if (nodeIds.length < 2) return null;
+
+        const { yjsDoc, nodes, edges } = get();
+        const subflowId = `subflow-${Date.now()}`;
+        const nodeIdSet = new Set(nodeIds);
+
+        // 선택된 노드들 가져오기
+        const selectedNodes = nodes.filter(n => nodeIdSet.has(n.id));
+        if (selectedNodes.length < 2) return null;
+
+        // 엣지 분류: 내부, 외부에서 들어오는, 외부로 나가는
+        const internalEdgeIds: string[] = [];
+        const inputMappings: SubflowPortMapping[] = [];
+        const outputMappings: SubflowPortMapping[] = [];
+
+        for (const edge of edges) {
+          const sourceInSubflow = nodeIdSet.has(edge.source);
+          const targetInSubflow = nodeIdSet.has(edge.target);
+
+          if (sourceInSubflow && targetInSubflow) {
+            // 내부 엣지
+            internalEdgeIds.push(edge.id);
+          } else if (!sourceInSubflow && targetInSubflow) {
+            // 외부에서 들어오는 엣지 → 입력 포트 매핑
+            const targetNode = selectedNodes.find(n => n.id === edge.target);
+            const targetPort = targetNode?.inputs?.find(p => p.id === edge.targetPort);
+            if (targetNode && targetPort) {
+              // 중복 방지
+              const existing = inputMappings.find(
+                m => m.internalNodeId === edge.target && m.internalPortId === edge.targetPort
+              );
+              if (!existing) {
+                inputMappings.push({
+                  exposedPortId: `subflow-in-${inputMappings.length}`,
+                  exposedPortName: targetPort.name,
+                  internalNodeId: edge.target,
+                  internalPortId: edge.targetPort,
+                  dataType: targetPort.dataType,
+                  isOutput: false,
+                });
+              }
+            }
+          } else if (sourceInSubflow && !targetInSubflow) {
+            // 외부로 나가는 엣지 → 출력 포트 매핑
+            const sourceNode = selectedNodes.find(n => n.id === edge.source);
+            const sourcePort = sourceNode?.outputs?.find(p => p.id === edge.sourcePort);
+            if (sourceNode && sourcePort) {
+              // 중복 방지
+              const existing = outputMappings.find(
+                m => m.internalNodeId === edge.source && m.internalPortId === edge.sourcePort
+              );
+              if (!existing) {
+                outputMappings.push({
+                  exposedPortId: `subflow-out-${outputMappings.length}`,
+                  exposedPortName: sourcePort.name,
+                  internalNodeId: edge.source,
+                  internalPortId: edge.sourcePort,
+                  dataType: sourcePort.dataType,
+                  isOutput: true,
+                });
+              }
+            }
+          }
+        }
+
+        // 바운딩 박스 계산 (접힌 위치용)
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+        for (const node of selectedNodes) {
+          minX = Math.min(minX, node.position.x);
+          minY = Math.min(minY, node.position.y);
+          maxX = Math.max(maxX, node.position.x + node.size.width);
+          maxY = Math.max(maxY, node.position.y + node.size.height);
+        }
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        // 접힌 크기 계산 (포트 수 기반)
+        const portCount = Math.max(inputMappings.length, outputMappings.length, 1);
+        const collapsedHeight = 28 + portCount * 24 + 12; // 헤더 + 포트 + 패딩
+        const collapsedWidth = 180;
+
+        const subflow: Subflow = {
+          id: subflowId,
+          name,
+          nodeIds: [...nodeIds],
+          internalEdgeIds,
+          inputMappings,
+          outputMappings,
+          collapsed: false,
+          collapsedPosition: { x: centerX - collapsedWidth / 2, y: centerY - collapsedHeight / 2 },
+          collapsedSize: { width: collapsedWidth, height: collapsedHeight },
+          color: '#3b82f6', // 파란색
+        };
+
+        yjsDoc.subflows.set(subflowId, subflow);
+        return subflowId;
+      },
+
+      // 서브플로우 삭제 (노드는 유지)
+      deleteSubflow: (id) => {
+        const { yjsDoc } = get();
+        yjsDoc.subflows.delete(id);
+      },
+
+      // 서브플로우 업데이트
+      updateSubflow: (id, partial) => {
+        const { yjsDoc } = get();
+        const existing = yjsDoc.subflows.get(id);
+        if (existing) {
+          yjsDoc.subflows.set(id, { ...existing, ...partial });
+        }
+      },
+
+      // 서브플로우 접기
+      collapseSubflow: (id) => {
+        const { yjsDoc } = get();
+        const subflow = yjsDoc.subflows.get(id);
+        if (subflow && !subflow.collapsed) {
+          yjsDoc.subflows.set(id, { ...subflow, collapsed: true });
+        }
+      },
+
+      // 서브플로우 펼치기
+      expandSubflow: (id) => {
+        const { yjsDoc } = get();
+        const subflow = yjsDoc.subflows.get(id);
+        if (subflow && subflow.collapsed) {
+          yjsDoc.subflows.set(id, { ...subflow, collapsed: false });
+        }
+      },
+
+      // 노드가 속한 서브플로우 찾기
+      getSubflowForNode: (nodeId) => {
+        const { subflows } = get();
+        return subflows.find(s => s.nodeIds.includes(nodeId));
+      },
+
       setViewport: (viewport) => {
         const { yjsDoc } = get();
         setViewportToYjs(yjsDoc.viewport, viewport);
@@ -260,7 +413,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
 
       syncFromYjs,
 
-      // 플로우 초기화 (모든 노드, 엣지, 그룹, 코멘트 삭제)
+      // 플로우 초기화 (모든 노드, 엣지, 그룹, 코멘트, 서브플로우 삭제)
       clearFlow: () => {
         const { yjsDoc } = get();
         yjsDoc.doc.transact(() => {
@@ -268,11 +421,12 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
           yjsDoc.edges.clear();
           yjsDoc.groups.clear();
           yjsDoc.comments.clear();
+          yjsDoc.subflows.clear();
         });
       },
 
       // 플로우 불러오기
-      loadFlow: (nodes, edges, groups, viewport, comments = []) => {
+      loadFlow: (nodes, edges, groups, viewport, comments = [], subflows = []) => {
         const { yjsDoc } = get();
         yjsDoc.doc.transact(() => {
           // 기존 데이터 삭제
@@ -280,6 +434,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
           yjsDoc.edges.clear();
           yjsDoc.groups.clear();
           yjsDoc.comments.clear();
+          yjsDoc.subflows.clear();
 
           // 새 데이터 추가
           for (const node of nodes) {
@@ -293,6 +448,9 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
           }
           for (const comment of comments) {
             yjsDoc.comments.set(comment.id, comment);
+          }
+          for (const subflow of subflows) {
+            yjsDoc.subflows.set(subflow.id, subflow);
           }
 
           // 뷰포트 설정

@@ -5,6 +5,7 @@ export {
   setViewportToYjs,
   getNodesFromYjs,
   getEdgesFromYjs,
+  getSubflowsFromYjs,
   type FlowYjsDoc,
 } from './yjsDoc';
 
@@ -50,3 +51,14 @@ export {
   validateNodes,
   type NodeValidationResult,
 } from './validation';
+
+// 서브플로우 유틸리티
+export {
+  classifyEdges,
+  resolveEdgeEndpoints,
+  getSubflowNodesBounds,
+  getVisibleNodes,
+  type ClassifiedEdges,
+  type ResolvedEdge,
+  type ResolvedEdgeEndpoint,
+} from './subflowUtils';
