@@ -33,11 +33,13 @@ function hexToColor(hex: string, alpha = 230): Color {
 
 /**
  * 단일 코멘트 렌더링
+ * @param skipText - true면 텍스트를 렌더링하지 않음 (위젯이 대신 표시할 때)
  */
 export function drawComment(
   renderer: IRenderer,
   comment: Comment,
-  selected: boolean = false
+  selected: boolean = false,
+  skipText: boolean = false
 ): void {
   const { x, y } = comment.position;
   const { width, height } = comment.size;
@@ -88,33 +90,37 @@ export function drawComment(
     borderColor, 1
   );
 
-  // 텍스트 (여러 줄 지원)
-  const lines = comment.text.split('\n');
-  const lineHeight = COMMENT_STYLE.fontSize + 4;
-  const maxLines = Math.floor((height - COMMENT_STYLE.padding * 2) / lineHeight);
-  const visibleLines = lines.slice(0, maxLines);
+  // 텍스트 (여러 줄 지원) - skipText가 true면 위젯이 대신 표시
+  if (!skipText) {
+    const lines = comment.text.split('\n');
+    const lineHeight = COMMENT_STYLE.fontSize + 4;
+    const maxLines = Math.floor((height - COMMENT_STYLE.padding * 2) / lineHeight);
+    const visibleLines = lines.slice(0, maxLines);
 
-  for (let i = 0; i < visibleLines.length; i++) {
-    renderer.drawText(
-      visibleLines[i],
-      x + COMMENT_STYLE.padding,
-      y + COMMENT_STYLE.padding + i * lineHeight,
-      COMMENT_COLORS.text,
-      COMMENT_STYLE.fontSize
-    );
+    for (let i = 0; i < visibleLines.length; i++) {
+      renderer.drawText(
+        visibleLines[i],
+        x + COMMENT_STYLE.padding,
+        y + COMMENT_STYLE.padding + i * lineHeight,
+        COMMENT_COLORS.text,
+        COMMENT_STYLE.fontSize
+      );
+    }
   }
 }
 
 /**
  * 여러 코멘트 렌더링
+ * @param skipText - true면 텍스트를 렌더링하지 않음 (위젯이 대신 표시할 때)
  */
 export function drawComments(
   renderer: IRenderer,
   comments: Comment[],
-  selectedIds: Set<string> = new Set()
+  selectedIds: Set<string> = new Set(),
+  skipText: boolean = false
 ): void {
   for (const comment of comments) {
-    drawComment(renderer, comment, selectedIds.has(comment.id));
+    drawComment(renderer, comment, selectedIds.has(comment.id), skipText);
   }
 }
 

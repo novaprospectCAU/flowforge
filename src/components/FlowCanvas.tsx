@@ -464,7 +464,9 @@ export function FlowCanvas() {
     const selectedCommentIds = selectedCommentIdRef.current
       ? new Set([selectedCommentIdRef.current])
       : new Set<string>();
-    drawComments(renderer, state.comments, selectedCommentIds);
+    // zoom >= 0.5면 위젯이 텍스트를 표시하므로 캔버스에서는 스킵
+    const skipCommentText = state.viewport.zoom >= 0.5;
+    drawComments(renderer, state.comments, selectedCommentIds, skipCommentText);
 
     // 보이는 노드만 필터링 (접힌 서브플로우 내부 노드 제외)
     const visibleNodes = getVisibleNodes(state.nodes, state.subflows);

@@ -95,12 +95,17 @@ export function CommentWidget({
     [onUpdate]
   );
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  // textarea에서만 이벤트 처리 (드래그 허용을 위해)
+  const handleTextareaMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation(); // textarea 클릭 시에만 캔버스 이벤트 차단
     onInteraction?.(true);
   };
 
-  const handleMouseUp = () => {
+  const handleTextareaFocus = () => {
+    onInteraction?.(true);
+  };
+
+  const handleTextareaBlur = () => {
     onInteraction?.(false);
   };
 
@@ -111,6 +116,7 @@ export function CommentWidget({
   // 스타일 계산
   const fontSize = Math.max(10, 12 * viewport.zoom);
   const padding = 8 * viewport.zoom;
+  const timestampHeight = displayTime ? Math.max(14, 18 * viewport.zoom) : 0;
 
   return (
     <div
@@ -120,25 +126,25 @@ export function CommentWidget({
         top: screenPos.y,
         width: scaledWidth,
         height: scaledHeight,
-        pointerEvents: 'auto',
+        pointerEvents: 'none', // 컨테이너는 클릭 통과 (드래그 허용)
         display: 'flex',
         flexDirection: 'column',
       }}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
     >
-      {/* 텍스트 입력 영역 */}
+      {/* 텍스트 입력 영역 - 클릭 시에만 편집 모드 */}
       <textarea
         ref={textareaRef}
         value={localText}
         onChange={handleChange}
         placeholder="New comment / 새로운 코멘트"
+        onMouseDown={handleTextareaMouseDown}
+        onFocus={handleTextareaFocus}
+        onBlur={handleTextareaBlur}
         style={{
           flex: 1,
           width: '100%',
           padding: padding,
-          paddingBottom: displayTime ? padding / 2 : padding,
+          paddingBottom: displayTime ? 0 : padding,
           fontSize: fontSize,
           fontFamily: 'system-ui, -apple-system, sans-serif',
           lineHeight: 1.4,
@@ -148,6 +154,8 @@ export function CommentWidget({
           outline: 'none',
           resize: 'none',
           overflow: 'hidden',
+          pointerEvents: 'auto', // textarea만 클릭 가능
+          cursor: 'text',
         }}
       />
 
@@ -155,11 +163,13 @@ export function CommentWidget({
       {displayTime && (
         <div
           style={{
+            height: timestampHeight,
             padding: `0 ${padding}px ${padding / 2}px`,
             fontSize: Math.max(8, 10 * viewport.zoom),
             color: '#999',
             textAlign: 'right',
             lineHeight: 1,
+            pointerEvents: 'none', // 시간 영역도 클릭 통과
           }}
         >
           {isUpdated && <span>(updated) </span>}
