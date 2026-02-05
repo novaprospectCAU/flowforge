@@ -37,10 +37,13 @@ export function FlowCanvas() {
   const rafRef = useRef<number>(0);
   const dragModeRef = useRef<DragMode>('none');
   const lastMouseRef = useRef({ x: 0, y: 0 });
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const selectedNodeIdRef = useRef<string | null>(null);
+  const [, forceRender] = useState(0);
 
-  // 선택된 노드 Set
-  const selectedIds = selectedNodeId ? new Set([selectedNodeId]) : new Set<string>();
+  const setSelectedNodeId = (id: string | null) => {
+    selectedNodeIdRef.current = id;
+    forceRender(n => n + 1);
+  };
 
   // 렌더 루프
   const render = useCallback(() => {
@@ -63,6 +66,11 @@ export function FlowCanvas() {
       canvas.height = canvasSize.height * dpr;
     }
 
+    // 선택된 노드 Set (ref에서 읽기)
+    const selectedIds = selectedNodeIdRef.current
+      ? new Set([selectedNodeIdRef.current])
+      : new Set<string>();
+
     // 렌더링
     renderer.beginFrame();
     renderer.setTransform(state.viewport, canvasSize, dpr);
@@ -70,7 +78,7 @@ export function FlowCanvas() {
     renderer.endFrame();
 
     rafRef.current = requestAnimationFrame(render);
-  }, [selectedIds]);
+  }, []);
 
   // 초기화
   useEffect(() => {
@@ -106,7 +114,7 @@ export function FlowCanvas() {
       cancelAnimationFrame(rafRef.current);
       rendererRef.current?.dispose();
     };
-  }, [render, selectedNodeId]);
+  }, []);
 
   // 마우스 다운 - 노드 선택 또는 Pan 시작
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -147,13 +155,14 @@ export function FlowCanvas() {
     lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
     const state = storeRef.current.getState();
+    const selectedId = selectedNodeIdRef.current;
 
     if (dragModeRef.current === 'pan') {
       state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
-    } else if (dragModeRef.current === 'node' && selectedNodeId) {
-      const node = state.nodes.find(n => n.id === selectedNodeId);
+    } else if (dragModeRef.current === 'node' && selectedId) {
+      const node = state.nodes.find(n => n.id === selectedId);
       if (node) {
-        state.updateNode(selectedNodeId, {
+        state.updateNode(selectedId, {
           position: {
             x: node.position.x + dx / state.viewport.zoom,
             y: node.position.y + dy / state.viewport.zoom,
@@ -161,7 +170,7 @@ export function FlowCanvas() {
         });
       }
     }
-  }, [selectedNodeId]);
+  }, []);
 
   // 마우스 업 - 드래그 종료
   const handleMouseUp = useCallback(() => {
