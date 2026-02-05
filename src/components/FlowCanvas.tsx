@@ -690,55 +690,49 @@ export function FlowCanvas() {
       const deltaX = currentWorldPos.x - resize.startPos.x;
       const deltaY = currentWorldPos.y - resize.startPos.y;
 
+      // 고정되어야 할 가장자리 위치
+      const rightEdge = resize.startNodePos.x + resize.startSize.width;
+      const bottomEdge = resize.startNodePos.y + resize.startSize.height;
+
       let newWidth = resize.startSize.width;
       let newHeight = resize.startSize.height;
       let newX = resize.startNodePos.x;
       let newY = resize.startNodePos.y;
 
-      // 핸들에 따라 크기/위치 조정
-      switch (resize.handle) {
-        case 'right':
-          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width + deltaX);
-          break;
-        case 'bottom':
-          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height + deltaY);
-          break;
-        case 'left':
-          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width - deltaX);
-          newX = resize.startNodePos.x + resize.startSize.width - newWidth;
-          break;
-        case 'top':
-          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height - deltaY);
-          newY = resize.startNodePos.y + resize.startSize.height - newHeight;
-          break;
-        case 'bottom-right':
-          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width + deltaX);
-          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height + deltaY);
-          break;
-        case 'bottom-left':
-          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width - deltaX);
-          newX = resize.startNodePos.x + resize.startSize.width - newWidth;
-          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height + deltaY);
-          break;
-        case 'top-right':
-          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width + deltaX);
-          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height - deltaY);
-          newY = resize.startNodePos.y + resize.startSize.height - newHeight;
-          break;
-        case 'top-left':
-          newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width - deltaX);
-          newX = resize.startNodePos.x + resize.startSize.width - newWidth;
-          newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height - deltaY);
-          newY = resize.startNodePos.y + resize.startSize.height - newHeight;
-          break;
+      // 핸들에 따라 어떤 방향으로 리사이즈하는지 결정
+      const resizesLeft = resize.handle.includes('left');
+      const resizesRight = resize.handle.includes('right') || resize.handle === 'right';
+      const resizesTop = resize.handle.includes('top');
+      const resizesBottom = resize.handle.includes('bottom') || resize.handle === 'bottom';
+
+      // 가로 크기 계산
+      if (resizesRight) {
+        newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width + deltaX);
+        if (snapToGridRef.current) {
+          newWidth = Math.round(newWidth / GRID_SIZE) * GRID_SIZE;
+        }
+      } else if (resizesLeft) {
+        newWidth = Math.max(MIN_NODE_SIZE.width, resize.startSize.width - deltaX);
+        if (snapToGridRef.current) {
+          newWidth = Math.round(newWidth / GRID_SIZE) * GRID_SIZE;
+        }
+        // 오른쪽 가장자리 고정
+        newX = rightEdge - newWidth;
       }
 
-      // 스냅 적용
-      if (snapToGridRef.current) {
-        newWidth = Math.round(newWidth / GRID_SIZE) * GRID_SIZE;
-        newHeight = Math.round(newHeight / GRID_SIZE) * GRID_SIZE;
-        newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-        newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+      // 세로 크기 계산
+      if (resizesBottom) {
+        newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height + deltaY);
+        if (snapToGridRef.current) {
+          newHeight = Math.round(newHeight / GRID_SIZE) * GRID_SIZE;
+        }
+      } else if (resizesTop) {
+        newHeight = Math.max(MIN_NODE_SIZE.height, resize.startSize.height - deltaY);
+        if (snapToGridRef.current) {
+          newHeight = Math.round(newHeight / GRID_SIZE) * GRID_SIZE;
+        }
+        // 아래쪽 가장자리 고정
+        newY = bottomEdge - newHeight;
       }
 
       state.updateNode(resize.node.id, {
