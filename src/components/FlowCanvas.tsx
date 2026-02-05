@@ -21,7 +21,7 @@ import {
   type NodeTypeDefinition,
   type ExecutionState,
 } from '@flowforge/state';
-import type { FlowNode, FlowEdge, CanvasSize, Position } from '@flowforge/types';
+import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
@@ -171,8 +171,14 @@ export function FlowCanvas() {
       );
     }
 
-    // 노드
-    drawNodes(renderer, state.nodes, selectedIds);
+    // 노드 - 실행 상태 맵 생성
+    const nodeExecStates = new Map<string, ExecutionStatus>();
+    if (executionState) {
+      for (const [nodeId, nodeState] of executionState.nodeStates) {
+        nodeExecStates.set(nodeId, nodeState.status);
+      }
+    }
+    drawNodes(renderer, state.nodes, selectedIds, nodeExecStates);
 
     // 미니맵 (스크린 좌표로 그림)
     drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr);

@@ -1,5 +1,5 @@
 import type { IRenderer } from '../renderer/types';
-import type { FlowNode, Color } from '@flowforge/types';
+import type { FlowNode, Color, ExecutionStatus } from '@flowforge/types';
 
 // 노드 스타일 상수
 const NODE_COLORS = {
@@ -10,6 +10,10 @@ const NODE_COLORS = {
   text: { r: 255, g: 255, b: 255, a: 255 } as Color,
   port: { r: 160, g: 160, b: 165, a: 255 } as Color,
   portHover: { r: 100, g: 180, b: 255, a: 255 } as Color,
+  // 실행 상태 색상
+  running: { r: 255, g: 193, b: 7, a: 255 } as Color,   // 노란색
+  success: { r: 40, g: 167, b: 69, a: 255 } as Color,   // 초록색
+  error: { r: 220, g: 53, b: 69, a: 255 } as Color,     // 빨간색
 };
 
 export const NODE_STYLE = {
@@ -24,19 +28,36 @@ export const NODE_STYLE = {
 /**
  * 단일 노드 렌더링
  */
-export function drawNode(renderer: IRenderer, node: FlowNode, selected: boolean = false): void {
+export function drawNode(
+  renderer: IRenderer,
+  node: FlowNode,
+  selected: boolean = false,
+  execStatus?: ExecutionStatus
+): void {
   const { x, y } = node.position;
   const { width, height } = node.size;
   const title = (node.data.title as string) || node.type;
 
-  // 0. 선택 테두리 (선택된 경우)
-  if (selected) {
-    const border = 3;
+  // 0. 실행 상태 또는 선택 테두리
+  const border = 3;
+  let borderColor: Color | null = null;
+
+  if (execStatus === 'running') {
+    borderColor = NODE_COLORS.running;
+  } else if (execStatus === 'success') {
+    borderColor = NODE_COLORS.success;
+  } else if (execStatus === 'error') {
+    borderColor = NODE_COLORS.error;
+  } else if (selected) {
+    borderColor = NODE_COLORS.selected;
+  }
+
+  if (borderColor) {
     renderer.drawRoundedRect(
       x - border, y - border,
       width + border * 2, height + border * 2,
       NODE_STYLE.borderRadius + border,
-      NODE_COLORS.selected
+      borderColor
     );
   }
 
@@ -91,9 +112,11 @@ export function drawNode(renderer: IRenderer, node: FlowNode, selected: boolean 
 export function drawNodes(
   renderer: IRenderer,
   nodes: FlowNode[],
-  selectedIds: Set<string> = new Set()
+  selectedIds: Set<string> = new Set(),
+  nodeExecStates?: Map<string, ExecutionStatus>
 ): void {
   for (const node of nodes) {
-    drawNode(renderer, node, selectedIds.has(node.id));
+    const execStatus = nodeExecStates?.get(node.id);
+    drawNode(renderer, node, selectedIds.has(node.id), execStatus);
   }
 }
