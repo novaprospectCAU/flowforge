@@ -2810,7 +2810,7 @@ export function FlowCanvas() {
         </div>
       )}
       <canvas
-        tabIndex={0}
+        tabIndex={isMobile ? -1 : 0}
         ref={canvasRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
