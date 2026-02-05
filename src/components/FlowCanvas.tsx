@@ -65,6 +65,7 @@ import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
 import { SelectionBar } from './SelectionBar';
 import { NodeWidgets } from './NodeWidgets';
+import { CommentWidgets } from './CommentWidgets';
 import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { MobileToolbar } from './MobileToolbar';
@@ -2322,10 +2323,11 @@ export function FlowCanvas() {
         const commentId = `comment-${Date.now()}`;
         const newComment: Comment = {
           id: commentId,
-          text: 'New comment',
+          text: '',
           position: { x: state.viewport.x - 100, y: state.viewport.y - 40 },
           size: { width: 200, height: 80 },
           color: '#fff8dc',
+          createdAt: Date.now(),
         };
         state.addComment(newComment);
         selectedCommentIdRef.current = commentId;
@@ -2647,10 +2649,11 @@ export function FlowCanvas() {
           const commentId = `comment-${Date.now()}`;
           const newComment: Comment = {
             id: commentId,
-            text: 'New comment',
+            text: '',
             position: worldPos,
             size: { width: 200, height: 80 },
             color: '#fff8dc',
+            createdAt: Date.now(),
           };
           state.addComment(newComment);
           selectedCommentIdRef.current = commentId;
@@ -2902,6 +2905,18 @@ export function FlowCanvas() {
           touchAction: 'none', // 브라우저 기본 터치 동작 비활성화
         }}
       />
+      {/* 코멘트 인라인 위젯 */}
+      {storeRef.current && canvasSizeRef.current.width > 0 && (
+        <CommentWidgets
+          comments={storeRef.current.getState().comments}
+          viewport={storeRef.current.getState().viewport}
+          canvasSize={canvasSizeRef.current}
+          onUpdateComment={(commentId, text, updatedAt) => {
+            storeRef.current?.getState().updateComment(commentId, { text, updatedAt });
+          }}
+          onWidgetInteraction={setWidgetInteracting}
+        />
+      )}
       {/* 노드 인라인 위젯 */}
       {storeRef.current && canvasSizeRef.current.width > 0 && (
         <NodeWidgets

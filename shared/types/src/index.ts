@@ -79,6 +79,8 @@ export interface Comment {
   position: Position;
   size: Size;
   color?: string;  // 배경 색상 (hex)
+  createdAt?: number;  // 생성 시간 (timestamp)
+  updatedAt?: number;  // 수정 시간 (timestamp)
 }
 
 // === 서브플로우 ===
