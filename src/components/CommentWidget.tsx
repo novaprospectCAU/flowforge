@@ -61,10 +61,10 @@ export function CommentWidget({
   onEditingEnd,
   onInteraction,
 }: CommentWidgetProps) {
+  // === 모든 훅은 early return 전에 호출해야 함 ===
   const [localText, setLocalText] = useState(comment.text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const language = useLanguage();
-  const placeholder = language === 'ko' ? '새로운 코멘트' : 'New comment';
 
   // 외부 변경 반영
   useEffect(() => {
@@ -80,6 +80,42 @@ export function CommentWidget({
       textareaRef.current.setSelectionRange(len, len);
     }
   }, [isEditing]);
+
+  // 이벤트 핸들러 (useCallback은 early return 전에 호출)
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newText = e.target.value;
+      setLocalText(newText);
+      onUpdate(newText);
+    },
+    [onUpdate]
+  );
+
+  const handleTextareaMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (isEditing) {
+        e.stopPropagation();
+        onInteraction?.(true);
+      }
+    },
+    [isEditing, onInteraction]
+  );
+
+  const handleTextareaBlur = useCallback(() => {
+    onInteraction?.(false);
+    onEditingEnd();
+  }, [onInteraction, onEditingEnd]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      textareaRef.current?.blur();
+      return;
+    }
+    e.stopPropagation();
+  }, []);
+
+  // === Early returns (훅 호출 이후) ===
 
   // 스크린 좌표 계산
   const screenPos = worldToScreen(comment.position, viewport, canvasSize);
@@ -101,47 +137,10 @@ export function CommentWidget({
     return null;
   }
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const newText = e.target.value;
-      setLocalText(newText);
-      onUpdate(newText);
-    },
-    [onUpdate]
-  );
-
-  // textarea 이벤트 핸들러 (편집 모드에서만 활성화)
-  const handleTextareaMouseDown = (e: React.MouseEvent) => {
-    if (isEditing) {
-      e.stopPropagation(); // 편집 중일 때만 캔버스 이벤트 차단
-      onInteraction?.(true);
-    }
-  };
-
-  const handleTextareaBlur = () => {
-    onInteraction?.(false);
-    onEditingEnd();
-  };
-
-  // 키보드 이벤트 처리
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Escape 키로 편집 종료
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      textareaRef.current?.blur();
-      return;
-    }
-
-    // 편집 중일 때 모든 키보드 이벤트가 캔버스로 전파되지 않도록 차단
-    // (Cmd+A, Cmd+C, Cmd+V 등이 텍스트에만 적용되도록)
-    e.stopPropagation();
-  };
-
-  // 시간 표시
+  // === 렌더링 계산 ===
+  const placeholder = language === 'ko' ? '새로운 코멘트' : 'New comment';
   const isUpdated = comment.updatedAt && comment.updatedAt !== comment.createdAt;
   const displayTime = isUpdated ? comment.updatedAt : comment.createdAt;
-
-  // 스타일 계산
   const fontSize = Math.max(10, 12 * viewport.zoom);
   const padding = 8 * viewport.zoom;
   const timestampHeight = displayTime ? Math.max(14, 18 * viewport.zoom) : 0;
@@ -154,12 +153,11 @@ export function CommentWidget({
         top: screenPos.y,
         width: scaledWidth,
         height: scaledHeight,
-        pointerEvents: 'none', // 컨테이너는 항상 클릭 통과
+        pointerEvents: 'none',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* 텍스트 입력 영역 - 편집 모드에서만 클릭 가능 */}
       <textarea
         ref={textareaRef}
         value={localText}
@@ -183,12 +181,11 @@ export function CommentWidget({
           outline: 'none',
           resize: 'none',
           overflow: 'hidden',
-          pointerEvents: isEditing ? 'auto' : 'none', // 편집 모드에서만 클릭 가능
+          pointerEvents: isEditing ? 'auto' : 'none',
           cursor: isEditing ? 'text' : 'default',
         }}
       />
 
-      {/* 시간 표시 */}
       {displayTime && (
         <div
           style={{
