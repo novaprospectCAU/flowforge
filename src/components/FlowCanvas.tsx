@@ -58,7 +58,7 @@ const DEMO_NODES: FlowNode[] = [
     data: { title: 'Load Image' },
     inputs: [],
     outputs: [
-      { id: 'out-1', name: 'image', dataType: 'any' },
+      { id: 'out-1', name: 'image', dataType: 'image' },
     ],
   },
   {
@@ -68,11 +68,11 @@ const DEMO_NODES: FlowNode[] = [
     size: { width: 180, height: 120 },
     data: { title: 'Resize' },
     inputs: [
-      { id: 'in-1', name: 'image', dataType: 'any' },
+      { id: 'in-1', name: 'image', dataType: 'image' },
       { id: 'in-2', name: 'scale', dataType: 'number' },
     ],
     outputs: [
-      { id: 'out-1', name: 'image', dataType: 'any' },
+      { id: 'out-1', name: 'image', dataType: 'image' },
     ],
   },
   {
@@ -82,7 +82,8 @@ const DEMO_NODES: FlowNode[] = [
     size: { width: 180, height: 100 },
     data: { title: 'Save Image' },
     inputs: [
-      { id: 'in-1', name: 'image', dataType: 'any' },
+      { id: 'in-1', name: 'image', dataType: 'image' },
+      { id: 'in-2', name: 'path', dataType: 'string' },
     ],
     outputs: [],
   },

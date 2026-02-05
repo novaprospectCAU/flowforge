@@ -1,5 +1,20 @@
-import type { FlowNode, FlowEdge, NodeGroup } from '@flowforge/types';
+import type { FlowNode, FlowEdge, NodeGroup, DataType } from '@flowforge/types';
 import type { EdgeStyle } from '../rendering/drawEdge';
+
+// 데이터 타입별 포트 색상 (CSS 문자열)
+const PORT_TYPE_COLORS: Record<DataType, string> = {
+  image: 'rgb(100, 149, 237)',   // 파랑 (Cornflower Blue)
+  number: 'rgb(144, 238, 144)',  // 연두 (Light Green)
+  string: 'rgb(255, 182, 108)',  // 주황 (Peach)
+  boolean: 'rgb(255, 105, 180)', // 분홍 (Hot Pink)
+  array: 'rgb(186, 85, 211)',    // 보라 (Medium Orchid)
+  object: 'rgb(64, 224, 208)',   // 청록 (Turquoise)
+  any: 'rgb(160, 160, 165)',     // 회색 (기본)
+};
+
+function getPortColor(dataType: DataType): string {
+  return PORT_TYPE_COLORS[dataType] || PORT_TYPE_COLORS.any;
+}
 
 export interface ExportImageOptions {
   padding?: number;
@@ -194,37 +209,42 @@ export async function exportFlowToImage(
 
     // 포트 그리기
     const portRadius = 6;
-    ctx.fillStyle = '#007acc';
 
     // 입력 포트
     const inputs = node.inputs || [];
     for (let i = 0; i < inputs.length; i++) {
+      const port = inputs[i];
       const py = y + headerHeight + 24 * (i + 0.5);
+      const portColor = getPortColor(port.dataType);
+
+      ctx.fillStyle = portColor;
       ctx.beginPath();
       ctx.arc(x, py, portRadius, 0, Math.PI * 2);
       ctx.fill();
 
-      // 포트 이름
-      ctx.fillStyle = '#a0a0a0';
+      // 포트 이름 (데이터 타입 색상)
+      ctx.fillStyle = portColor;
       ctx.font = '10px system-ui, -apple-system, sans-serif';
-      ctx.fillText(inputs[i].name, x + 10, py + 3);
-      ctx.fillStyle = '#007acc';
+      ctx.fillText(port.name, x + 10, py + 3);
     }
 
     // 출력 포트
     const outputs = node.outputs || [];
     for (let i = 0; i < outputs.length; i++) {
+      const port = outputs[i];
       const py = y + headerHeight + 24 * (i + 0.5);
+      const portColor = getPortColor(port.dataType);
+
+      ctx.fillStyle = portColor;
       ctx.beginPath();
       ctx.arc(x + width, py, portRadius, 0, Math.PI * 2);
       ctx.fill();
 
-      // 포트 이름
-      ctx.fillStyle = '#a0a0a0';
+      // 포트 이름 (데이터 타입 색상)
+      ctx.fillStyle = portColor;
       ctx.font = '10px system-ui, -apple-system, sans-serif';
-      const textWidth = ctx.measureText(outputs[i].name).width;
-      ctx.fillText(outputs[i].name, x + width - 10 - textWidth, py + 3);
-      ctx.fillStyle = '#007acc';
+      const textWidth = ctx.measureText(port.name).width;
+      ctx.fillText(port.name, x + width - 10 - textWidth, py + 3);
     }
   }
 

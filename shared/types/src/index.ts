@@ -20,7 +20,7 @@ export interface Size {
   height: number;
 }
 
-export type DataType = 'string' | 'number' | 'boolean' | 'array' | 'any';
+export type DataType = 'string' | 'number' | 'boolean' | 'array' | 'image' | 'object' | 'any';
 
 // === 캔버스 ===
 export interface CanvasSize {

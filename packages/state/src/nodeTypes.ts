@@ -43,7 +43,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     category: 'Input',
     description: 'Load an image file',
     inputs: [],
-    outputs: [{ id: 'out', name: 'image', dataType: 'any' }],
+    outputs: [{ id: 'out', name: 'image', dataType: 'image' }],
     defaultSize: { width: 180, height: 100 },
   },
 
@@ -66,10 +66,10 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     category: 'Process',
     description: 'Resize an image',
     inputs: [
-      { id: 'image', name: 'image', dataType: 'any' },
+      { id: 'image', name: 'image', dataType: 'image' },
       { id: 'scale', name: 'scale', dataType: 'number' },
     ],
-    outputs: [{ id: 'out', name: 'image', dataType: 'any' }],
+    outputs: [{ id: 'out', name: 'image', dataType: 'image' }],
     defaultSize: { width: 180, height: 120 },
   },
   {
@@ -77,8 +77,8 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     title: 'Filter',
     category: 'Process',
     description: 'Apply filter to image',
-    inputs: [{ id: 'image', name: 'image', dataType: 'any' }],
-    outputs: [{ id: 'out', name: 'image', dataType: 'any' }],
+    inputs: [{ id: 'image', name: 'image', dataType: 'image' }],
+    outputs: [{ id: 'out', name: 'image', dataType: 'image' }],
     defaultSize: { width: 180, height: 100 },
   },
   {
@@ -109,9 +109,12 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     title: 'Save Image',
     category: 'Output',
     description: 'Save image to file',
-    inputs: [{ id: 'image', name: 'image', dataType: 'any' }],
+    inputs: [
+      { id: 'image', name: 'image', dataType: 'image' },
+      { id: 'path', name: 'path', dataType: 'string' },
+    ],
     outputs: [],
-    defaultSize: { width: 180, height: 100 },
+    defaultSize: { width: 180, height: 120 },
   },
 
   // Logic 카테고리
