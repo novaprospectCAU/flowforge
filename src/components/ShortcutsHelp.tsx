@@ -45,7 +45,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'Navigation',
     shortcuts: [
       { keys: 'Ctrl+F', description: 'Search nodes' },
-      { keys: 'F', description: 'Fit view to all nodes' },
+      { keys: 'F', description: 'Fit view (selection or all)' },
       { keys: 'Ctrl+0', description: 'Reset zoom to 100%' },
       { keys: 'Scroll', description: 'Zoom in/out' },
       { keys: 'Middle Drag', description: 'Pan canvas' },
@@ -56,6 +56,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'Nodes',
     shortcuts: [
       { keys: 'Tab', description: 'Open node palette' },
+      { keys: 'Double-click', description: 'Quick add node' },
       { keys: 'Arrow Keys', description: 'Move selected nodes (grid)' },
       { keys: 'Shift+Arrows', description: 'Move nodes by 1px' },
       { keys: 'G', description: 'Toggle snap to grid' },

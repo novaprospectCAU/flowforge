@@ -55,7 +55,7 @@ flowforge/
 - **복제**: Ctrl+D (Cmd+D) - 선택된 노드와 연결된 엣지 복제
 - **전체 선택**: Ctrl+A (Cmd+A)
 - **선택 해제**: Escape
-- **뷰 맞춤**: F - 모든 노드가 화면에 보이도록 조정
+- **뷰 맞춤**: F - 선택된 노드 또는 모든 노드가 화면에 보이도록 조정
 - **줌 리셋**: Ctrl+0 (Cmd+0) - 100%로 리셋
 - **노드 미세 이동**: 화살표 키 (그리드 또는 10px), Shift+화살표 (1px)
 - **스냅 토글**: G 키 또는 우측 상단 버튼 - 20px 그리드에 맞춤
@@ -81,7 +81,7 @@ flowforge/
 - **노드 레지스트리**: 타입별 정의 관리
 - **내장 타입**: NumberInput, TextInput, ImageInput, Math, Resize, Filter, Merge, Display, SaveImage, Condition
 - **카테고리**: Input, Process, Output, Logic
-- **검색 팔레트**: Tab 키로 노드 검색 및 추가
+- **검색 팔레트**: Tab 키 또는 빈 공간 더블클릭으로 노드 검색 및 추가
 
 ### 실행 엔진
 - **위상 정렬**: 노드 실행 순서 결정 (순환 감지)

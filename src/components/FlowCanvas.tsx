@@ -1222,18 +1222,26 @@ export function FlowCanvas() {
         return;
       }
 
-      // Fit View: F 키 - 모든 노드가 보이도록 뷰 조정
+      // Fit View: F 키 - 선택된 노드 또는 모든 노드가 보이도록 뷰 조정
       if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         const state = store.getState();
         const canvas = canvasRef.current;
         if (state.nodes.length === 0 || !canvas) return;
 
-        // 모든 노드의 바운딩 박스 계산
+        // 선택된 노드가 있으면 선택된 노드만, 없으면 모든 노드
+        const selectedIds = selectedNodeIdsRef.current;
+        const targetNodes = selectedIds.size > 0
+          ? state.nodes.filter(n => selectedIds.has(n.id))
+          : state.nodes;
+
+        if (targetNodes.length === 0) return;
+
+        // 바운딩 박스 계산
         let minX = Infinity, minY = Infinity;
         let maxX = -Infinity, maxY = -Infinity;
 
-        for (const node of state.nodes) {
+        for (const node of targetNodes) {
           minX = Math.min(minX, node.position.x);
           minY = Math.min(minY, node.position.y);
           maxX = Math.max(maxX, node.position.x + node.size.width);
@@ -1252,6 +1260,7 @@ export function FlowCanvas() {
         const zoom = Math.min(scaleX, scaleY, 2); // 최대 200%
 
         state.setViewport({ x: centerX, y: centerY, zoom });
+        setCurrentZoom(zoom);
         return;
       }
 
@@ -1393,6 +1402,32 @@ export function FlowCanvas() {
       y: e.clientY,
       worldPos,
       targetNode,
+    });
+  }, []);
+
+  // 더블클릭 - 빈 공간에서 노드 팔레트 열기
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    const canvas = canvasRef.current;
+    const store = storeRef.current;
+    if (!canvas || !store) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+
+    const state = store.getState();
+    const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
+
+    // 노드 위에서 더블클릭하면 무시 (노드 편집용으로 예약)
+    const hitNode = hitTestNode(worldPos, state.nodes);
+    if (hitNode) return;
+
+    // 빈 공간에서 더블클릭 - 노드 팔레트 열기
+    setNodePalette({
+      x: e.clientX - 140, // 팔레트 중앙 정렬
+      y: e.clientY - 100,
+      worldPos,
     });
   }, []);
 
@@ -1647,6 +1682,7 @@ export function FlowCanvas() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
         style={{
           width: '100%',
