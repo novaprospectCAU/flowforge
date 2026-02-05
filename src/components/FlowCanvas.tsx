@@ -160,7 +160,14 @@ export function FlowCanvas() {
   // 터치 관련 refs
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const lastTouchRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null);
+  const pinchStartRef = useRef<{
+    distance: number;
+    zoom: number;
+    viewportX: number;
+    viewportY: number;
+    centerX: number;  // 핀치 중심 스크린 좌표
+    centerY: number;
+  } | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const lastTapTimeRef = useRef<number>(0);
   const GRID_SIZE = 20; // 스냅 그리드 크기
@@ -1191,11 +1198,16 @@ export function FlowCanvas() {
     // 두 손가락 터치 = 핀치 줌/팬
     if (e.touches.length === 2) {
       e.preventDefault();
+      const center = getTouchCenter(e.touches);
       pinchStartRef.current = {
         distance: getTouchDistance(e.touches),
         zoom: state.viewport.zoom,
+        viewportX: state.viewport.x,
+        viewportY: state.viewport.y,
+        centerX: center.x - rect.left,
+        centerY: center.y - rect.top,
       };
-      lastTouchRef.current = getTouchCenter(e.touches);
+      lastTouchRef.current = center;
       dragModeRef.current = 'pan';
       return;
     }
@@ -1366,23 +1378,23 @@ export function FlowCanvas() {
       e.preventDefault();
       const currentDistance = getTouchDistance(e.touches);
       const center = getTouchCenter(e.touches);
+      const pinchStart = pinchStartRef.current;
 
-      // 줌 계산
-      const scale = currentDistance / pinchStartRef.current.distance;
-      const newZoom = Math.max(0.1, Math.min(5, pinchStartRef.current.zoom * scale));
+      // 새 줌 계산
+      const scale = currentDistance / pinchStart.distance;
+      const newZoom = Math.max(0.1, Math.min(5, pinchStart.zoom * scale));
 
-      // 팬 계산
-      const dx = center.x - lastTouchRef.current.x;
-      const dy = center.y - lastTouchRef.current.y;
-      lastTouchRef.current = center;
+      // 현재 핀치 중심 (스크린 좌표)
+      const currentCenterX = center.x - rect.left;
+      const currentCenterY = center.y - rect.top;
 
-      // 줌 중심점 계산
-      const centerX = center.x - rect.left;
-      const centerY = center.y - rect.top;
-      const worldPos = screenToWorld({ x: centerX, y: centerY }, state.viewport, canvasSize);
+      // 초기 핀치 중심의 월드 좌표 (초기 viewport 기준)
+      const initialWorldX = pinchStart.viewportX + (pinchStart.centerX - canvasSize.width / 2) / pinchStart.zoom;
+      const initialWorldY = pinchStart.viewportY + (pinchStart.centerY - canvasSize.height / 2) / pinchStart.zoom;
 
-      const newX = worldPos.x - (centerX - canvasSize.width / 2) / newZoom - dx / newZoom;
-      const newY = worldPos.y - (centerY - canvasSize.height / 2) / newZoom - dy / newZoom;
+      // 새 viewport: 초기 월드 좌표가 현재 핀치 중심에 오도록
+      const newX = initialWorldX - (currentCenterX - canvasSize.width / 2) / newZoom;
+      const newY = initialWorldY - (currentCenterY - canvasSize.height / 2) / newZoom;
 
       state.setViewport({ x: newX, y: newY, zoom: newZoom });
       setCurrentZoom(newZoom);
