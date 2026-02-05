@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as Y from 'yjs';
-import type { FlowNode, FlowEdge, Viewport, NodeGroup } from '@flowforge/types';
+import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment } from '@flowforge/types';
 import type { FlowYjsDoc } from './yjsDoc';
 import {
   createFlowDoc,
@@ -9,6 +9,7 @@ import {
   getNodesFromYjs,
   getEdgesFromYjs,
   getGroupsFromYjs,
+  getCommentsFromYjs,
 } from './yjsDoc';
 
 export interface FlowState {
@@ -19,6 +20,7 @@ export interface FlowState {
   nodes: FlowNode[];
   edges: FlowEdge[];
   groups: NodeGroup[];
+  comments: Comment[];
   viewport: Viewport;
 
   // 노드 액션
@@ -38,6 +40,11 @@ export interface FlowState {
   removeNodesFromGroup: (groupId: string, nodeIds: string[]) => void;
   getGroupForNode: (nodeId: string) => NodeGroup | undefined;
 
+  // 코멘트 액션
+  addComment: (comment: Comment) => void;
+  updateComment: (id: string, partial: Partial<Comment>) => void;
+  deleteComment: (id: string) => void;
+
   // 뷰포트 액션
   setViewport: (viewport: Viewport) => void;
   pan: (dx: number, dy: number) => void;
@@ -48,7 +55,7 @@ export interface FlowState {
 
   // 플로우 관리
   clearFlow: () => void;
-  loadFlow: (nodes: FlowNode[], edges: FlowEdge[], groups: NodeGroup[], viewport: Viewport) => void;
+  loadFlow: (nodes: FlowNode[], edges: FlowEdge[], groups: NodeGroup[], viewport: Viewport, comments?: Comment[]) => void;
 
   // Undo/Redo
   undo: () => void;
@@ -60,8 +67,8 @@ export interface FlowState {
 export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
   const yjsDoc = initialDoc ?? createFlowDoc();
 
-  // UndoManager 생성 (nodes, edges, groups 추적, viewport는 제외)
-  const undoManager = new Y.UndoManager([yjsDoc.nodes, yjsDoc.edges, yjsDoc.groups], {
+  // UndoManager 생성 (nodes, edges, groups, comments 추적, viewport는 제외)
+  const undoManager = new Y.UndoManager([yjsDoc.nodes, yjsDoc.edges, yjsDoc.groups, yjsDoc.comments], {
     trackedOrigins: new Set([null]),
   });
 
@@ -73,6 +80,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
         nodes: getNodesFromYjs(yjsDoc.nodes),
         edges: getEdgesFromYjs(yjsDoc.edges),
         groups: getGroupsFromYjs(yjsDoc.groups),
+        comments: getCommentsFromYjs(yjsDoc.comments),
         viewport: getViewportFromYjs(yjsDoc.viewport),
       });
     };
@@ -81,6 +89,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
     yjsDoc.nodes.observe(syncFromYjs);
     yjsDoc.edges.observe(syncFromYjs);
     yjsDoc.groups.observe(syncFromYjs);
+    yjsDoc.comments.observe(syncFromYjs);
     yjsDoc.viewport.observe(syncFromYjs);
 
     return {
@@ -88,6 +97,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       nodes: getNodesFromYjs(yjsDoc.nodes),
       edges: getEdgesFromYjs(yjsDoc.edges),
       groups: getGroupsFromYjs(yjsDoc.groups),
+      comments: getCommentsFromYjs(yjsDoc.comments),
       viewport: getViewportFromYjs(yjsDoc.viewport),
 
       addNode: (node) => {
@@ -196,6 +206,27 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
         return groups.find(g => g.nodeIds.includes(nodeId));
       },
 
+      // 코멘트 추가
+      addComment: (comment) => {
+        const { yjsDoc } = get();
+        yjsDoc.comments.set(comment.id, comment);
+      },
+
+      // 코멘트 업데이트
+      updateComment: (id, partial) => {
+        const { yjsDoc } = get();
+        const existing = yjsDoc.comments.get(id);
+        if (existing) {
+          yjsDoc.comments.set(id, { ...existing, ...partial });
+        }
+      },
+
+      // 코멘트 삭제
+      deleteComment: (id) => {
+        const { yjsDoc } = get();
+        yjsDoc.comments.delete(id);
+      },
+
       setViewport: (viewport) => {
         const { yjsDoc } = get();
         setViewportToYjs(yjsDoc.viewport, viewport);
@@ -229,24 +260,26 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
 
       syncFromYjs,
 
-      // 플로우 초기화 (모든 노드, 엣지, 그룹 삭제)
+      // 플로우 초기화 (모든 노드, 엣지, 그룹, 코멘트 삭제)
       clearFlow: () => {
         const { yjsDoc } = get();
         yjsDoc.doc.transact(() => {
           yjsDoc.nodes.clear();
           yjsDoc.edges.clear();
           yjsDoc.groups.clear();
+          yjsDoc.comments.clear();
         });
       },
 
       // 플로우 불러오기
-      loadFlow: (nodes, edges, groups, viewport) => {
+      loadFlow: (nodes, edges, groups, viewport, comments = []) => {
         const { yjsDoc } = get();
         yjsDoc.doc.transact(() => {
           // 기존 데이터 삭제
           yjsDoc.nodes.clear();
           yjsDoc.edges.clear();
           yjsDoc.groups.clear();
+          yjsDoc.comments.clear();
 
           // 새 데이터 추가
           for (const node of nodes) {
@@ -257,6 +290,9 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
           }
           for (const group of groups) {
             yjsDoc.groups.set(group.id, group);
+          }
+          for (const comment of comments) {
+            yjsDoc.comments.set(comment.id, comment);
           }
 
           // 뷰포트 설정

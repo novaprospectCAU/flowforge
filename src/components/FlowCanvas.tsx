@@ -9,6 +9,7 @@ import {
   drawSelectionBox,
   drawGroups,
   drawSnapLines,
+  drawComments,
   calculateSnap,
   isNodeInSelectionBox,
   isInMinimap,
@@ -19,6 +20,7 @@ import {
   hitTestEdge,
   hitTestResizeHandle,
   hitTestGroups,
+  hitTestComment,
   type IRenderer,
   type PortHitResult,
   type EdgeStyle,
@@ -41,7 +43,7 @@ import {
   type NodeTypeDefinition,
   type ExecutionState,
 } from '@flowforge/state';
-import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType } from '@flowforge/types';
+import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType, Comment } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
@@ -51,7 +53,7 @@ import { ShortcutsHelp } from './ShortcutsHelp';
 import { SelectionBar } from './SelectionBar';
 import { NodeWidgets } from './NodeWidgets';
 
-type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group';
+type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment';
 
 /**
  * 데이터 타입 호환성 검사
@@ -126,6 +128,8 @@ export function FlowCanvas() {
   const dragModeRef = useRef<DragMode>('none');
   const lastMouseRef = useRef({ x: 0, y: 0 });
   const selectedNodeIdsRef = useRef<Set<string>>(new Set());
+  const selectedCommentIdRef = useRef<string | null>(null);
+  const commentDragRef = useRef<{ comment: Comment; startPos: Position } | null>(null);
   const edgeDragRef = useRef<{
     startPort: PortHitResult;
     currentPos: Position;
@@ -458,6 +462,12 @@ export function FlowCanvas() {
     // 그룹 (노드/엣지 아래)
     drawGroups(renderer, state.groups, state.nodes);
 
+    // 코멘트 (노드 아래)
+    const selectedCommentIds = selectedCommentIdRef.current
+      ? new Set([selectedCommentIdRef.current])
+      : new Set<string>();
+    drawComments(renderer, state.comments, selectedCommentIds);
+
     // 엣지 (노드 아래)
     drawEdges(renderer, state.edges, state.nodes, edgeStyleRef.current);
 
@@ -518,11 +528,12 @@ export function FlowCanvas() {
       nodes: state.nodes.length,
       edges: state.edges.length,
       groups: state.groups.length,
+      comments: state.comments.length,
     });
 
     if (currentHash !== lastSaveRef.current) {
       setSaveStatus('saving');
-      saveToLocalStorage(state.nodes, state.edges, state.groups, state.viewport);
+      saveToLocalStorage(state.nodes, state.edges, state.groups, state.viewport, state.comments);
       lastSaveRef.current = currentHash;
       setTimeout(() => setSaveStatus('saved'), 500);
     }
@@ -555,7 +566,8 @@ export function FlowCanvas() {
           savedFlow.nodes,
           savedFlow.edges,
           savedFlow.groups,
-          savedFlow.viewport
+          savedFlow.viewport,
+          savedFlow.comments
         );
         setCurrentZoom(savedFlow.viewport.zoom);
       } else {
@@ -731,6 +743,21 @@ export function FlowCanvas() {
       return;
     }
 
+    // 코멘트 히트 테스트 (노드보다 먼저)
+    const hitComment = hitTestComment(worldPos, state.comments);
+    if (hitComment) {
+      dragModeRef.current = 'comment';
+      setIsDragging(true);
+      selectedCommentIdRef.current = hitComment.id;
+      setSelectedNodes(new Set()); // 노드 선택 해제
+      commentDragRef.current = {
+        comment: hitComment,
+        startPos: { ...hitComment.position },
+      };
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
     const hitNode = hitTestNode(worldPos, state.nodes);
     lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
@@ -738,6 +765,7 @@ export function FlowCanvas() {
       // 노드 드래그 모드
       dragModeRef.current = 'node';
       setIsDragging(true);
+      selectedCommentIdRef.current = null; // 코멘트 선택 해제
 
       // 이미 선택된 노드면 선택 유지, 아니면 선택 변경
       const isAlreadySelected = selectedNodeIdsRef.current.has(hitNode.id);
@@ -759,6 +787,7 @@ export function FlowCanvas() {
       }
       nodeDragPositionsRef.current = dragPositions;
     } else {
+      selectedCommentIdRef.current = null; // 빈 공간 클릭 시 코멘트 선택 해제
       // Alt 키 = Pan, 그 외 = 박스 선택
       if (e.altKey) {
         dragModeRef.current = 'pan';
@@ -954,6 +983,15 @@ export function FlowCanvas() {
         size: { width: newWidth, height: newHeight },
         position: { x: newX, y: newY },
       });
+    } else if (dragModeRef.current === 'comment' && commentDragRef.current) {
+      // 코멘트 드래그
+      const commentDrag = commentDragRef.current;
+      const newPos = {
+        x: commentDrag.startPos.x + dx / state.viewport.zoom,
+        y: commentDrag.startPos.y + dy / state.viewport.zoom,
+      };
+      commentDragRef.current.startPos = newPos;
+      state.updateComment(commentDrag.comment.id, { position: newPos });
     }
   }, []);
 
@@ -1030,6 +1068,11 @@ export function FlowCanvas() {
       resizeRef.current = null;
     }
 
+    // 코멘트 드래그 종료 시 정리
+    if (dragModeRef.current === 'comment') {
+      commentDragRef.current = null;
+    }
+
     dragModeRef.current = 'none';
     setIsDragging(false);
     setCursorStyle('grab');
@@ -1104,7 +1147,7 @@ export function FlowCanvas() {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         const state = store.getState();
-        downloadFlow(state.nodes, state.edges, state.groups, state.viewport, 'flow.json');
+        downloadFlow(state.nodes, state.edges, state.groups, state.viewport, 'flow.json', state.comments);
         return;
       }
 
@@ -1114,7 +1157,7 @@ export function FlowCanvas() {
         loadFlowFromFile()
           .then((flow) => {
             const state = store.getState();
-            state.loadFlow(flow.nodes, flow.edges, flow.groups, flow.viewport);
+            state.loadFlow(flow.nodes, flow.edges, flow.groups, flow.viewport, flow.comments);
             setSelectedNodes(new Set());
             forceRender(n => n + 1);
           })
@@ -1332,12 +1375,21 @@ export function FlowCanvas() {
         return;
       }
 
-      // Delete: 선택된 노드 삭제
+      // Delete: 선택된 노드 또는 코멘트 삭제
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        const state = store.getState();
+
+        // 코멘트가 선택되어 있으면 코멘트 삭제
+        if (selectedCommentIdRef.current) {
+          state.deleteComment(selectedCommentIdRef.current);
+          selectedCommentIdRef.current = null;
+          return;
+        }
+
+        // 노드 삭제
         const selectedIds = selectedNodeIdsRef.current;
         if (selectedIds.size === 0) return;
 
-        const state = store.getState();
         for (const nodeId of selectedIds) {
           state.deleteNode(nodeId);
         }
@@ -1624,6 +1676,25 @@ export function FlowCanvas() {
         return;
       }
 
+      // Add Comment: C 키 (단독)
+      if (e.key === 'c' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        e.preventDefault();
+        const state = store.getState();
+        const commentId = `comment-${Date.now()}`;
+        const newComment: Comment = {
+          id: commentId,
+          text: 'New comment',
+          position: { x: state.viewport.x - 100, y: state.viewport.y - 40 },
+          size: { width: 200, height: 80 },
+          color: '#fff8dc',
+        };
+        state.addComment(newComment);
+        selectedCommentIdRef.current = commentId;
+        setSelectedNodes(new Set());
+        forceRender(n => n + 1);
+        return;
+      }
+
       // Help: ? 키 또는 F1
       if (e.key === '?' || e.key === 'F1') {
         e.preventDefault();
@@ -1839,6 +1910,25 @@ export function FlowCanvas() {
             y: contextMenu?.y ?? 0,
             worldPos,
           });
+        },
+      });
+      items.push({ label: '', action: () => {}, divider: true });
+      items.push({
+        label: 'Add Comment (C)',
+        action: () => {
+          const state = store.getState();
+          const commentId = `comment-${Date.now()}`;
+          const newComment: Comment = {
+            id: commentId,
+            text: 'New comment',
+            position: worldPos,
+            size: { width: 200, height: 80 },
+            color: '#fff8dc',
+          };
+          state.addComment(newComment);
+          selectedCommentIdRef.current = commentId;
+          setSelectedNodes(new Set());
+          forceRender(n => n + 1);
         },
       });
 

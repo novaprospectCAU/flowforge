@@ -14,6 +14,7 @@ export { drawMinimap, isInMinimap, minimapToWorld, MINIMAP } from './rendering/d
 export { drawSelectionBox, isNodeInSelectionBox } from './rendering/drawSelectionBox';
 export { drawGroup, drawGroups, getGroupBounds, hitTestGroups, hitTestGroupHeader } from './rendering/drawGroup';
 export { calculateSnap, drawSnapLines, type SnapResult, type SnapLine } from './rendering/drawSnapLines';
+export { drawComment, drawComments, hitTestComment, COMMENT_STYLE } from './rendering/drawComment';
 
 // Export
 export { exportFlowToImage, downloadImage, type ExportImageOptions } from './export/exportImage';

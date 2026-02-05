@@ -72,6 +72,15 @@ export interface NodeGroup {
   collapsed?: boolean; // 접힌 상태
 }
 
+// === 코멘트 ===
+export interface Comment {
+  id: string;
+  text: string;
+  position: Position;
+  size: Size;
+  color?: string;  // 배경 색상 (hex)
+}
+
 // === 그래프 ===
 export interface FlowGraph {
   id: string;
@@ -79,6 +88,7 @@ export interface FlowGraph {
   nodes: FlowNode[];
   edges: FlowEdge[];
   groups?: NodeGroup[];
+  comments?: Comment[];
   viewport: Viewport;
 }
 
