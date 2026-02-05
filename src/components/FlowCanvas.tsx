@@ -1718,6 +1718,50 @@ export function FlowCanvas() {
           alignItems: 'center',
         }}
       >
+        {/* Undo/Redo 버튼 */}
+        <div style={{ display: 'flex', gap: 2 }}>
+          <button
+            onClick={() => {
+              storeRef.current?.getState().undo();
+              forceRender(n => n + 1);
+            }}
+            disabled={!storeRef.current?.getState().canUndo()}
+            title="Undo (Ctrl+Z)"
+            style={{
+              padding: '8px 10px',
+              background: '#2d3748',
+              color: storeRef.current?.getState().canUndo() ? '#a0aec0' : '#4a5568',
+              border: '1px solid #4a5568',
+              borderRadius: '4px 0 0 4px',
+              fontSize: 14,
+              cursor: storeRef.current?.getState().canUndo() ? 'pointer' : 'not-allowed',
+              opacity: storeRef.current?.getState().canUndo() ? 1 : 0.5,
+            }}
+          >
+            ↶
+          </button>
+          <button
+            onClick={() => {
+              storeRef.current?.getState().redo();
+              forceRender(n => n + 1);
+            }}
+            disabled={!storeRef.current?.getState().canRedo()}
+            title="Redo (Ctrl+Y)"
+            style={{
+              padding: '8px 10px',
+              background: '#2d3748',
+              color: storeRef.current?.getState().canRedo() ? '#a0aec0' : '#4a5568',
+              border: '1px solid #4a5568',
+              borderLeft: 'none',
+              borderRadius: '0 4px 4px 0',
+              fontSize: 14,
+              cursor: storeRef.current?.getState().canRedo() ? 'pointer' : 'not-allowed',
+              opacity: storeRef.current?.getState().canRedo() ? 1 : 0.5,
+            }}
+          >
+            ↷
+          </button>
+        </div>
         {/* 자동 저장 상태 */}
         <div
           title="Auto-save status"

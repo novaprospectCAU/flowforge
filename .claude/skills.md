@@ -54,7 +54,7 @@ flowforge/
 - **노드 삭제**: Delete 키
 - **엣지 삭제**: 엣지 클릭
 - **컨텍스트 메뉴**: 우클릭 (노드 추가/삭제/복제)
-- **Undo/Redo**: Ctrl+Z / Ctrl+Y (Cmd+Z / Cmd+Shift+Z)
+- **Undo/Redo**: Ctrl+Z / Ctrl+Y (Cmd+Z / Cmd+Shift+Z), 상단 툴바에 버튼 제공
 - **복사/붙여넣기**: Ctrl+C / Ctrl+V (Cmd+C / Cmd+V)
 - **복제**: Ctrl+D (Cmd+D) - 선택된 노드와 연결된 엣지 복제
 - **전체 선택**: Ctrl+A (Cmd+A)
