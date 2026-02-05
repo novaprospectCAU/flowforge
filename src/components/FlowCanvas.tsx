@@ -216,6 +216,15 @@ export function FlowCanvas() {
     setCurrentZoom(1);
   }, []);
 
+  const handleZoomTo = useCallback((targetZoom: number) => {
+    const store = storeRef.current;
+    if (!store) return;
+    const state = store.getState();
+    const clampedZoom = Math.max(0.1, Math.min(5, targetZoom));
+    state.setViewport({ ...state.viewport, zoom: clampedZoom });
+    setCurrentZoom(clampedZoom);
+  }, []);
+
   const handleFitView = useCallback(() => {
     const store = storeRef.current;
     const canvas = canvasRef.current;
@@ -1915,6 +1924,7 @@ export function FlowCanvas() {
         onZoomOut={handleZoomOut}
         onZoomReset={handleZoomReset}
         onFitView={handleFitView}
+        onZoomTo={handleZoomTo}
       />
       {/* 검색 다이얼로그 */}
       {showSearch && storeRef.current && (
