@@ -664,6 +664,94 @@ export function FlowCanvas() {
           state.deleteNode(nodeId);
         }
         setSelectedNodes(new Set());
+        return;
+      }
+
+      // Select All: Ctrl+A / Cmd+A
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        const state = store.getState();
+        setSelectedNodes(new Set(state.nodes.map(n => n.id)));
+        return;
+      }
+
+      // Escape: 선택 해제 및 메뉴 닫기
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedNodes(new Set());
+        setContextMenu(null);
+        setNodePalette(null);
+        return;
+      }
+
+      // Fit View: F 키 - 모든 노드가 보이도록 뷰 조정
+      if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        const state = store.getState();
+        const canvas = canvasRef.current;
+        if (state.nodes.length === 0 || !canvas) return;
+
+        // 모든 노드의 바운딩 박스 계산
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+
+        for (const node of state.nodes) {
+          minX = Math.min(minX, node.position.x);
+          minY = Math.min(minY, node.position.y);
+          maxX = Math.max(maxX, node.position.x + node.size.width);
+          maxY = Math.max(maxY, node.position.y + node.size.height);
+        }
+
+        const padding = 50;
+        const contentWidth = maxX - minX + padding * 2;
+        const contentHeight = maxY - minY + padding * 2;
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width / contentWidth;
+        const scaleY = rect.height / contentHeight;
+        const zoom = Math.min(scaleX, scaleY, 2); // 최대 200%
+
+        state.setViewport({ x: centerX, y: centerY, zoom });
+        return;
+      }
+
+      // Reset Zoom: Ctrl+0 / Cmd+0
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        const state = store.getState();
+        state.setViewport({ ...state.viewport, zoom: 1 });
+        return;
+      }
+
+      // Arrow Keys: 선택된 노드 이동 (10px, Shift 누르면 1px)
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size === 0) return;
+
+        e.preventDefault();
+        const state = store.getState();
+        const step = e.shiftKey ? 1 : 10;
+
+        let dx = 0, dy = 0;
+        if (e.key === 'ArrowUp') dy = -step;
+        if (e.key === 'ArrowDown') dy = step;
+        if (e.key === 'ArrowLeft') dx = -step;
+        if (e.key === 'ArrowRight') dx = step;
+
+        for (const nodeId of selectedIds) {
+          const node = state.nodes.find(n => n.id === nodeId);
+          if (node) {
+            state.updateNode(nodeId, {
+              position: {
+                x: node.position.x + dx,
+                y: node.position.y + dy,
+              },
+            });
+          }
+        }
+        return;
       }
     };
 

@@ -53,6 +53,11 @@ flowforge/
 - **Undo/Redo**: Ctrl+Z / Ctrl+Y (Cmd+Z / Cmd+Shift+Z)
 - **복사/붙여넣기**: Ctrl+C / Ctrl+V (Cmd+C / Cmd+V)
 - **복제**: Ctrl+D (Cmd+D) - 선택된 노드와 연결된 엣지 복제
+- **전체 선택**: Ctrl+A (Cmd+A)
+- **선택 해제**: Escape
+- **뷰 맞춤**: F - 모든 노드가 화면에 보이도록 조정
+- **줌 리셋**: Ctrl+0 (Cmd+0) - 100%로 리셋
+- **노드 미세 이동**: 화살표 키 (10px), Shift+화살표 (1px)
 
 ### 상태 관리
 - **Yjs**: CRDT 기반 실시간 동기화 준비
@@ -176,6 +181,6 @@ pnpm build            # 프로덕션 빌드
 
 ## 다음 단계 (예정)
 - 실시간 협업 (Yjs provider)
-- 키보드 단축키 확장
 - 커스텀 노드 타입 플러그인
 - 노드 그룹화
+- 스냅 투 그리드
