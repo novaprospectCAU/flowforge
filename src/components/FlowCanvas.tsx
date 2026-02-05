@@ -29,6 +29,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
 import { ZoomControls } from './ZoomControls';
+import { SearchDialog } from './SearchDialog';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box';
 
@@ -120,6 +121,7 @@ export function FlowCanvas() {
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [currentZoom, setCurrentZoom] = useState(1);
   const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('bezier');
+  const [showSearch, setShowSearch] = useState(false);
   const GRID_SIZE = 20; // 스냅 그리드 크기
 
   // 줌 컨트롤 핸들러
@@ -180,6 +182,19 @@ export function FlowCanvas() {
 
     state.setViewport({ x: centerX, y: centerY, zoom });
     setCurrentZoom(zoom);
+  }, []);
+
+  // 특정 노드로 이동
+  const navigateToNode = useCallback((node: FlowNode) => {
+    const store = storeRef.current;
+    if (!store) return;
+
+    const state = store.getState();
+    const centerX = node.position.x + node.size.width / 2;
+    const centerY = node.position.y + node.size.height / 2;
+
+    state.setViewport({ ...state.viewport, x: centerX, y: centerY });
+    setSelectedNodes(new Set([node.id]));
   }, []);
 
   // 그리드에 스냅
@@ -662,6 +677,13 @@ export function FlowCanvas() {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         store.getState().redo();
+        return;
+      }
+
+      // Search: Ctrl+F / Cmd+F
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowSearch(true);
         return;
       }
 
@@ -1281,6 +1303,17 @@ export function FlowCanvas() {
         onZoomReset={handleZoomReset}
         onFitView={handleFitView}
       />
+      {/* 검색 다이얼로그 */}
+      {showSearch && storeRef.current && (
+        <SearchDialog
+          nodes={storeRef.current.getState().nodes}
+          onSelect={(node) => {
+            navigateToNode(node);
+            setShowSearch(false);
+          }}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
     </div>
   );
 }
