@@ -97,6 +97,10 @@ export function FlowCanvas() {
     start: Position;
     end: Position;
   } | null>(null);
+  const clipboardRef = useRef<{
+    nodes: FlowNode[];
+    edges: FlowEdge[];
+  } | null>(null);
   const [, forceRender] = useState(0);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -503,6 +507,150 @@ export function FlowCanvas() {
           y: rect.top + rect.height / 2 - 200,
           worldPos,
         });
+        return;
+      }
+
+      // Copy: Ctrl+C / Cmd+C
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size === 0) return;
+
+        const state = store.getState();
+        const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
+        const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
+
+        // 선택된 노드들 사이의 엣지만 복사
+        const selectedEdges = state.edges.filter(
+          e => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+        );
+
+        clipboardRef.current = {
+          nodes: selectedNodes,
+          edges: selectedEdges,
+        };
+        return;
+      }
+
+      // Paste: Ctrl+V / Cmd+V
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        if (!clipboardRef.current || clipboardRef.current.nodes.length === 0) return;
+
+        const state = store.getState();
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const { nodes: copiedNodes, edges: copiedEdges } = clipboardRef.current;
+
+        // 붙여넣기 오프셋 (20px씩 이동)
+        const offset = 30;
+
+        // ID 매핑 (원본 ID -> 새 ID)
+        const idMap = new Map<string, string>();
+        const newNodes: FlowNode[] = [];
+        const newNodeIds: string[] = [];
+
+        for (const node of copiedNodes) {
+          const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          idMap.set(node.id, newId);
+
+          const newNode: FlowNode = {
+            ...node,
+            id: newId,
+            position: {
+              x: node.position.x + offset,
+              y: node.position.y + offset,
+            },
+          };
+          newNodes.push(newNode);
+          newNodeIds.push(newId);
+        }
+
+        // 노드 추가
+        for (const node of newNodes) {
+          state.addNode(node);
+        }
+
+        // 엣지 추가 (ID 매핑 적용)
+        for (const edge of copiedEdges) {
+          const newSourceId = idMap.get(edge.source);
+          const newTargetId = idMap.get(edge.target);
+          if (newSourceId && newTargetId) {
+            const newEdge: FlowEdge = {
+              id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              source: newSourceId,
+              sourcePort: edge.sourcePort,
+              target: newTargetId,
+              targetPort: edge.targetPort,
+            };
+            state.addEdge(newEdge);
+          }
+        }
+
+        // 새로 붙여넣은 노드들 선택
+        setSelectedNodes(new Set(newNodeIds));
+
+        // 클립보드 위치 업데이트 (연속 붙여넣기 시 계속 오프셋)
+        clipboardRef.current = {
+          nodes: newNodes,
+          edges: copiedEdges.map(e => ({
+            ...e,
+            source: idMap.get(e.source) || e.source,
+            target: idMap.get(e.target) || e.target,
+          })),
+        };
+        return;
+      }
+
+      // Duplicate: Ctrl+D / Cmd+D (복사 + 붙여넣기)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size === 0) return;
+
+        const state = store.getState();
+        const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
+        const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
+        const selectedEdges = state.edges.filter(
+          e => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+        );
+
+        const offset = 30;
+        const idMap = new Map<string, string>();
+        const newNodeIds: string[] = [];
+
+        for (const node of selectedNodes) {
+          const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          idMap.set(node.id, newId);
+
+          const newNode: FlowNode = {
+            ...node,
+            id: newId,
+            position: {
+              x: node.position.x + offset,
+              y: node.position.y + offset,
+            },
+          };
+          state.addNode(newNode);
+          newNodeIds.push(newId);
+        }
+
+        for (const edge of selectedEdges) {
+          const newSourceId = idMap.get(edge.source);
+          const newTargetId = idMap.get(edge.target);
+          if (newSourceId && newTargetId) {
+            state.addEdge({
+              id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              source: newSourceId,
+              sourcePort: edge.sourcePort,
+              target: newTargetId,
+              targetPort: edge.targetPort,
+            });
+          }
+        }
+
+        setSelectedNodes(new Set(newNodeIds));
         return;
       }
 

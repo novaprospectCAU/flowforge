@@ -51,6 +51,8 @@ flowforge/
 - **엣지 삭제**: 엣지 클릭
 - **컨텍스트 메뉴**: 우클릭 (노드 추가/삭제/복제)
 - **Undo/Redo**: Ctrl+Z / Ctrl+Y (Cmd+Z / Cmd+Shift+Z)
+- **복사/붙여넣기**: Ctrl+C / Ctrl+V (Cmd+C / Cmd+V)
+- **복제**: Ctrl+D (Cmd+D) - 선택된 노드와 연결된 엣지 복제
 
 ### 상태 관리
 - **Yjs**: CRDT 기반 실시간 동기화 준비
@@ -176,4 +178,4 @@ pnpm build            # 프로덕션 빌드
 - 실시간 협업 (Yjs provider)
 - 키보드 단축키 확장
 - 커스텀 노드 타입 플러그인
-- 복사/붙여넣기
+- 노드 그룹화
