@@ -48,6 +48,7 @@ import { ZoomControls } from './ZoomControls';
 import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
 import { SelectionBar } from './SelectionBar';
+import { NodeWidgets } from './NodeWidgets';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group';
 
@@ -172,6 +173,8 @@ export function FlowCanvas() {
   const [cursorStyle, setCursorStyle] = useState<string>('grab');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const autoSaveTimerRef = useRef<number | null>(null);
+  const canvasSizeRef = useRef<CanvasSize>({ width: 0, height: 0 });
+  const [widgetInteracting, setWidgetInteracting] = useState(false);
   const lastSaveRef = useRef<string>(''); // 마지막 저장 상태 해시
   const GRID_SIZE = 20; // 스냅 그리드 크기
   const MIN_NODE_SIZE = { width: 100, height: 60 }; // 최소 노드 크기
@@ -432,6 +435,7 @@ export function FlowCanvas() {
       width: canvas.clientWidth,
       height: canvas.clientHeight,
     };
+    canvasSizeRef.current = canvasSize;
 
     // 캔버스 크기 조정
     if (canvas.width !== canvasSize.width * dpr || canvas.height !== canvasSize.height * dpr) {
@@ -579,6 +583,9 @@ export function FlowCanvas() {
 
   // 마우스 다운 - 포트/노드 선택 또는 Pan 시작
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // 위젯 인터랙션 중이면 캔버스 이벤트 무시
+    if (widgetInteracting) return;
+
     // 중간 버튼 (휠 클릭) = Pan
     if (e.button === 1) {
       e.preventDefault();
@@ -1883,6 +1890,18 @@ export function FlowCanvas() {
           cursor: dragModeRef.current !== 'none' ? 'grabbing' : cursorStyle,
         }}
       />
+      {/* 노드 인라인 위젯 */}
+      {storeRef.current && canvasSizeRef.current.width > 0 && (
+        <NodeWidgets
+          nodes={storeRef.current.getState().nodes}
+          viewport={storeRef.current.getState().viewport}
+          canvasSize={canvasSizeRef.current}
+          onUpdateNode={(nodeId, data) => {
+            storeRef.current?.getState().updateNode(nodeId, { data });
+          }}
+          onWidgetInteraction={setWidgetInteracting}
+        />
+      )}
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}
