@@ -62,6 +62,8 @@ import { SelectionBar } from './SelectionBar';
 import { NodeWidgets } from './NodeWidgets';
 import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { MobileToolbar } from './MobileToolbar';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment' | 'subflow';
 
@@ -131,6 +133,7 @@ const DEMO_EDGES: FlowEdge[] = [
 ];
 
 export function FlowCanvas() {
+  const isMobile = useIsMobile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<IRenderer | null>(null);
   const storeRef = useRef<FlowStore | null>(null);
@@ -2690,158 +2693,192 @@ export function FlowCanvas() {
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      {/* 실행 버튼 */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          right: 16,
-          zIndex: 100,
-          display: 'flex',
-          gap: 8,
-          alignItems: 'center',
-        }}
-      >
-        {/* Undo/Redo 버튼 */}
-        <div style={{ display: 'flex', gap: 2 }}>
-          <button
-            onClick={() => {
-              storeRef.current?.getState().undo();
-              forceRender(n => n + 1);
-            }}
-            disabled={!storeRef.current?.getState().canUndo()}
-            title="Undo (Ctrl+Z)"
-            style={{
-              padding: '8px 10px',
-              background: '#2d3748',
-              color: storeRef.current?.getState().canUndo() ? '#a0aec0' : '#4a5568',
-              border: '1px solid #4a5568',
-              borderRadius: '4px 0 0 4px',
-              fontSize: 14,
-              cursor: storeRef.current?.getState().canUndo() ? 'pointer' : 'not-allowed',
-              opacity: storeRef.current?.getState().canUndo() ? 1 : 0.5,
-            }}
-          >
-            ↶
-          </button>
-          <button
-            onClick={() => {
-              storeRef.current?.getState().redo();
-              forceRender(n => n + 1);
-            }}
-            disabled={!storeRef.current?.getState().canRedo()}
-            title="Redo (Ctrl+Y)"
-            style={{
-              padding: '8px 10px',
-              background: '#2d3748',
-              color: storeRef.current?.getState().canRedo() ? '#a0aec0' : '#4a5568',
-              border: '1px solid #4a5568',
-              borderLeft: 'none',
-              borderRadius: '0 4px 4px 0',
-              fontSize: 14,
-              cursor: storeRef.current?.getState().canRedo() ? 'pointer' : 'not-allowed',
-              opacity: storeRef.current?.getState().canRedo() ? 1 : 0.5,
-            }}
-          >
-            ↷
-          </button>
-        </div>
-        {/* 자동 저장 상태 */}
+      {/* 모바일 툴바 */}
+      {isMobile && (
+        <MobileToolbar
+          onUndo={() => {
+            storeRef.current?.getState().undo();
+            forceRender(n => n + 1);
+          }}
+          onRedo={() => {
+            storeRef.current?.getState().redo();
+            forceRender(n => n + 1);
+          }}
+          canUndo={storeRef.current?.getState().canUndo() || false}
+          canRedo={storeRef.current?.getState().canRedo() || false}
+          onRun={handleRunFlow}
+          isRunning={isRunning}
+          onHelp={() => setShowHelp(true)}
+          onAddNode={() => {
+            const canvas = canvasRef.current;
+            const store = storeRef.current;
+            if (!canvas || !store) return;
+            const rect = canvas.getBoundingClientRect();
+            const state = store.getState();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const worldPos = screenToWorld({ x: centerX, y: centerY }, state.viewport, { width: rect.width, height: rect.height });
+            setNodePalette({ x: centerX - 140, y: centerY - 100, worldPos });
+          }}
+          saveStatus={saveStatus}
+          snapToGrid={snapToGrid}
+          onToggleSnap={() => setSnapToGrid(prev => !prev)}
+        />
+      )}
+      {/* 데스크톱 툴바 */}
+      {!isMobile && (
         <div
-          title="Auto-save status"
           style={{
-            padding: '8px 12px',
-            background: '#2d3748',
-            color: saveStatus === 'saved' ? '#68d391' : saveStatus === 'saving' ? '#f6e05e' : '#a0aec0',
-            border: '1px solid #4a5568',
-            borderRadius: 4,
-            fontSize: 12,
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            zIndex: 100,
             display: 'flex',
+            gap: 8,
             alignItems: 'center',
-            gap: 6,
           }}
         >
-          <span style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: saveStatus === 'saved' ? '#68d391' : saveStatus === 'saving' ? '#f6e05e' : '#a0aec0',
-          }} />
-          {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
-        </div>
-        {/* 스냅 토글 */}
-        <button
-          onClick={() => setSnapToGrid(prev => !prev)}
-          title={`Snap to Grid: ${snapToGrid ? 'ON' : 'OFF'} (G)`}
-          style={{
-            padding: '8px 12px',
-            background: snapToGrid ? '#4a5568' : '#2d3748',
-            color: snapToGrid ? '#68d391' : '#a0aec0',
-            border: snapToGrid ? '1px solid #68d391' : '1px solid #4a5568',
-            borderRadius: 4,
-            fontSize: 12,
-            cursor: 'pointer',
-          }}
-        >
-          Grid: {snapToGrid ? 'ON' : 'OFF'}
-        </button>
-        {/* 엣지 스타일 토글 */}
-        <button
-          onClick={() => {
-            const styles: EdgeStyle[] = ['bezier', 'straight', 'step'];
-            const currentIndex = styles.indexOf(edgeStyle);
-            setEdgeStyle(styles[(currentIndex + 1) % styles.length]);
-          }}
-          title="Edge Style (Click to cycle)"
-          style={{
-            padding: '8px 12px',
-            background: '#4a5568',
-            color: '#a0aec0',
-            border: '1px solid #4a5568',
-            borderRadius: 4,
-            fontSize: 12,
-            cursor: 'pointer',
-          }}
-        >
-          Edge: {edgeStyle.charAt(0).toUpperCase() + edgeStyle.slice(1)}
-        </button>
-        {/* 언어 선택 */}
-        <LanguageSwitcher />
-        {executionState && (
+          {/* Undo/Redo 버튼 */}
+          <div style={{ display: 'flex', gap: 2 }}>
+            <button
+              onClick={() => {
+                storeRef.current?.getState().undo();
+                forceRender(n => n + 1);
+              }}
+              disabled={!storeRef.current?.getState().canUndo()}
+              title="Undo (Ctrl+Z)"
+              style={{
+                padding: '8px 10px',
+                background: '#2d3748',
+                color: storeRef.current?.getState().canUndo() ? '#a0aec0' : '#4a5568',
+                border: '1px solid #4a5568',
+                borderRadius: '4px 0 0 4px',
+                fontSize: 14,
+                cursor: storeRef.current?.getState().canUndo() ? 'pointer' : 'not-allowed',
+                opacity: storeRef.current?.getState().canUndo() ? 1 : 0.5,
+              }}
+            >
+              ↶
+            </button>
+            <button
+              onClick={() => {
+                storeRef.current?.getState().redo();
+                forceRender(n => n + 1);
+              }}
+              disabled={!storeRef.current?.getState().canRedo()}
+              title="Redo (Ctrl+Y)"
+              style={{
+                padding: '8px 10px',
+                background: '#2d3748',
+                color: storeRef.current?.getState().canRedo() ? '#a0aec0' : '#4a5568',
+                border: '1px solid #4a5568',
+                borderLeft: 'none',
+                borderRadius: '0 4px 4px 0',
+                fontSize: 14,
+                cursor: storeRef.current?.getState().canRedo() ? 'pointer' : 'not-allowed',
+                opacity: storeRef.current?.getState().canRedo() ? 1 : 0.5,
+              }}
+            >
+              ↷
+            </button>
+          </div>
+          {/* 자동 저장 상태 */}
           <div
+            title="Auto-save status"
             style={{
               padding: '8px 12px',
-              background: executionState.status === 'success' ? '#28a745' :
-                         executionState.status === 'error' ? '#dc3545' : '#6c757d',
-              color: '#fff',
+              background: '#2d3748',
+              color: saveStatus === 'saved' ? '#68d391' : saveStatus === 'saving' ? '#f6e05e' : '#a0aec0',
+              border: '1px solid #4a5568',
               borderRadius: 4,
               fontSize: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            {executionState.status === 'success' ? 'Completed' :
-             executionState.status === 'error' ? 'Error' : 'Running...'}
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: saveStatus === 'saved' ? '#68d391' : saveStatus === 'saving' ? '#f6e05e' : '#a0aec0',
+            }} />
+            {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
           </div>
-        )}
-        <button
-          onClick={handleRunFlow}
-          disabled={isRunning}
-          style={{
-            padding: '10px 20px',
-            background: isRunning ? '#4a5568' : '#3182ce',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: isRunning ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          {isRunning ? 'Running...' : 'Run Flow'}
-        </button>
-      </div>
+          {/* 스냅 토글 */}
+          <button
+            onClick={() => setSnapToGrid(prev => !prev)}
+            title={`Snap to Grid: ${snapToGrid ? 'ON' : 'OFF'} (G)`}
+            style={{
+              padding: '8px 12px',
+              background: snapToGrid ? '#4a5568' : '#2d3748',
+              color: snapToGrid ? '#68d391' : '#a0aec0',
+              border: snapToGrid ? '1px solid #68d391' : '1px solid #4a5568',
+              borderRadius: 4,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            Grid: {snapToGrid ? 'ON' : 'OFF'}
+          </button>
+          {/* 엣지 스타일 토글 */}
+          <button
+            onClick={() => {
+              const styles: EdgeStyle[] = ['bezier', 'straight', 'step'];
+              const currentIndex = styles.indexOf(edgeStyle);
+              setEdgeStyle(styles[(currentIndex + 1) % styles.length]);
+            }}
+            title="Edge Style (Click to cycle)"
+            style={{
+              padding: '8px 12px',
+              background: '#4a5568',
+              color: '#a0aec0',
+              border: '1px solid #4a5568',
+              borderRadius: 4,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            Edge: {edgeStyle.charAt(0).toUpperCase() + edgeStyle.slice(1)}
+          </button>
+          {/* 언어 선택 */}
+          <LanguageSwitcher />
+          {executionState && (
+            <div
+              style={{
+                padding: '8px 12px',
+                background: executionState.status === 'success' ? '#28a745' :
+                           executionState.status === 'error' ? '#dc3545' : '#6c757d',
+                color: '#fff',
+                borderRadius: 4,
+                fontSize: 12,
+              }}
+            >
+              {executionState.status === 'success' ? 'Completed' :
+               executionState.status === 'error' ? 'Error' : 'Running...'}
+            </div>
+          )}
+          <button
+            onClick={handleRunFlow}
+            disabled={isRunning}
+            style={{
+              padding: '10px 20px',
+              background: isRunning ? '#4a5568' : '#3182ce',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: isRunning ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            {isRunning ? 'Running...' : 'Run Flow'}
+          </button>
+        </div>
+      )}
       <canvas
         tabIndex={0}
         ref={canvasRef}
@@ -2928,8 +2965,8 @@ export function FlowCanvas() {
           onClose={() => setTemplateBrowser(null)}
         />
       )}
-      {/* 프로퍼티 패널 - 단일 노드 선택 시 */}
-      {(() => {
+      {/* 프로퍼티 패널 - 단일 노드 선택 시 (데스크톱만) */}
+      {!isMobile && (() => {
         const selectedIds = selectedNodeIdsRef.current;
         if (selectedIds.size !== 1 || !storeRef.current) return null;
         const nodeId = Array.from(selectedIds)[0];
@@ -2944,8 +2981,8 @@ export function FlowCanvas() {
           />
         );
       })()}
-      {/* 서브플로우 패널 - 서브플로우 선택 시 */}
-      {(() => {
+      {/* 서브플로우 패널 - 서브플로우 선택 시 (데스크톱만) */}
+      {!isMobile && (() => {
         const sfId = selectedSubflowIdRef.current;
         if (!sfId || !storeRef.current) return null;
         const subflow = storeRef.current.getState().subflows.find(s => s.id === sfId);
@@ -2973,8 +3010,8 @@ export function FlowCanvas() {
           />
         );
       })()}
-      {/* 컨텍스트 힌트 */}
-      {storeRef.current && (
+      {/* 컨텍스트 힌트 (데스크톱만) */}
+      {!isMobile && storeRef.current && (
         <ContextHints
           nodeCount={storeRef.current.getState().nodes.length}
           selectedCount={selectedNodeIdsRef.current.size}
@@ -2982,8 +3019,8 @@ export function FlowCanvas() {
           hasTemplates={loadTemplates().length > 0}
         />
       )}
-      {/* 선택 정보 바 - 다중 선택 시 */}
-      <SelectionBar
+      {/* 선택 정보 바 - 다중 선택 시 (데스크톱만) */}
+      {!isMobile && <SelectionBar
         selectedCount={selectedNodeIdsRef.current.size}
         onDelete={() => {
           const store = storeRef.current;
@@ -3049,16 +3086,18 @@ export function FlowCanvas() {
         onDistributeH={() => distributeNodes('horizontal')}
         onDistributeV={() => distributeNodes('vertical')}
         onDeselect={() => setSelectedNodes(new Set())}
-      />
-      {/* 줌 컨트롤 */}
-      <ZoomControls
-        zoom={currentZoom}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onZoomReset={handleZoomReset}
-        onFitView={handleFitView}
-        onZoomTo={handleZoomTo}
-      />
+      />}
+      {/* 줌 컨트롤 (데스크톱만 - 모바일은 핀치 줌 사용) */}
+      {!isMobile && (
+        <ZoomControls
+          zoom={currentZoom}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomReset={handleZoomReset}
+          onFitView={handleFitView}
+          onZoomTo={handleZoomTo}
+        />
+      )}
       {/* 검색 다이얼로그 */}
       {showSearch && storeRef.current && (
         <SearchDialog
