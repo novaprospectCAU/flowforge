@@ -8,3 +8,6 @@ export { screenToWorld, worldToScreen, getViewportBounds } from './viewport/tran
 
 // Rendering
 export { drawNode, drawNodes } from './rendering/drawNode';
+
+// Interaction
+export { hitTestNode } from './interaction/hitTest';

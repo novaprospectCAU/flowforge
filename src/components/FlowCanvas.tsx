@@ -1,7 +1,9 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { createRenderer, drawNodes, screenToWorld, type IRenderer } from '@flowforge/canvas';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { createRenderer, drawNodes, screenToWorld, hitTestNode, type IRenderer } from '@flowforge/canvas';
 import { createFlowStore, type FlowStore } from '@flowforge/state';
 import type { FlowNode, CanvasSize } from '@flowforge/types';
+
+type DragMode = 'none' | 'pan' | 'node';
 
 // 테스트용 노드들
 const DEMO_NODES: FlowNode[] = [
@@ -33,8 +35,12 @@ export function FlowCanvas() {
   const rendererRef = useRef<IRenderer | null>(null);
   const storeRef = useRef<FlowStore | null>(null);
   const rafRef = useRef<number>(0);
-  const isDraggingRef = useRef(false);
+  const dragModeRef = useRef<DragMode>('none');
   const lastMouseRef = useRef({ x: 0, y: 0 });
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  // 선택된 노드 Set
+  const selectedIds = selectedNodeId ? new Set([selectedNodeId]) : new Set<string>();
 
   // 렌더 루프
   const render = useCallback(() => {
@@ -60,11 +66,11 @@ export function FlowCanvas() {
     // 렌더링
     renderer.beginFrame();
     renderer.setTransform(state.viewport, canvasSize, dpr);
-    drawNodes(renderer, state.nodes);
+    drawNodes(renderer, state.nodes, selectedIds);
     renderer.endFrame();
 
     rafRef.current = requestAnimationFrame(render);
-  }, []);
+  }, [selectedIds]);
 
   // 초기화
   useEffect(() => {
@@ -100,32 +106,66 @@ export function FlowCanvas() {
       cancelAnimationFrame(rafRef.current);
       rendererRef.current?.dispose();
     };
-  }, [render]);
+  }, [render, selectedNodeId]);
 
-  // Pan 시작
+  // 마우스 다운 - 노드 선택 또는 Pan 시작
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 0 || e.button === 1) { // 좌클릭 또는 휠클릭
-      isDraggingRef.current = true;
-      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+    if (e.button !== 0) return; // 좌클릭만
+
+    const canvas = canvasRef.current;
+    const store = storeRef.current;
+    if (!canvas || !store) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+
+    const state = store.getState();
+    const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
+    const hitNode = hitTestNode(worldPos, state.nodes);
+
+    lastMouseRef.current = { x: e.clientX, y: e.clientY };
+
+    if (hitNode) {
+      // 노드 드래그 모드
+      dragModeRef.current = 'node';
+      setSelectedNodeId(hitNode.id);
+    } else {
+      // Pan 모드
+      dragModeRef.current = 'pan';
+      setSelectedNodeId(null);
     }
   }, []);
 
-  // Pan 중
+  // 마우스 이동 - 노드 드래그 또는 Pan
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDraggingRef.current || !storeRef.current) return;
+    if (dragModeRef.current === 'none' || !storeRef.current) return;
 
     const dx = e.clientX - lastMouseRef.current.x;
     const dy = e.clientY - lastMouseRef.current.y;
     lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
     const state = storeRef.current.getState();
-    // 화면 이동량을 월드 좌표로 변환 (zoom 고려)
-    state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
-  }, []);
 
-  // Pan 종료
+    if (dragModeRef.current === 'pan') {
+      state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
+    } else if (dragModeRef.current === 'node' && selectedNodeId) {
+      const node = state.nodes.find(n => n.id === selectedNodeId);
+      if (node) {
+        state.updateNode(selectedNodeId, {
+          position: {
+            x: node.position.x + dx / state.viewport.zoom,
+            y: node.position.y + dy / state.viewport.zoom,
+          },
+        });
+      }
+    }
+  }, [selectedNodeId]);
+
+  // 마우스 업 - 드래그 종료
   const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
+    dragModeRef.current = 'none';
   }, []);
 
   // Zoom (passive: false로 등록해야 preventDefault 가능)
@@ -171,7 +211,7 @@ export function FlowCanvas() {
         height: '100%',
         display: 'block',
         background: '#1e1e1e',
-        cursor: isDraggingRef.current ? 'grabbing' : 'grab',
+        cursor: dragModeRef.current !== 'none' ? 'grabbing' : 'grab',
       }}
     />
   );

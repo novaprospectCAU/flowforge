@@ -6,6 +6,7 @@ const NODE_COLORS = {
   background: { r: 45, g: 45, b: 48, a: 255 } as Color,
   header: { r: 80, g: 80, b: 85, a: 255 } as Color,
   border: { r: 100, g: 100, b: 105, a: 255 } as Color,
+  selected: { r: 66, g: 135, b: 245, a: 255 } as Color,
   text: { r: 255, g: 255, b: 255, a: 255 } as Color,
 };
 
@@ -19,10 +20,21 @@ const NODE_STYLE = {
 /**
  * 단일 노드 렌더링
  */
-export function drawNode(renderer: IRenderer, node: FlowNode): void {
+export function drawNode(renderer: IRenderer, node: FlowNode, selected: boolean = false): void {
   const { x, y } = node.position;
   const { width, height } = node.size;
   const title = (node.data.title as string) || node.type;
+
+  // 0. 선택 테두리 (선택된 경우)
+  if (selected) {
+    const border = 3;
+    renderer.drawRoundedRect(
+      x - border, y - border,
+      width + border * 2, height + border * 2,
+      NODE_STYLE.borderRadius + border,
+      NODE_COLORS.selected
+    );
+  }
 
   // 1. 노드 배경 (rounded rect)
   renderer.drawRoundedRect(
@@ -58,8 +70,12 @@ export function drawNode(renderer: IRenderer, node: FlowNode): void {
 /**
  * 여러 노드 렌더링
  */
-export function drawNodes(renderer: IRenderer, nodes: FlowNode[]): void {
+export function drawNodes(
+  renderer: IRenderer,
+  nodes: FlowNode[],
+  selectedIds: Set<string> = new Set()
+): void {
   for (const node of nodes) {
-    drawNode(renderer, node);
+    drawNode(renderer, node, selectedIds.has(node.id));
   }
 }
