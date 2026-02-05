@@ -83,14 +83,19 @@ export class WebGPURenderer implements IRenderer {
       dpr * (canvasSize.height / 2 - viewport.y * viewport.zoom)
     );
   }
-  
+
+  resetTransform(dpr: number): void {
+    if (!this.ctx) return;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
   drawRect(x: number, y: number, width: number, height: number, color: Color): void {
     if (!this.ctx) return;
-    
+
     this.ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
     this.ctx.fillRect(x, y, width, height);
   }
-  
+
   drawRoundedRect(x: number, y: number, width: number, height: number, radius: number, color: Color): void {
     if (!this.ctx) return;
     

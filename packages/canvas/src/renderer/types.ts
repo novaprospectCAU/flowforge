@@ -15,6 +15,7 @@ export interface IRenderer {
   
   // 변환 설정
   setTransform(viewport: Viewport, canvasSize: CanvasSize, dpr: number): void;
+  resetTransform(dpr: number): void;
   
   // 기본 도형
   drawRect(x: number, y: number, width: number, height: number, color: Color): void;

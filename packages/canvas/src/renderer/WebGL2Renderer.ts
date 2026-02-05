@@ -59,7 +59,12 @@ export class WebGL2Renderer implements IRenderer {
       dpr * (canvasSize.height / 2 - viewport.y * viewport.zoom)
     );
   }
-  
+
+  resetTransform(dpr: number): void {
+    if (!this.ctx) return;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
   drawRect(x: number, y: number, width: number, height: number, color: Color): void {
     if (!this.ctx) return;
     

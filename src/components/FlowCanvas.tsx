@@ -150,8 +150,8 @@ export function FlowCanvas() {
     // 노드
     drawNodes(renderer, state.nodes, selectedIds);
 
-    // 미니맵
-    drawMinimap(renderer, state.nodes, state.viewport, canvasSize);
+    // 미니맵 (스크린 좌표로 그림)
+    drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr);
 
     renderer.endFrame();
 
@@ -232,7 +232,15 @@ export function FlowCanvas() {
     if (hitNode) {
       // 노드 드래그 모드
       dragModeRef.current = 'node';
-      toggleNodeSelection(hitNode.id, e.shiftKey);
+
+      // 이미 선택된 노드면 선택 유지, 아니면 선택 변경
+      const isAlreadySelected = selectedNodeIdsRef.current.has(hitNode.id);
+      if (e.shiftKey) {
+        toggleNodeSelection(hitNode.id, true);
+      } else if (!isAlreadySelected) {
+        setSelectedNodes(new Set([hitNode.id]));
+      }
+      // 이미 선택된 노드를 Shift 없이 클릭하면 선택 유지
     } else {
       // Pan 모드
       dragModeRef.current = 'pan';
