@@ -43,10 +43,15 @@ import {
   validateNodes,
   getVisibleNodes,
   instantiateTemplate,
+  registerAINodeTypes,
+  getAINodeDefaultData,
   type FlowStore,
   type NodeTypeDefinition,
   type ExecutionState,
 } from '@flowforge/state';
+
+// AI 노드 타입 등록
+registerAINodeTypes();
 import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType, Comment, Subflow, NodeGroup, SubflowTemplate } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
@@ -2474,12 +2479,15 @@ export function FlowCanvas() {
       y: worldPos.y - typeDef.defaultSize.height / 2,
     };
 
+    // AI 노드의 경우 기본 데이터 가져오기
+    const aiDefaultData = getAINodeDefaultData(typeDef.type);
+
     const newNode: FlowNode = {
       id: `node-${Date.now()}`,
       type: typeDef.type,
       position: snapToGridRef.current ? snapPosition(rawPosition) : rawPosition,
       size: typeDef.defaultSize,
-      data: { title: typeDef.title },
+      data: { title: typeDef.title, ...aiDefaultData },
       inputs: typeDef.inputs,
       outputs: typeDef.outputs,
     };

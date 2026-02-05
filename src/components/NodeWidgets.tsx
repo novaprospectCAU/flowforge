@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { FlowNode, Viewport, CanvasSize } from '@flowforge/types';
 import { worldToScreen } from '@flowforge/canvas';
+import { LLMChatWidget, ImageGenerateWidget, PromptTemplateWidget } from './ai';
 
 interface NodeWidgetsProps {
   nodes: FlowNode[];
@@ -16,7 +17,11 @@ const HEADER_HEIGHT = 28;
 const WIDGET_PADDING = 8;
 
 // 위젯이 지원되는 노드 타입
-const WIDGET_SUPPORTED_TYPES = ['NumberInput', 'TextInput', 'ImageInput', 'Math', 'Filter', 'Resize', 'Merge', 'Condition', 'Display', 'SaveImage'];
+const WIDGET_SUPPORTED_TYPES = [
+  'NumberInput', 'TextInput', 'ImageInput', 'Math', 'Filter', 'Resize', 'Merge', 'Condition', 'Display', 'SaveImage',
+  // AI 노드
+  'LLMChat', 'ImageGenerate', 'PromptTemplate',
+];
 
 export function NodeWidgets({
   nodes,
@@ -220,6 +225,37 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction }: Nod
             path={node.data.path as string ?? 'output.png'}
             onChange={(path) => handleChange('path', path)}
             fontSize={fontSize}
+          />
+        );
+
+      // AI 노드들
+      case 'LLMChat':
+        return (
+          <LLMChatWidget
+            node={node}
+            zoom={viewport.zoom}
+            onUpdate={(data) => onUpdate({ ...node.data, ...data })}
+            onInteraction={onInteraction}
+          />
+        );
+
+      case 'ImageGenerate':
+        return (
+          <ImageGenerateWidget
+            node={node}
+            zoom={viewport.zoom}
+            onUpdate={(data) => onUpdate({ ...node.data, ...data })}
+            onInteraction={onInteraction}
+          />
+        );
+
+      case 'PromptTemplate':
+        return (
+          <PromptTemplateWidget
+            node={node}
+            zoom={viewport.zoom}
+            onUpdate={(data) => onUpdate({ ...node.data, ...data })}
+            onInteraction={onInteraction}
           />
         );
 

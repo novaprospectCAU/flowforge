@@ -72,3 +72,47 @@ export {
   deleteTemplate,
   updateTemplate,
 } from './subflowTemplates';
+
+// AI 모듈
+export {
+  // 타입
+  type AIProviderType,
+  type APIKeyEntry,
+  type MaskedAPIKeyEntry,
+  type ChatMessage,
+  type LLMChatRequest,
+  type LLMChatResponse,
+  type TokenUsage,
+  type StreamChunkCallback,
+  type ImageSize,
+  type ImageGenerateRequest,
+  type ImageGenerateResponse,
+  type AIProvider,
+  type AIErrorCode,
+  type LLMChatNodeConfig,
+  type ImageGenerateNodeConfig,
+  type PromptTemplateNodeConfig,
+  // 클래스
+  AIError,
+  // 키 관리
+  keyManager,
+  // 프로바이더
+  providerRegistry,
+  BaseProvider,
+  openaiProvider,
+  anthropicProvider,
+  // 노드 타입
+  AI_NODE_TYPES,
+  registerAINodeTypes,
+  getAINodeDefaultData,
+  DEFAULT_LLM_CHAT_DATA,
+  DEFAULT_IMAGE_GENERATE_DATA,
+  DEFAULT_PROMPT_TEMPLATE_DATA,
+  // 스트리밍
+  parseSSELines,
+  processOpenAIStream,
+  processAnthropicStream,
+  // 유틸리티
+  extractVariables,
+  substituteTemplate,
+} from './ai';
