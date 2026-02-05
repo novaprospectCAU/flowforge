@@ -24,6 +24,8 @@ import {
   type EdgeStyle,
   type ResizeHandle,
   type SnapLine,
+  exportFlowToImage,
+  downloadImage,
 } from '@flowforge/canvas';
 import {
   createFlowStore,
@@ -989,6 +991,31 @@ export function FlowCanvas() {
         state.clearFlow();
         setSelectedNodes(new Set());
         forceRender(n => n + 1);
+        return;
+      }
+
+      // Export Image: Ctrl+Shift+E / Cmd+Shift+E
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'e' || e.key === 'E')) {
+        e.preventDefault();
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const state = store.getState();
+        if (state.nodes.length === 0) return;
+
+        exportFlowToImage(
+          canvas,
+          state.nodes,
+          state.edges,
+          state.groups,
+          state.viewport,
+          edgeStyleRef.current
+        )
+          .then((blob) => {
+            downloadImage(blob, 'flow.png');
+          })
+          .catch((err) => {
+            console.error('Failed to export image:', err);
+          });
         return;
       }
 

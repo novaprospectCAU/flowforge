@@ -19,6 +19,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: 'Ctrl+S', description: 'Save flow to file' },
       { keys: 'Ctrl+O', description: 'Open flow from file' },
       { keys: 'Ctrl+N', description: 'New flow (clear all)' },
+      { keys: 'Ctrl+Shift+E', description: 'Export as PNG image' },
     ],
   },
   {

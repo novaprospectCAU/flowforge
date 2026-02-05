@@ -15,6 +15,9 @@ export { drawSelectionBox, isNodeInSelectionBox } from './rendering/drawSelectio
 export { drawGroup, drawGroups, getGroupBounds, hitTestGroups, hitTestGroupHeader } from './rendering/drawGroup';
 export { calculateSnap, drawSnapLines, type SnapResult, type SnapLine } from './rendering/drawSnapLines';
 
+// Export
+export { exportFlowToImage, downloadImage, type ExportImageOptions } from './export/exportImage';
+
 // Interaction
 export {
   hitTestNode,
