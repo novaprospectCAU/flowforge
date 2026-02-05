@@ -2681,7 +2681,7 @@ export function FlowCanvas() {
           }}
           style={{
             position: 'absolute',
-            bottom: 16,
+            bottom: 90,
             left: 16,
             width: 48,
             height: 48,
@@ -2699,7 +2699,7 @@ export function FlowCanvas() {
           }}
           title="Center View"
         >
-          ⌖
+          ⊙
         </button>
       )}
       {/* 데스크톱 툴바 */}
