@@ -102,6 +102,14 @@ flowforge/
 - **타입별 필드**: NumberInput(값), TextInput(텍스트), Math(연산), Filter(필터), Merge(모드), SaveImage(경로)
 - **노드 정보**: ID, Position, Size 표시
 
+### 인라인 위젯
+- **노드 위젯**: 노드 위에 HTML 오버레이로 인라인 편집 지원
+- **NumberInput**: 숫자 입력 (드래그로 값 조절 가능)
+- **TextInput**: 텍스트 영역
+- **드롭다운**: Math(연산), Filter(필터), Resize(스케일 슬라이더), Merge(모드), Condition(조건)
+- **줌 적응**: 줌 레벨에 따라 위젯 크기 조절, 50% 미만에서 숨김
+- **인터랙션 분리**: 위젯 편집 중 캔버스 이벤트 차단
+
 ## 주요 API
 
 ### @flowforge/canvas
