@@ -10,6 +10,7 @@ export { screenToWorld, worldToScreen, getViewportBounds } from './viewport/tran
 export { drawNode, drawNodes, NODE_STYLE } from './rendering/drawNode';
 export { drawEdge, drawEdges, drawTempEdge, getPortPosition } from './rendering/drawEdge';
 export { drawGrid } from './rendering/drawGrid';
+export { drawMinimap } from './rendering/drawMinimap';
 
 // Interaction
 export { hitTestNode, hitTestPort, type PortHitResult } from './interaction/hitTest';

@@ -5,6 +5,7 @@ import {
   drawNodes,
   drawEdges,
   drawTempEdge,
+  drawMinimap,
   screenToWorld,
   hitTestNode,
   hitTestPort,
@@ -148,6 +149,10 @@ export function FlowCanvas() {
 
     // 노드
     drawNodes(renderer, state.nodes, selectedIds);
+
+    // 미니맵
+    drawMinimap(renderer, state.nodes, state.viewport, canvasSize);
+
     renderer.endFrame();
 
     rafRef.current = requestAnimationFrame(render);
