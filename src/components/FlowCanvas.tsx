@@ -8,6 +8,8 @@ import {
   drawMinimap,
   drawSelectionBox,
   isNodeInSelectionBox,
+  isInMinimap,
+  minimapToWorld,
   screenToWorld,
   hitTestNode,
   hitTestPort,
@@ -32,7 +34,7 @@ import { ZoomControls } from './ZoomControls';
 import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
 
-type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box';
+type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap';
 
 // 테스트용 노드들
 const DEMO_NODES: FlowNode[] = [
@@ -459,6 +461,17 @@ export function FlowCanvas() {
     const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
 
     const state = store.getState();
+
+    // 미니맵 클릭 체크 (먼저)
+    if (isInMinimap({ x: mouseX, y: mouseY }, canvasSize)) {
+      dragModeRef.current = 'minimap';
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+      // 클릭 위치로 즉시 이동
+      const worldPos = minimapToWorld({ x: mouseX, y: mouseY }, state.nodes, state.viewport, canvasSize);
+      state.setViewport({ ...state.viewport, x: worldPos.x, y: worldPos.y });
+      return;
+    }
+
     const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
 
     // 포트 히트 테스트 먼저
@@ -564,6 +577,14 @@ export function FlowCanvas() {
         state.viewport,
         canvasSize
       );
+    } else if (dragModeRef.current === 'minimap') {
+      // 미니맵 드래그 - 뷰포트 이동
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+      const worldPos = minimapToWorld({ x: mouseX, y: mouseY }, state.nodes, state.viewport, canvasSize);
+      state.setViewport({ ...state.viewport, x: worldPos.x, y: worldPos.y });
     }
   }, []);
 
