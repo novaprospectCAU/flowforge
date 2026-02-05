@@ -1,108 +1,23 @@
+import { useLanguage } from '../i18n';
+import { shortcutsTranslations } from '../i18n/translations';
+
 interface ShortcutsHelpProps {
   onClose: () => void;
 }
 
-interface ShortcutItem {
-  keys: string;
-  description: string;
-}
-
-interface ShortcutGroup {
-  title: string;
-  shortcuts: ShortcutItem[];
-}
-
-const SHORTCUT_GROUPS: ShortcutGroup[] = [
-  {
-    title: 'File',
-    shortcuts: [
-      { keys: 'Ctrl+S', description: 'Save flow to file' },
-      { keys: 'Ctrl+O', description: 'Open flow from file' },
-      { keys: 'Ctrl+N', description: 'New flow (clear all)' },
-      { keys: 'Ctrl+Shift+E', description: 'Export as PNG image' },
-    ],
-  },
-  {
-    title: 'General',
-    shortcuts: [
-      { keys: 'Ctrl+Z', description: 'Undo' },
-      { keys: 'Ctrl+Y', description: 'Redo' },
-      { keys: 'Ctrl+A', description: 'Select all nodes' },
-      { keys: 'Escape', description: 'Deselect / Close menus' },
-      { keys: 'Delete', description: 'Delete selected nodes' },
-      { keys: '?', description: 'Show this help' },
-    ],
-  },
-  {
-    title: 'Clipboard',
-    shortcuts: [
-      { keys: 'Ctrl+C', description: 'Copy selected nodes' },
-      { keys: 'Ctrl+V', description: 'Paste nodes' },
-      { keys: 'Ctrl+D', description: 'Duplicate selected nodes' },
-    ],
-  },
-  {
-    title: 'Navigation',
-    shortcuts: [
-      { keys: 'Ctrl+F', description: 'Search nodes' },
-      { keys: 'F', description: 'Fit view (selection or all)' },
-      { keys: 'Ctrl+0', description: 'Reset zoom to 100%' },
-      { keys: '[ / ]', description: 'Previous/next node' },
-      { keys: 'Arrows (no sel)', description: 'Select nearest node' },
-      { keys: 'Enter', description: 'Center view on selection' },
-      { keys: 'Scroll', description: 'Zoom in/out' },
-      { keys: 'Middle Drag', description: 'Pan canvas' },
-      { keys: 'Alt+Drag', description: 'Pan canvas' },
-    ],
-  },
-  {
-    title: 'Nodes',
-    shortcuts: [
-      { keys: 'Tab', description: 'Open node palette' },
-      { keys: 'Double-click', description: 'Quick add node' },
-      { keys: 'Arrow Keys', description: 'Move selected nodes (grid)' },
-      { keys: 'Shift+Arrows', description: 'Move nodes by 1px' },
-      { keys: 'G', description: 'Toggle snap to grid' },
-    ],
-  },
-  {
-    title: 'Alignment',
-    shortcuts: [
-      { keys: 'Alt+←/→', description: 'Align left/right' },
-      { keys: 'Alt+↑/↓', description: 'Align top/bottom' },
-      { keys: 'Ctrl+Shift+H', description: 'Distribute horizontal' },
-      { keys: 'Ctrl+Shift+V', description: 'Distribute vertical' },
-    ],
-  },
-  {
-    title: 'Selection',
-    shortcuts: [
-      { keys: 'Click', description: 'Select node' },
-      { keys: 'Shift+Click', description: 'Add to selection' },
-      { keys: 'Drag (empty)', description: 'Box select' },
-      { keys: 'Shift+Box', description: 'Add to selection' },
-    ],
-  },
-  {
-    title: 'Grouping',
-    shortcuts: [
-      { keys: 'Ctrl+G', description: 'Group selected nodes' },
-      { keys: 'Ctrl+Shift+G', description: 'Ungroup' },
-      { keys: 'Group header', description: 'Click to select all' },
-    ],
-  },
-];
-
 export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
+  const lang = useLanguage();
+  const t = shortcutsTranslations[lang];
+
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.dialog} onClick={e => e.stopPropagation()}>
         <div style={styles.header}>
-          <h2 style={styles.title}>Keyboard Shortcuts</h2>
+          <h2 style={styles.title}>{t.title}</h2>
           <button onClick={onClose} style={styles.closeBtn}>×</button>
         </div>
         <div style={styles.content}>
-          {SHORTCUT_GROUPS.map(group => (
+          {t.groups.map(group => (
             <div key={group.title} style={styles.group}>
               <h3 style={styles.groupTitle}>{group.title}</h3>
               <div style={styles.shortcuts}>
@@ -117,7 +32,11 @@ export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
           ))}
         </div>
         <div style={styles.footer}>
-          Press <kbd style={styles.footerKey}>Escape</kbd> or <kbd style={styles.footerKey}>?</kbd> to close
+          {lang === 'en' ? (
+            <>Press <kbd style={styles.footerKey}>Escape</kbd> or <kbd style={styles.footerKey}>?</kbd> to close</>
+          ) : (
+            <><kbd style={styles.footerKey}>Escape</kbd> 또는 <kbd style={styles.footerKey}>?</kbd> 키를 눌러 닫기</>
+          )}
         </div>
       </div>
     </div>
@@ -138,8 +57,8 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1000,
   },
   dialog: {
-    width: 600,
-    maxHeight: '80vh',
+    width: 720,
+    maxHeight: '85vh',
     background: '#252526',
     border: '1px solid #3c3c3c',
     borderRadius: 12,
@@ -179,8 +98,8 @@ const styles: Record<string, React.CSSProperties> = {
     overflowY: 'auto',
     padding: '8px 20px 20px',
     display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: 16,
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 12,
   },
   group: {
     background: '#2d2d2d',
@@ -189,7 +108,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   groupTitle: {
     margin: '0 0 10px 0',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 600,
     color: '#808080',
     textTransform: 'uppercase',
@@ -198,27 +117,27 @@ const styles: Record<string, React.CSSProperties> = {
   shortcuts: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 6,
+    gap: 5,
   },
   shortcut: {
     display: 'flex',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   keys: {
-    minWidth: 90,
-    padding: '4px 8px',
+    minWidth: 80,
+    padding: '3px 6px',
     background: '#3c3c3c',
     border: '1px solid #4a4a4a',
     borderRadius: 4,
     color: '#cccccc',
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: 'system-ui, -apple-system, sans-serif',
     textAlign: 'center',
   },
   desc: {
     color: '#a0a0a0',
-    fontSize: 12,
+    fontSize: 11,
   },
   footer: {
     padding: '12px 20px',

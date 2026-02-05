@@ -53,11 +53,15 @@ import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
 import { SubflowPanel } from './SubflowPanel';
 import { TemplateBrowser } from './TemplateBrowser';
+import { ContextHints } from './ContextHints';
+import { loadTemplates } from '@flowforge/state';
 import { ZoomControls } from './ZoomControls';
 import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
 import { SelectionBar } from './SelectionBar';
 import { NodeWidgets } from './NodeWidgets';
+import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment' | 'subflow';
 
@@ -189,6 +193,7 @@ export function FlowCanvas() {
   const [edgeStyle, setEdgeStyle] = useState<EdgeStyle>('bezier');
   const [showSearch, setShowSearch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const [cursorStyle, setCursorStyle] = useState<string>('grab');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const autoSaveTimerRef = useRef<number | null>(null);
@@ -2336,6 +2341,8 @@ export function FlowCanvas() {
         >
           Edge: {edgeStyle.charAt(0).toUpperCase() + edgeStyle.slice(1)}
         </button>
+        {/* 언어 선택 */}
+        <LanguageSwitcher />
         {executionState && (
           <div
             style={{
@@ -2497,6 +2504,15 @@ export function FlowCanvas() {
           />
         );
       })()}
+      {/* 컨텍스트 힌트 */}
+      {storeRef.current && (
+        <ContextHints
+          nodeCount={storeRef.current.getState().nodes.length}
+          selectedCount={selectedNodeIdsRef.current.size}
+          hasSubflows={storeRef.current.getState().subflows.length > 0}
+          hasTemplates={loadTemplates().length > 0}
+        />
+      )}
       {/* 선택 정보 바 - 다중 선택 시 */}
       <SelectionBar
         selectedCount={selectedNodeIdsRef.current.size}
@@ -2588,6 +2604,13 @@ export function FlowCanvas() {
       {/* 단축키 도움말 */}
       {showHelp && (
         <ShortcutsHelp onClose={() => setShowHelp(false)} />
+      )}
+      {/* 온보딩 튜토리얼 */}
+      {showOnboarding && (
+        <OnboardingTutorial
+          onComplete={() => setShowOnboarding(false)}
+          onSkip={() => setShowOnboarding(false)}
+        />
       )}
     </div>
   );

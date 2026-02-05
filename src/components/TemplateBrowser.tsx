@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { SubflowTemplate, Position } from '@flowforge/types';
 import { loadTemplates, deleteTemplate } from '@flowforge/state';
+import { useLanguage } from '../i18n';
+import { uiTranslations } from '../i18n/translations';
 
 interface TemplateBrowserProps {
   position: Position;
@@ -11,6 +13,8 @@ interface TemplateBrowserProps {
 export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowserProps) {
   const [templates, setTemplates] = useState<SubflowTemplate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
 
   useEffect(() => {
     setTemplates(loadTemplates());
@@ -24,7 +28,8 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
 
   const handleDelete = (templateId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Delete this template?')) {
+    const confirmMsg = lang === 'en' ? 'Delete this template?' : '이 템플릿을 삭제하시겠습니까?';
+    if (confirm(confirmMsg)) {
       deleteTemplate(templateId);
       setTemplates(loadTemplates());
     }
@@ -40,13 +45,13 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
       onClick={e => e.stopPropagation()}
     >
       <div style={styles.header}>
-        <span style={styles.title}>Templates</span>
+        <span style={styles.title}>{t.templates}</span>
         <button onClick={onClose} style={styles.closeBtn}>×</button>
       </div>
 
       <input
         type="text"
-        placeholder="Search templates..."
+        placeholder={lang === 'en' ? 'Search templates...' : '템플릿 검색...'}
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
         style={styles.searchInput}
@@ -57,8 +62,12 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
         {filteredTemplates.length === 0 ? (
           <div style={styles.emptyMessage}>
             {templates.length === 0
-              ? 'No templates saved yet. Save a subflow as template to see it here.'
-              : 'No templates match your search.'}
+              ? (lang === 'en'
+                  ? 'No templates saved yet. Save a subflow as template to see it here.'
+                  : '저장된 템플릿이 없습니다. 서브플로우를 템플릿으로 저장하면 여기에 표시됩니다.')
+              : (lang === 'en'
+                  ? 'No templates match your search.'
+                  : '검색과 일치하는 템플릿이 없습니다.')}
           </div>
         ) : (
           filteredTemplates.map(template => (
@@ -72,7 +81,7 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
                 <button
                   onClick={e => handleDelete(template.id, e)}
                   style={styles.deleteBtn}
-                  title="Delete template"
+                  title={t.deleteTemplate}
                 >
                   ×
                 </button>
@@ -81,11 +90,11 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
                 <div style={styles.templateDesc}>{template.description}</div>
               )}
               <div style={styles.templateMeta}>
-                <span>{template.nodes.length} nodes</span>
+                <span>{template.nodes.length} {lang === 'en' ? 'nodes' : '노드'}</span>
                 <span>•</span>
-                <span>{template.inputMappings.length} in</span>
+                <span>{template.inputMappings.length} {lang === 'en' ? 'in' : '입력'}</span>
                 <span>•</span>
-                <span>{template.outputMappings.length} out</span>
+                <span>{template.outputMappings.length} {lang === 'en' ? 'out' : '출력'}</span>
               </div>
             </div>
           ))
@@ -93,7 +102,9 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
       </div>
 
       <div style={styles.footer}>
-        <span style={styles.hint}>Click to insert • Esc to close</span>
+        <span style={styles.hint}>
+          {lang === 'en' ? 'Click to insert • Esc to close' : '클릭하여 삽입 • Esc로 닫기'}
+        </span>
       </div>
     </div>
   );

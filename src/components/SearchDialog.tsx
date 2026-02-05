@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FlowNode } from '@flowforge/types';
+import { useLanguage } from '../i18n';
 
 interface SearchDialogProps {
   nodes: FlowNode[];
@@ -12,6 +13,7 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const lang = useLanguage();
 
   const filteredNodes = search
     ? nodes.filter(node => {
@@ -64,7 +66,7 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search nodes by name or type..."
+            placeholder={lang === 'en' ? 'Search nodes by name or type...' : '이름 또는 타입으로 노드 검색...'}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={styles.input}
@@ -95,14 +97,16 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
             })
           ) : (
             <div style={styles.empty}>
-              {search ? 'No nodes found' : 'No nodes in graph'}
+              {search
+                ? (lang === 'en' ? 'No nodes found' : '노드를 찾을 수 없습니다')
+                : (lang === 'en' ? 'No nodes in graph' : '그래프에 노드가 없습니다')}
             </div>
           )}
         </div>
         <div style={styles.footer}>
-          <span style={styles.hint}>↑↓ Navigate</span>
-          <span style={styles.hint}>Enter Select</span>
-          <span style={styles.hint}>Esc Close</span>
+          <span style={styles.hint}>↑↓ {lang === 'en' ? 'Navigate' : '이동'}</span>
+          <span style={styles.hint}>Enter {lang === 'en' ? 'Select' : '선택'}</span>
+          <span style={styles.hint}>Esc {lang === 'en' ? 'Close' : '닫기'}</span>
         </div>
       </div>
     </div>

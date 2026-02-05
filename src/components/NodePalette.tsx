@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { nodeTypeRegistry, type NodeTypeDefinition } from '@flowforge/state';
+import { useLanguage } from '../i18n';
+import { uiTranslations } from '../i18n/translations';
 
 interface NodePaletteProps {
   x: number;
@@ -13,6 +15,8 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
 
   const allTypes = nodeTypeRegistry.getAll();
   const filteredTypes = search
@@ -92,7 +96,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search nodes..."
+          placeholder={t.searchNodes}
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{

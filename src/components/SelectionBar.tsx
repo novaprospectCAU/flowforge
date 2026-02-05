@@ -1,3 +1,6 @@
+import { useLanguage } from '../i18n';
+import { uiTranslations } from '../i18n/translations';
+
 interface SelectionBarProps {
   selectedCount: number;
   onDelete: () => void;
@@ -23,27 +26,32 @@ export function SelectionBar({
   onDistributeV,
   onDeselect,
 }: SelectionBarProps) {
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
+
   if (selectedCount < 2) return null;
 
   return (
     <div style={styles.container}>
       <div style={styles.info}>
         <span style={styles.count}>{selectedCount}</span>
-        <span style={styles.label}>nodes selected</span>
+        <span style={styles.label}>
+          {lang === 'en' ? 'nodes selected' : '개 노드 선택됨'}
+        </span>
       </div>
 
       <div style={styles.divider} />
 
       {/* 정렬 버튼 */}
       <div style={styles.group}>
-        <span style={styles.groupLabel}>Align</span>
-        <button onClick={onAlignLeft} style={styles.button} title="Align Left (Alt+←)">
+        <span style={styles.groupLabel}>{lang === 'en' ? 'Align' : '정렬'}</span>
+        <button onClick={onAlignLeft} style={styles.button} title={`${t.alignLeft} (Alt+←)`}>
           ⫷
         </button>
-        <button onClick={onAlignCenter} style={styles.button} title="Align Center">
+        <button onClick={onAlignCenter} style={styles.button} title={t.alignCenter}>
           ⫿
         </button>
-        <button onClick={onAlignRight} style={styles.button} title="Align Right (Alt+→)">
+        <button onClick={onAlignRight} style={styles.button} title={`${t.alignRight} (Alt+→)`}>
           ⫸
         </button>
       </div>
@@ -52,11 +60,11 @@ export function SelectionBar({
         <>
           <div style={styles.divider} />
           <div style={styles.group}>
-            <span style={styles.groupLabel}>Distribute</span>
-            <button onClick={onDistributeH} style={styles.button} title="Distribute Horizontal (Ctrl+Shift+H)">
+            <span style={styles.groupLabel}>{lang === 'en' ? 'Distribute' : '분배'}</span>
+            <button onClick={onDistributeH} style={styles.button} title={`${t.distributeH} (Ctrl+Shift+H)`}>
               ⋯
             </button>
-            <button onClick={onDistributeV} style={styles.button} title="Distribute Vertical (Ctrl+Shift+V)">
+            <button onClick={onDistributeV} style={styles.button} title={`${t.distributeV} (Ctrl+Shift+V)`}>
               ⋮
             </button>
           </div>
@@ -67,20 +75,20 @@ export function SelectionBar({
 
       {/* 액션 버튼 */}
       <div style={styles.group}>
-        <button onClick={onGroup} style={styles.actionButton} title="Group (Ctrl+G)">
-          Group
+        <button onClick={onGroup} style={styles.actionButton} title={`${t.group} (Ctrl+G)`}>
+          {t.group}
         </button>
-        <button onClick={onDuplicate} style={styles.actionButton} title="Duplicate (Ctrl+D)">
-          Duplicate
+        <button onClick={onDuplicate} style={styles.actionButton} title={`${t.duplicate} (Ctrl+D)`}>
+          {t.duplicate}
         </button>
-        <button onClick={onDelete} style={{ ...styles.actionButton, ...styles.deleteButton }} title="Delete (Del)">
-          Delete
+        <button onClick={onDelete} style={{ ...styles.actionButton, ...styles.deleteButton }} title={`${t.delete} (Del)`}>
+          {t.delete}
         </button>
       </div>
 
       <div style={styles.spacer} />
 
-      <button onClick={onDeselect} style={styles.closeButton} title="Deselect (Esc)">
+      <button onClick={onDeselect} style={styles.closeButton} title={lang === 'en' ? 'Deselect (Esc)' : '선택 해제 (Esc)'}>
         ×
       </button>
     </div>
