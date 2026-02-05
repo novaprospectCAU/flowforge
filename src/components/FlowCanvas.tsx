@@ -47,6 +47,7 @@ import { PropertyPanel } from './PropertyPanel';
 import { ZoomControls } from './ZoomControls';
 import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
+import { SelectionBar } from './SelectionBar';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group';
 
@@ -1917,6 +1918,74 @@ export function FlowCanvas() {
           />
         );
       })()}
+      {/* 선택 정보 바 - 다중 선택 시 */}
+      <SelectionBar
+        selectedCount={selectedNodeIdsRef.current.size}
+        onDelete={() => {
+          const store = storeRef.current;
+          if (!store) return;
+          const state = store.getState();
+          for (const nodeId of selectedNodeIdsRef.current) {
+            state.deleteNode(nodeId);
+          }
+          setSelectedNodes(new Set());
+        }}
+        onGroup={() => {
+          const store = storeRef.current;
+          if (!store) return;
+          const state = store.getState();
+          state.createGroup('New Group', Array.from(selectedNodeIdsRef.current));
+          forceRender(n => n + 1);
+        }}
+        onDuplicate={() => {
+          const store = storeRef.current;
+          if (!store) return;
+          const state = store.getState();
+          const selectedIds = selectedNodeIdsRef.current;
+          const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
+          const selectedNodeIdSet = new Set(selectedNodes.map(n => n.id));
+          const selectedEdges = state.edges.filter(
+            e => selectedNodeIdSet.has(e.source) && selectedNodeIdSet.has(e.target)
+          );
+
+          const offset = 30;
+          const idMap = new Map<string, string>();
+          const newNodeIds: string[] = [];
+
+          for (const node of selectedNodes) {
+            const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            idMap.set(node.id, newId);
+            state.addNode({
+              ...node,
+              id: newId,
+              position: { x: node.position.x + offset, y: node.position.y + offset },
+            });
+            newNodeIds.push(newId);
+          }
+
+          for (const edge of selectedEdges) {
+            const newSourceId = idMap.get(edge.source);
+            const newTargetId = idMap.get(edge.target);
+            if (newSourceId && newTargetId) {
+              state.addEdge({
+                id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                source: newSourceId,
+                sourcePort: edge.sourcePort,
+                target: newTargetId,
+                targetPort: edge.targetPort,
+              });
+            }
+          }
+
+          setSelectedNodes(new Set(newNodeIds));
+        }}
+        onAlignLeft={() => alignNodes('left')}
+        onAlignCenter={() => alignNodes('center')}
+        onAlignRight={() => alignNodes('right')}
+        onDistributeH={() => distributeNodes('horizontal')}
+        onDistributeV={() => distributeNodes('vertical')}
+        onDeselect={() => setSelectedNodes(new Set())}
+      />
       {/* 줌 컨트롤 */}
       <ZoomControls
         zoom={currentZoom}
