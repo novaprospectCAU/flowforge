@@ -42,14 +42,17 @@ import {
   loadFromLocalStorage,
   validateNodes,
   getVisibleNodes,
+  instantiateTemplate,
   type FlowStore,
   type NodeTypeDefinition,
   type ExecutionState,
 } from '@flowforge/state';
-import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType, Comment, Subflow } from '@flowforge/types';
+import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType, Comment, Subflow, NodeGroup, SubflowTemplate } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
+import { SubflowPanel } from './SubflowPanel';
+import { TemplateBrowser } from './TemplateBrowser';
 import { ZoomControls } from './ZoomControls';
 import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
@@ -158,6 +161,7 @@ export function FlowCanvas() {
   const clipboardRef = useRef<{
     nodes: FlowNode[];
     edges: FlowEdge[];
+    groups: NodeGroup[];
   } | null>(null);
   // 연결 프리뷰 - 호환 가능한 포트
   const compatiblePortsMapRef = useRef<Map<string, CompatiblePorts> | null>(null);
@@ -169,6 +173,11 @@ export function FlowCanvas() {
     targetNode: FlowNode | null;
   } | null>(null);
   const [nodePalette, setNodePalette] = useState<{
+    x: number;
+    y: number;
+    worldPos: Position;
+  } | null>(null);
+  const [templateBrowser, setTemplateBrowser] = useState<{
     x: number;
     y: number;
     worldPos: Position;
@@ -526,8 +535,8 @@ export function FlowCanvas() {
       drawSelectionBox(renderer, boxSelect.start, boxSelect.end);
     }
 
-    // 미니맵 (스크린 좌표로 그림, 선택된 노드 하이라이트)
-    drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr, selectedIds);
+    // 미니맵 (스크린 좌표로 그림, 선택된 노드 하이라이트, 서브플로우 표시)
+    drawMinimap(renderer, state.nodes, state.viewport, canvasSize, dpr, selectedIds, state.subflows);
 
     renderer.endFrame();
 
@@ -1339,6 +1348,28 @@ export function FlowCanvas() {
         return;
       }
 
+      // T: 템플릿 브라우저 열기
+      if (e.key === 't' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const state = store.getState();
+        const worldPos = screenToWorld(
+          { x: rect.width / 2, y: rect.height / 2 },
+          state.viewport,
+          { width: rect.width, height: rect.height }
+        );
+
+        setTemplateBrowser({
+          x: rect.left + rect.width / 2 - 150,
+          y: rect.top + rect.height / 2 - 200,
+          worldPos,
+        });
+        return;
+      }
+
       // Copy: Ctrl+C / Cmd+C
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         e.preventDefault();
@@ -1354,9 +1385,15 @@ export function FlowCanvas() {
           e => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
         );
 
+        // 모든 노드가 선택된 그룹만 복사
+        const selectedGroups = state.groups.filter(
+          g => g.nodeIds.length > 0 && g.nodeIds.every(id => selectedNodeIds.has(id))
+        );
+
         clipboardRef.current = {
           nodes: selectedNodes,
           edges: selectedEdges,
+          groups: selectedGroups,
         };
         return;
       }
@@ -1370,10 +1407,26 @@ export function FlowCanvas() {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const { nodes: copiedNodes, edges: copiedEdges } = clipboardRef.current;
+        const { nodes: copiedNodes, edges: copiedEdges, groups: copiedGroups } = clipboardRef.current;
 
-        // 붙여넣기 오프셋 (20px씩 이동)
-        const offset = 30;
+        // 복사된 노드들의 바운딩 박스 중앙 계산
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const node of copiedNodes) {
+          minX = Math.min(minX, node.position.x);
+          minY = Math.min(minY, node.position.y);
+          maxX = Math.max(maxX, node.position.x + node.size.width);
+          maxY = Math.max(maxY, node.position.y + node.size.height);
+        }
+        const copiedCenterX = (minX + maxX) / 2;
+        const copiedCenterY = (minY + maxY) / 2;
+
+        // 뷰포트 중앙 (월드 좌표) - 이것이 붙여넣기 위치
+        const viewportCenterX = state.viewport.x;
+        const viewportCenterY = state.viewport.y;
+
+        // 오프셋 계산: 뷰포트 중앙으로 이동
+        const offsetX = viewportCenterX - copiedCenterX;
+        const offsetY = viewportCenterY - copiedCenterY;
 
         // ID 매핑 (원본 ID -> 새 ID)
         const idMap = new Map<string, string>();
@@ -1388,8 +1441,8 @@ export function FlowCanvas() {
             ...node,
             id: newId,
             position: {
-              x: node.position.x + offset,
-              y: node.position.y + offset,
+              x: node.position.x + offsetX,
+              y: node.position.y + offsetY,
             },
           };
           newNodes.push(newNode);
@@ -1417,6 +1470,22 @@ export function FlowCanvas() {
           }
         }
 
+        // 그룹 추가 (ID 매핑 적용)
+        const newGroups: NodeGroup[] = [];
+        for (const group of copiedGroups) {
+          const newNodeIdsForGroup = group.nodeIds
+            .map(id => idMap.get(id))
+            .filter((id): id is string => id !== undefined);
+          if (newNodeIdsForGroup.length > 0) {
+            state.createGroup(group.name, newNodeIdsForGroup, group.color);
+            newGroups.push({
+              ...group,
+              id: `group-${Date.now()}`,
+              nodeIds: newNodeIdsForGroup,
+            });
+          }
+        }
+
         // 새로 붙여넣은 노드들 선택
         setSelectedNodes(new Set(newNodeIds));
 
@@ -1427,6 +1496,10 @@ export function FlowCanvas() {
             ...e,
             source: idMap.get(e.source) || e.source,
             target: idMap.get(e.target) || e.target,
+          })),
+          groups: copiedGroups.map(g => ({
+            ...g,
+            nodeIds: g.nodeIds.map(id => idMap.get(id) || id),
           })),
         };
         return;
@@ -1519,6 +1592,7 @@ export function FlowCanvas() {
         setSelectedNodes(new Set());
         setContextMenu(null);
         setNodePalette(null);
+        setTemplateBrowser(null);
         return;
       }
 
@@ -2346,6 +2420,38 @@ export function FlowCanvas() {
           onClose={() => setNodePalette(null)}
         />
       )}
+      {/* 템플릿 브라우저 */}
+      {templateBrowser && (
+        <TemplateBrowser
+          position={{ x: templateBrowser.x, y: templateBrowser.y }}
+          onInsert={(template: SubflowTemplate) => {
+            const store = storeRef.current;
+            if (!store) return;
+
+            const state = store.getState();
+            const { nodes, edges, subflow } = instantiateTemplate(template, templateBrowser.worldPos);
+
+            // 노드 추가
+            for (const node of nodes) {
+              state.addNode(node);
+            }
+            // 엣지 추가
+            for (const edge of edges) {
+              state.addEdge(edge);
+            }
+            // 서브플로우 생성
+            const subflowId = `subflow-${Date.now()}`;
+            state.yjsDoc.subflows.set(subflowId, {
+              ...subflow,
+              id: subflowId,
+            } as Subflow);
+
+            setTemplateBrowser(null);
+            forceRender(n => n + 1);
+          }}
+          onClose={() => setTemplateBrowser(null)}
+        />
+      )}
       {/* 프로퍼티 패널 - 단일 노드 선택 시 */}
       {(() => {
         const selectedIds = selectedNodeIdsRef.current;
@@ -2358,6 +2464,35 @@ export function FlowCanvas() {
             node={node}
             onUpdate={(id, data) => {
               storeRef.current?.getState().updateNode(id, { data });
+            }}
+          />
+        );
+      })()}
+      {/* 서브플로우 패널 - 서브플로우 선택 시 */}
+      {(() => {
+        const sfId = selectedSubflowIdRef.current;
+        if (!sfId || !storeRef.current) return null;
+        const subflow = storeRef.current.getState().subflows.find(s => s.id === sfId);
+        if (!subflow) return null;
+        const state = storeRef.current.getState();
+        return (
+          <SubflowPanel
+            subflow={subflow}
+            nodes={state.nodes}
+            edges={state.edges}
+            onUpdate={(id, partial) => state.updateSubflow(id, partial)}
+            onDelete={(id) => {
+              state.deleteSubflow(id);
+              selectedSubflowIdRef.current = null;
+              forceRender(n => n + 1);
+            }}
+            onCollapse={(id) => {
+              state.collapseSubflow(id);
+              forceRender(n => n + 1);
+            }}
+            onExpand={(id) => {
+              state.expandSubflow(id);
+              forceRender(n => n + 1);
             }}
           />
         );

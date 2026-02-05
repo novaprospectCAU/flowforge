@@ -106,6 +106,20 @@ export interface Subflow {
   color?: string;
 }
 
+// 서브플로우 템플릿 (재사용 가능한 서브플로우)
+export interface SubflowTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  nodes: FlowNode[];           // 템플릿에 포함된 노드들 (상대 좌표)
+  edges: FlowEdge[];           // 내부 엣지들
+  inputMappings: SubflowPortMapping[];
+  outputMappings: SubflowPortMapping[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 // === 그래프 ===
 export interface FlowGraph {
   id: string;

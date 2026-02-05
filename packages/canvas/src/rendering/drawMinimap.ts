@@ -1,5 +1,5 @@
 import type { IRenderer } from '../renderer/types';
-import type { FlowNode, Viewport, CanvasSize, Color, Position } from '@flowforge/types';
+import type { FlowNode, Viewport, CanvasSize, Color, Position, Subflow } from '@flowforge/types';
 
 export const MINIMAP = {
   width: 180,
@@ -13,6 +13,7 @@ const COLORS = {
   node: { r: 100, g: 100, b: 105, a: 255 } as Color,
   nodeSelected: { r: 66, g: 135, b: 245, a: 255 } as Color,  // 선택된 노드
   nodeHasOutput: { r: 80, g: 80, b: 85, a: 255 } as Color,   // 연결 있는 노드
+  subflow: { r: 66, g: 165, b: 245, a: 255 } as Color,       // 접힌 서브플로우
   viewport: { r: 0, g: 122, b: 204, a: 255 } as Color,
 };
 
@@ -27,7 +28,8 @@ export function drawMinimap(
   viewport: Viewport,
   canvasSize: CanvasSize,
   dpr: number,
-  selectedIds?: Set<string>
+  selectedIds?: Set<string>,
+  subflows?: Subflow[]
 ): void {
   // transform 리셋
   renderer.resetTransform(dpr);
@@ -120,6 +122,23 @@ export function drawMinimap(
       nodeW, nodeH,
       COLORS.nodeSelected
     );
+  }
+
+  // 접힌 서브플로우 렌더링
+  if (subflows) {
+    for (const subflow of subflows) {
+      if (subflow.collapsed && subflow.collapsedPosition && subflow.collapsedSize) {
+        const pos = toMinimap(subflow.collapsedPosition.x, subflow.collapsedPosition.y);
+        const sfW = Math.max(3, subflow.collapsedSize.width * scale);
+        const sfH = Math.max(3, subflow.collapsedSize.height * scale);
+
+        renderer.drawRect(
+          pos.x, pos.y,
+          sfW, sfH,
+          COLORS.subflow
+        );
+      }
+    }
   }
 
   // 뷰포트 영역

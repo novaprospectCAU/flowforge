@@ -62,3 +62,13 @@ export {
   type ResolvedEdge,
   type ResolvedEdgeEndpoint,
 } from './subflowUtils';
+
+// 서브플로우 템플릿
+export {
+  loadTemplates,
+  saveTemplates,
+  saveAsTemplate,
+  instantiateTemplate,
+  deleteTemplate,
+  updateTemplate,
+} from './subflowTemplates';
