@@ -13,6 +13,7 @@ export { drawGrid } from './rendering/drawGrid';
 export { drawMinimap, isInMinimap, minimapToWorld, MINIMAP } from './rendering/drawMinimap';
 export { drawSelectionBox, isNodeInSelectionBox } from './rendering/drawSelectionBox';
 export { drawGroup, drawGroups, getGroupBounds, hitTestGroups, hitTestGroupHeader } from './rendering/drawGroup';
+export { calculateSnap, drawSnapLines, type SnapResult, type SnapLine } from './rendering/drawSnapLines';
 
 // Interaction
 export {

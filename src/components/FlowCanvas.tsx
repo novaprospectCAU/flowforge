@@ -8,6 +8,8 @@ import {
   drawMinimap,
   drawSelectionBox,
   drawGroups,
+  drawSnapLines,
+  calculateSnap,
   isNodeInSelectionBox,
   isInMinimap,
   minimapToWorld,
@@ -21,6 +23,7 @@ import {
   type PortHitResult,
   type EdgeStyle,
   type ResizeHandle,
+  type SnapLine,
 } from '@flowforge/canvas';
 import {
   createFlowStore,
@@ -119,6 +122,8 @@ export function FlowCanvas() {
     startSize: { width: number; height: number };
     startNodePos: Position;
   } | null>(null);
+  // 스냅 라인 (드래그 중에만 사용)
+  const snapLinesRef = useRef<SnapLine[]>([]);
   const clipboardRef = useRef<{
     nodes: FlowNode[];
     edges: FlowEdge[];
@@ -436,6 +441,11 @@ export function FlowCanvas() {
     }
     drawNodes(renderer, state.nodes, selectedIds, nodeExecStates);
 
+    // 스냅 라인 (노드 드래그 중에만)
+    if (dragModeRef.current === 'node' && snapLinesRef.current.length > 0) {
+      drawSnapLines(renderer, snapLinesRef.current);
+    }
+
     // 박스 선택
     const boxSelect = boxSelectRef.current;
     if (boxSelect) {
@@ -663,18 +673,56 @@ export function FlowCanvas() {
     } else if (dragModeRef.current === 'node') {
       // 선택된 모든 노드 이동
       const dragPositions = nodeDragPositionsRef.current;
+      const draggedNodeIds = Array.from(dragPositions.keys());
+      const draggedNodes = state.nodes.filter(n => draggedNodeIds.includes(n.id));
+
+      // 첫 번째 노드 기준으로 새 위치 계산
+      const firstNodeId = draggedNodeIds[0];
+      const firstFloatPos = dragPositions.get(firstNodeId)!;
+      let newFirstPos = {
+        x: firstFloatPos.x + dx / state.viewport.zoom,
+        y: firstFloatPos.y + dy / state.viewport.zoom,
+      };
+
+      // 스냅 라인 계산 (그리드 스냅이 OFF일 때만)
+      if (!snapToGridRef.current) {
+        const snapResult = calculateSnap(draggedNodes, state.nodes, newFirstPos);
+        snapLinesRef.current = snapResult.lines;
+
+        // 스냅 적용
+        if (snapResult.x !== null) {
+          newFirstPos.x = snapResult.x;
+        }
+        if (snapResult.y !== null) {
+          newFirstPos.y = snapResult.y;
+        }
+      } else {
+        snapLinesRef.current = [];
+      }
+
+      // 모든 노드 위치 업데이트
+      const offsetX = newFirstPos.x - firstFloatPos.x;
+      const offsetY = newFirstPos.y - firstFloatPos.y;
+
       for (const [nodeId, floatPos] of dragPositions) {
-        // 실제 위치 업데이트 (스냅 없이)
         const newFloatPos = {
           x: floatPos.x + dx / state.viewport.zoom,
           y: floatPos.y + dy / state.viewport.zoom,
         };
         dragPositions.set(nodeId, newFloatPos);
 
-        // 화면에는 스냅된 위치 표시 (스냅 ON일 때만)
-        state.updateNode(nodeId, {
-          position: snapToGridRef.current ? snapPosition(newFloatPos) : newFloatPos,
-        });
+        // 화면 위치 계산
+        let displayPos = {
+          x: newFloatPos.x + (offsetX - dx / state.viewport.zoom),
+          y: newFloatPos.y + (offsetY - dy / state.viewport.zoom),
+        };
+
+        // 그리드 스냅 적용
+        if (snapToGridRef.current) {
+          displayPos = snapPosition(displayPos);
+        }
+
+        state.updateNode(nodeId, { position: displayPos });
       }
     } else if (dragModeRef.current === 'edge' && edgeDragRef.current) {
       // 엣지 드래그 중 - 현재 마우스 위치 업데이트
@@ -830,9 +878,10 @@ export function FlowCanvas() {
       boxSelectRef.current = null;
     }
 
-    // 노드 드래그 종료 시 위치 맵 정리
+    // 노드 드래그 종료 시 위치 맵 및 스냅 라인 정리
     if (dragModeRef.current === 'node') {
       nodeDragPositionsRef.current.clear();
+      snapLinesRef.current = [];
     }
 
     // 리사이즈 종료 시 정리
