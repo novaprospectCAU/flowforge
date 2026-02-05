@@ -124,13 +124,15 @@ export class WebGL2Renderer implements IRenderer {
     this.ctx.stroke();
   }
 
-  drawText(text: string, x: number, y: number, color: Color, fontSize: number = 14): void {
+  drawText(text: string, x: number, y: number, color: Color, fontSize: number = 14, align: 'left' | 'right' | 'center' = 'left'): void {
     if (!this.ctx) return;
 
     this.ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
     this.ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
     this.ctx.textBaseline = 'top';
+    this.ctx.textAlign = align;
     this.ctx.fillText(text, Math.round(x), Math.round(y));
+    this.ctx.textAlign = 'left'; // 기본값 복원
   }
 
   getCapabilities(): RendererCapabilities {

@@ -8,6 +8,7 @@ const NODE_COLORS = {
   border: { r: 100, g: 100, b: 105, a: 255 } as Color,
   selected: { r: 66, g: 135, b: 245, a: 255 } as Color,
   text: { r: 255, g: 255, b: 255, a: 255 } as Color,
+  portLabel: { r: 180, g: 180, b: 185, a: 255 } as Color,  // 포트 라벨 (회색)
   port: { r: 160, g: 160, b: 165, a: 255 } as Color,
   portHover: { r: 100, g: 180, b: 255, a: 255 } as Color,
   portCompatible: { r: 72, g: 199, b: 142, a: 255 } as Color,  // 연결 가능 (초록)
@@ -32,6 +33,8 @@ export const NODE_STYLE = {
   fontSize: 13,
   portRadius: 6,
   portSpacing: 24,
+  portLabelFontSize: 10,
+  portLabelOffset: 12, // 포트에서 라벨까지의 거리
 };
 
 /**
@@ -134,6 +137,15 @@ export function drawNode(
     }
 
     renderer.drawCircle(x, portY, NODE_STYLE.portRadius, portColor);
+
+    // 포트 라벨 (포트 오른쪽에 표시)
+    renderer.drawText(
+      port.name,
+      x + NODE_STYLE.portLabelOffset,
+      portY - NODE_STYLE.portLabelFontSize / 2,
+      NODE_COLORS.portLabel,
+      NODE_STYLE.portLabelFontSize
+    );
   }
 
   // 6. 출력 포트 (오른쪽)
@@ -164,6 +176,16 @@ export function drawNode(
     }
 
     renderer.drawCircle(x + width, portY, NODE_STYLE.portRadius, portColor);
+
+    // 포트 라벨 (포트 왼쪽에 표시, 오른쪽 정렬)
+    renderer.drawText(
+      port.name,
+      x + width - NODE_STYLE.portLabelOffset,
+      portY - NODE_STYLE.portLabelFontSize / 2,
+      NODE_COLORS.portLabel,
+      NODE_STYLE.portLabelFontSize,
+      'right'
+    );
   }
 }
 

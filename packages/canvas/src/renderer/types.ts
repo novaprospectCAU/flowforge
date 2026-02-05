@@ -25,7 +25,7 @@ export interface IRenderer {
   drawBezier(points: BezierPoints, color: Color, lineWidth: number): void;
 
   // 텍스트
-  drawText(text: string, x: number, y: number, color: Color, fontSize?: number): void;
+  drawText(text: string, x: number, y: number, color: Color, fontSize?: number, align?: 'left' | 'right' | 'center'): void;
   
   // 상태
   getCapabilities(): RendererCapabilities;
