@@ -46,6 +46,10 @@ export interface FlowState {
   // Yjs 동기화
   syncFromYjs: () => void;
 
+  // 플로우 관리
+  clearFlow: () => void;
+  loadFlow: (nodes: FlowNode[], edges: FlowEdge[], groups: NodeGroup[], viewport: Viewport) => void;
+
   // Undo/Redo
   undo: () => void;
   redo: () => void;
@@ -224,6 +228,41 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       },
 
       syncFromYjs,
+
+      // 플로우 초기화 (모든 노드, 엣지, 그룹 삭제)
+      clearFlow: () => {
+        const { yjsDoc } = get();
+        yjsDoc.doc.transact(() => {
+          yjsDoc.nodes.clear();
+          yjsDoc.edges.clear();
+          yjsDoc.groups.clear();
+        });
+      },
+
+      // 플로우 불러오기
+      loadFlow: (nodes, edges, groups, viewport) => {
+        const { yjsDoc } = get();
+        yjsDoc.doc.transact(() => {
+          // 기존 데이터 삭제
+          yjsDoc.nodes.clear();
+          yjsDoc.edges.clear();
+          yjsDoc.groups.clear();
+
+          // 새 데이터 추가
+          for (const node of nodes) {
+            yjsDoc.nodes.set(node.id, node);
+          }
+          for (const edge of edges) {
+            yjsDoc.edges.set(edge.id, edge);
+          }
+          for (const group of groups) {
+            yjsDoc.groups.set(group.id, group);
+          }
+
+          // 뷰포트 설정
+          setViewportToYjs(yjsDoc.viewport, viewport);
+        });
+      },
 
       undo: () => {
         undoManager.undo();

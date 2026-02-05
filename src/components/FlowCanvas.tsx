@@ -26,6 +26,8 @@ import {
   createFlowStore,
   nodeTypeRegistry,
   executeFlow,
+  downloadFlow,
+  loadFlowFromFile,
   type FlowStore,
   type NodeTypeDefinition,
   type ExecutionState,
@@ -904,6 +906,40 @@ export function FlowCanvas() {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         store.getState().redo();
+        return;
+      }
+
+      // Save: Ctrl+S / Cmd+S
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const state = store.getState();
+        downloadFlow(state.nodes, state.edges, state.groups, state.viewport, 'flow.json');
+        return;
+      }
+
+      // Open: Ctrl+O / Cmd+O
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        loadFlowFromFile()
+          .then((flow) => {
+            const state = store.getState();
+            state.loadFlow(flow.nodes, flow.edges, flow.groups, flow.viewport);
+            setSelectedNodes(new Set());
+            forceRender(n => n + 1);
+          })
+          .catch((err) => {
+            console.error('Failed to load flow:', err);
+          });
+        return;
+      }
+
+      // New: Ctrl+N / Cmd+N (새 플로우)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        const state = store.getState();
+        state.clearFlow();
+        setSelectedNodes(new Set());
+        forceRender(n => n + 1);
         return;
       }
 

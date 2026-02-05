@@ -31,3 +31,12 @@ export {
   type ExecutionEventHandler,
   type ExecutionOptions,
 } from './execution';
+
+// 직렬화
+export {
+  serializeFlow,
+  deserializeFlow,
+  downloadFlow,
+  loadFlowFromFile,
+  type SerializedFlow,
+} from './serialization';
