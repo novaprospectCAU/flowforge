@@ -422,6 +422,99 @@ export function FlowCanvas() {
     }
   };
 
+  // 자동 배치 - 노드들을 겹치지 않게 그리드 형태로 배치
+  const autoArrangeNodes = () => {
+    const store = storeRef.current;
+    if (!store) return;
+
+    const selectedIds = selectedNodeIdsRef.current;
+    if (selectedIds.size < 2) return;
+
+    const state = store.getState();
+    const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
+
+    // 선택된 노드들의 중심점 계산
+    const centerX = selectedNodes.reduce((sum, n) => sum + n.position.x + n.size.width / 2, 0) / selectedNodes.length;
+    const centerY = selectedNodes.reduce((sum, n) => sum + n.position.y + n.size.height / 2, 0) / selectedNodes.length;
+
+    // 노드 간 간격
+    const GAP = 20;
+
+    // 그리드 열 수 계산 (대략 정사각형 형태가 되도록)
+    const cols = Math.ceil(Math.sqrt(selectedNodes.length));
+
+    // 노드들을 원래 위치 기준으로 정렬 (왼쪽 위부터)
+    const sorted = [...selectedNodes].sort((a, b) => {
+      const rowA = Math.floor(a.position.y / 100);
+      const rowB = Math.floor(b.position.y / 100);
+      if (rowA !== rowB) return rowA - rowB;
+      return a.position.x - b.position.x;
+    });
+
+    // 최대 너비/높이 계산 (각 열/행별)
+    const colWidths: number[] = [];
+    const rowHeights: number[] = [];
+    sorted.forEach((node, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      colWidths[col] = Math.max(colWidths[col] || 0, node.size.width);
+      rowHeights[row] = Math.max(rowHeights[row] || 0, node.size.height);
+    });
+
+    // 전체 그리드 크기 계산
+    const totalWidth = colWidths.reduce((sum, w) => sum + w + GAP, -GAP);
+    const totalHeight = rowHeights.reduce((sum, h) => sum + h + GAP, -GAP);
+
+    // 시작 위치 (중심점 기준)
+    const startX = centerX - totalWidth / 2;
+    const startY = centerY - totalHeight / 2;
+
+    // 각 노드 배치
+    sorted.forEach((node, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+
+      // 해당 열/행까지의 오프셋 계산
+      let x = startX;
+      for (let c = 0; c < col; c++) {
+        x += colWidths[c] + GAP;
+      }
+      // 열 내에서 중앙 정렬
+      x += (colWidths[col] - node.size.width) / 2;
+
+      let y = startY;
+      for (let r = 0; r < row; r++) {
+        y += rowHeights[r] + GAP;
+      }
+      // 행 내에서 중앙 정렬
+      y += (rowHeights[row] - node.size.height) / 2;
+
+      state.updateNode(node.id, { position: { x, y } });
+    });
+  };
+
+  // 선택된 노드들의 그룹 해제
+  const ungroupSelectedNodes = () => {
+    const store = storeRef.current;
+    if (!store) return;
+
+    const state = store.getState();
+    const groupsToDelete = new Set<string>();
+
+    for (const nodeId of selectedNodeIdsRef.current) {
+      const group = state.getGroupForNode(nodeId);
+      if (group) {
+        groupsToDelete.add(group.id);
+      }
+    }
+
+    for (const groupId of groupsToDelete) {
+      state.deleteGroup(groupId);
+    }
+
+    forceRender(n => n + 1);
+  };
+
   // 렌더 루프
   const render = useCallback(() => {
     const renderer = rendererRef.current;
@@ -3053,6 +3146,15 @@ export function FlowCanvas() {
       {/* 선택 정보 바 - 다중 선택 시 (데스크톱만) */}
       {!isMobile && <SelectionBar
         selectedCount={selectedNodeIdsRef.current.size}
+        hasGroup={(() => {
+          const store = storeRef.current;
+          if (!store) return false;
+          const state = store.getState();
+          for (const nodeId of selectedNodeIdsRef.current) {
+            if (state.getGroupForNode(nodeId)) return true;
+          }
+          return false;
+        })()}
         onDelete={() => {
           const store = storeRef.current;
           if (!store) return;
@@ -3069,6 +3171,8 @@ export function FlowCanvas() {
           state.createGroup('New Group', Array.from(selectedNodeIdsRef.current));
           forceRender(n => n + 1);
         }}
+        onUngroup={ungroupSelectedNodes}
+        onAutoArrange={autoArrangeNodes}
         onDuplicate={() => {
           const store = storeRef.current;
           if (!store) return;

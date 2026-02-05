@@ -3,27 +3,33 @@ import { uiTranslations } from '../i18n/translations';
 
 interface SelectionBarProps {
   selectedCount: number;
+  hasGroup: boolean; // 선택된 노드 중 그룹에 속한 노드가 있는지
   onDelete: () => void;
   onGroup: () => void;
+  onUngroup: () => void;
   onDuplicate: () => void;
   onAlignLeft: () => void;
   onAlignCenter: () => void;
   onAlignRight: () => void;
   onDistributeH: () => void;
   onDistributeV: () => void;
+  onAutoArrange: () => void;
   onDeselect: () => void;
 }
 
 export function SelectionBar({
   selectedCount,
+  hasGroup,
   onDelete,
   onGroup,
+  onUngroup,
   onDuplicate,
   onAlignLeft,
   onAlignCenter,
   onAlignRight,
   onDistributeH,
   onDistributeV,
+  onAutoArrange,
   onDeselect,
 }: SelectionBarProps) {
   const lang = useLanguage();
@@ -73,11 +79,26 @@ export function SelectionBar({
 
       <div style={styles.divider} />
 
+      {/* 자동 배치 */}
+      <div style={styles.group}>
+        <button onClick={onAutoArrange} style={styles.actionButton} title={lang === 'en' ? 'Auto Arrange' : '자동 배치'}>
+          {lang === 'en' ? 'Arrange' : '배치'}
+        </button>
+      </div>
+
+      <div style={styles.divider} />
+
       {/* 액션 버튼 */}
       <div style={styles.group}>
-        <button onClick={onGroup} style={styles.actionButton} title={`${t.group} (Ctrl+G)`}>
-          {t.group}
-        </button>
+        {hasGroup ? (
+          <button onClick={onUngroup} style={styles.actionButton} title={lang === 'en' ? 'Ungroup (Ctrl+Shift+U)' : '그룹 해제 (Ctrl+Shift+U)'}>
+            {lang === 'en' ? 'Ungroup' : '그룹 해제'}
+          </button>
+        ) : (
+          <button onClick={onGroup} style={styles.actionButton} title={`${t.group} (Ctrl+G)`}>
+            {t.group}
+          </button>
+        )}
         <button onClick={onDuplicate} style={styles.actionButton} title={`${t.duplicate} (Ctrl+D)`}>
           {t.duplicate}
         </button>
