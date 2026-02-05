@@ -176,6 +176,7 @@ export function FlowCanvas() {
   const autoSaveTimerRef = useRef<number | null>(null);
   const canvasSizeRef = useRef<CanvasSize>({ width: 0, height: 0 });
   const [widgetInteracting, setWidgetInteracting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const lastSaveRef = useRef<string>(''); // 마지막 저장 상태 해시
   const GRID_SIZE = 20; // 스냅 그리드 크기
   const MIN_NODE_SIZE = { width: 100, height: 60 }; // 최소 노드 크기
@@ -715,6 +716,7 @@ export function FlowCanvas() {
       const groupNodeIds = new Set(hitGroup.nodeIds);
       setSelectedNodes(groupNodeIds);
       dragModeRef.current = 'node';
+      setIsDragging(true);
       lastMouseRef.current = { x: e.clientX, y: e.clientY };
 
       // 드래그 시작 시 선택된 노드들의 현재 위치 저장
@@ -735,6 +737,7 @@ export function FlowCanvas() {
     if (hitNode) {
       // 노드 드래그 모드
       dragModeRef.current = 'node';
+      setIsDragging(true);
 
       // 이미 선택된 노드면 선택 유지, 아니면 선택 변경
       const isAlreadySelected = selectedNodeIdsRef.current.has(hitNode.id);
@@ -1028,6 +1031,7 @@ export function FlowCanvas() {
     }
 
     dragModeRef.current = 'none';
+    setIsDragging(false);
     setCursorStyle('grab');
   }, []);
 
@@ -1905,7 +1909,7 @@ export function FlowCanvas() {
             storeRef.current?.getState().updateNode(nodeId, { data });
           }}
           onWidgetInteraction={setWidgetInteracting}
-          isDragging={dragModeRef.current !== 'none'}
+          isDragging={isDragging}
         />
       )}
       {contextMenu && (
