@@ -1444,13 +1444,76 @@ export function FlowCanvas() {
         }
       }
 
-      // Arrow Keys: 선택된 노드 이동 (그리드 또는 10px, Shift 누르면 1px)
+      // Arrow Keys: 선택된 노드 이동 또는 노드 탐색
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && !e.altKey) {
         const selectedIds = selectedNodeIdsRef.current;
-        if (selectedIds.size === 0) return;
-
-        e.preventDefault();
         const state = store.getState();
+
+        // 노드가 선택되지 않았으면 해당 방향의 가장 가까운 노드 선택
+        if (selectedIds.size === 0) {
+          e.preventDefault();
+          if (state.nodes.length === 0) return;
+
+          const viewCenter = { x: state.viewport.x, y: state.viewport.y };
+
+          // 방향 벡터
+          let dirX = 0, dirY = 0;
+          if (e.key === 'ArrowUp') dirY = -1;
+          if (e.key === 'ArrowDown') dirY = 1;
+          if (e.key === 'ArrowLeft') dirX = -1;
+          if (e.key === 'ArrowRight') dirX = 1;
+
+          // 해당 방향에 있는 노드 중 가장 가까운 노드 찾기
+          let bestNode: FlowNode | null = null;
+          let bestScore = Infinity;
+
+          for (const node of state.nodes) {
+            const nodeCenter = {
+              x: node.position.x + node.size.width / 2,
+              y: node.position.y + node.size.height / 2,
+            };
+            const dx = nodeCenter.x - viewCenter.x;
+            const dy = nodeCenter.y - viewCenter.y;
+
+            // 방향 체크 (내적이 양수면 해당 방향)
+            const dotProduct = dx * dirX + dy * dirY;
+            if (dotProduct <= 0) continue;
+
+            // 거리 계산
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < bestScore) {
+              bestScore = distance;
+              bestNode = node;
+            }
+          }
+
+          // 해당 방향에 노드가 없으면 가장 가까운 노드 선택
+          if (!bestNode) {
+            let minDist = Infinity;
+            for (const node of state.nodes) {
+              const nodeCenter = {
+                x: node.position.x + node.size.width / 2,
+                y: node.position.y + node.size.height / 2,
+              };
+              const dist = Math.sqrt(
+                Math.pow(nodeCenter.x - viewCenter.x, 2) +
+                Math.pow(nodeCenter.y - viewCenter.y, 2)
+              );
+              if (dist < minDist) {
+                minDist = dist;
+                bestNode = node;
+              }
+            }
+          }
+
+          if (bestNode) {
+            setSelectedNodes(new Set([bestNode.id]));
+          }
+          return;
+        }
+
+        // 노드가 선택되어 있으면 이동
+        e.preventDefault();
         const step = e.shiftKey ? 1 : (snapToGridRef.current ? GRID_SIZE : 10);
 
         let dx = 0, dy = 0;
@@ -1470,6 +1533,59 @@ export function FlowCanvas() {
             });
           }
         }
+        return;
+      }
+
+      // [ / ]: 이전/다음 노드 선택 (순환)
+      if (e.key === '[' || e.key === ']') {
+        e.preventDefault();
+        const state = store.getState();
+        if (state.nodes.length === 0) return;
+
+        const selectedIds = selectedNodeIdsRef.current;
+        const currentIndex = selectedIds.size === 1
+          ? state.nodes.findIndex(n => selectedIds.has(n.id))
+          : -1;
+
+        let nextIndex: number;
+        if (e.key === ']') {
+          // 다음 노드
+          nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % state.nodes.length;
+        } else {
+          // 이전 노드
+          nextIndex = currentIndex < 0
+            ? state.nodes.length - 1
+            : (currentIndex - 1 + state.nodes.length) % state.nodes.length;
+        }
+
+        const nextNode = state.nodes[nextIndex];
+        setSelectedNodes(new Set([nextNode.id]));
+
+        // 선택된 노드로 뷰포트 이동
+        const nodeCenter = {
+          x: nextNode.position.x + nextNode.size.width / 2,
+          y: nextNode.position.y + nextNode.size.height / 2,
+        };
+        state.setViewport({ ...state.viewport, x: nodeCenter.x, y: nodeCenter.y });
+        return;
+      }
+
+      // Enter: 선택된 노드로 뷰 이동 (단일 노드 선택 시)
+      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size !== 1) return;
+
+        e.preventDefault();
+        const state = store.getState();
+        const nodeId = Array.from(selectedIds)[0];
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        const nodeCenter = {
+          x: node.position.x + node.size.width / 2,
+          y: node.position.y + node.size.height / 2,
+        };
+        state.setViewport({ ...state.viewport, x: nodeCenter.x, y: nodeCenter.y });
         return;
       }
 
