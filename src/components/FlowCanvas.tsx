@@ -1516,9 +1516,13 @@ export function FlowCanvas() {
     // 핀치 종료
     if (pinchStartRef.current) {
       pinchStartRef.current = null;
-      if (e.touches.length === 0) {
-        dragModeRef.current = 'none';
+      // 손가락이 남아있으면 그 위치로 lastTouchRef 업데이트 (점프 방지)
+      if (e.touches.length === 1) {
+        const remainingTouch = e.touches[0];
+        lastTouchRef.current = { x: remainingTouch.clientX, y: remainingTouch.clientY };
       }
+      // 핀치 후에는 항상 드래그 모드 리셋 (남은 손가락으로 갑자기 팬되는 것 방지)
+      dragModeRef.current = 'none';
       return;
     }
 
