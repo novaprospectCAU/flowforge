@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import * as Y from 'yjs';
 import type { FlowNode, FlowEdge, Viewport } from '@flowforge/types';
 import type { FlowYjsDoc } from './yjsDoc';
 import {
@@ -34,10 +35,21 @@ export interface FlowState {
 
   // Yjs 동기화
   syncFromYjs: () => void;
+
+  // Undo/Redo
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
 }
 
 export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
   const yjsDoc = initialDoc ?? createFlowDoc();
+
+  // UndoManager 생성 (nodes, edges만 추적, viewport는 제외)
+  const undoManager = new Y.UndoManager([yjsDoc.nodes, yjsDoc.edges], {
+    trackedOrigins: new Set([null]),
+  });
 
   return create<FlowState>((set, get) => {
     // Yjs 변경 감지 및 동기화
@@ -127,6 +139,18 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       },
 
       syncFromYjs,
+
+      undo: () => {
+        undoManager.undo();
+      },
+
+      redo: () => {
+        undoManager.redo();
+      },
+
+      canUndo: () => undoManager.undoStack.length > 0,
+
+      canRedo: () => undoManager.redoStack.length > 0,
     };
   });
 };

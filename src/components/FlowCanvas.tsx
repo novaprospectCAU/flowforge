@@ -380,13 +380,28 @@ export function FlowCanvas() {
     return () => canvas.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // 키보드 이벤트 (Delete로 선택 삭제)
+  // 키보드 이벤트
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        const store = storeRef.current;
-        if (!store) return;
+      const store = storeRef.current;
+      if (!store) return;
 
+      // Undo: Ctrl+Z / Cmd+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        store.getState().undo();
+        return;
+      }
+
+      // Redo: Ctrl+Y / Cmd+Shift+Z
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        store.getState().redo();
+        return;
+      }
+
+      // Delete: 선택된 노드 삭제
+      if (e.key === 'Delete' || e.key === 'Backspace') {
         const selectedIds = selectedNodeIdsRef.current;
         if (selectedIds.size === 0) return;
 
