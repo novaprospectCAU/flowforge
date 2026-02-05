@@ -63,12 +63,22 @@ export interface FlowEdge {
   targetPort: string;
 }
 
+// === 노드 그룹 ===
+export interface NodeGroup {
+  id: string;
+  name: string;
+  nodeIds: string[];
+  color?: string; // 그룹 배경 색상
+  collapsed?: boolean; // 접힌 상태
+}
+
 // === 그래프 ===
 export interface FlowGraph {
   id: string;
   name: string;
   nodes: FlowNode[];
   edges: FlowEdge[];
+  groups?: NodeGroup[];
   viewport: Viewport;
 }
 

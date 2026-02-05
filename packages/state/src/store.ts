@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import * as Y from 'yjs';
-import type { FlowNode, FlowEdge, Viewport } from '@flowforge/types';
+import type { FlowNode, FlowEdge, Viewport, NodeGroup } from '@flowforge/types';
 import type { FlowYjsDoc } from './yjsDoc';
 import {
   createFlowDoc,
@@ -8,6 +8,7 @@ import {
   setViewportToYjs,
   getNodesFromYjs,
   getEdgesFromYjs,
+  getGroupsFromYjs,
 } from './yjsDoc';
 
 export interface FlowState {
@@ -17,6 +18,7 @@ export interface FlowState {
   // 파생 상태 (Yjs에서 동기화)
   nodes: FlowNode[];
   edges: FlowEdge[];
+  groups: NodeGroup[];
   viewport: Viewport;
 
   // 노드 액션
@@ -27,6 +29,14 @@ export interface FlowState {
   // 엣지 액션
   addEdge: (edge: FlowEdge) => void;
   deleteEdge: (id: string) => void;
+
+  // 그룹 액션
+  createGroup: (name: string, nodeIds: string[], color?: string) => string;
+  deleteGroup: (id: string) => void;
+  updateGroup: (id: string, partial: Partial<NodeGroup>) => void;
+  addNodesToGroup: (groupId: string, nodeIds: string[]) => void;
+  removeNodesFromGroup: (groupId: string, nodeIds: string[]) => void;
+  getGroupForNode: (nodeId: string) => NodeGroup | undefined;
 
   // 뷰포트 액션
   setViewport: (viewport: Viewport) => void;
@@ -46,8 +56,8 @@ export interface FlowState {
 export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
   const yjsDoc = initialDoc ?? createFlowDoc();
 
-  // UndoManager 생성 (nodes, edges만 추적, viewport는 제외)
-  const undoManager = new Y.UndoManager([yjsDoc.nodes, yjsDoc.edges], {
+  // UndoManager 생성 (nodes, edges, groups 추적, viewport는 제외)
+  const undoManager = new Y.UndoManager([yjsDoc.nodes, yjsDoc.edges, yjsDoc.groups], {
     trackedOrigins: new Set([null]),
   });
 
@@ -58,6 +68,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       set({
         nodes: getNodesFromYjs(yjsDoc.nodes),
         edges: getEdgesFromYjs(yjsDoc.edges),
+        groups: getGroupsFromYjs(yjsDoc.groups),
         viewport: getViewportFromYjs(yjsDoc.viewport),
       });
     };
@@ -65,12 +76,14 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
     // Yjs 이벤트 리스너 등록
     yjsDoc.nodes.observe(syncFromYjs);
     yjsDoc.edges.observe(syncFromYjs);
+    yjsDoc.groups.observe(syncFromYjs);
     yjsDoc.viewport.observe(syncFromYjs);
 
     return {
       yjsDoc,
       nodes: getNodesFromYjs(yjsDoc.nodes),
       edges: getEdgesFromYjs(yjsDoc.edges),
+      groups: getGroupsFromYjs(yjsDoc.groups),
       viewport: getViewportFromYjs(yjsDoc.viewport),
 
       addNode: (node) => {
@@ -95,6 +108,17 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
             yjsDoc.edges.delete(edgeId);
           }
         });
+        // 그룹에서도 제거
+        yjsDoc.groups.forEach((group, groupId) => {
+          if (group.nodeIds.includes(id)) {
+            const newNodeIds = group.nodeIds.filter(nid => nid !== id);
+            if (newNodeIds.length === 0) {
+              yjsDoc.groups.delete(groupId);
+            } else {
+              yjsDoc.groups.set(groupId, { ...group, nodeIds: newNodeIds });
+            }
+          }
+        });
       },
 
       addEdge: (edge) => {
@@ -105,6 +129,67 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       deleteEdge: (id) => {
         const { yjsDoc } = get();
         yjsDoc.edges.delete(id);
+      },
+
+      // 그룹 생성
+      createGroup: (name, nodeIds, color) => {
+        const { yjsDoc } = get();
+        const groupId = `group-${Date.now()}`;
+        const group: NodeGroup = {
+          id: groupId,
+          name,
+          nodeIds: [...nodeIds],
+          color: color ?? '#4a5568',
+        };
+        yjsDoc.groups.set(groupId, group);
+        return groupId;
+      },
+
+      // 그룹 삭제
+      deleteGroup: (id) => {
+        const { yjsDoc } = get();
+        yjsDoc.groups.delete(id);
+      },
+
+      // 그룹 업데이트
+      updateGroup: (id, partial) => {
+        const { yjsDoc } = get();
+        const existing = yjsDoc.groups.get(id);
+        if (existing) {
+          yjsDoc.groups.set(id, { ...existing, ...partial });
+        }
+      },
+
+      // 그룹에 노드 추가
+      addNodesToGroup: (groupId, nodeIds) => {
+        const { yjsDoc } = get();
+        const group = yjsDoc.groups.get(groupId);
+        if (group) {
+          const newNodeIds = new Set([...group.nodeIds, ...nodeIds]);
+          yjsDoc.groups.set(groupId, { ...group, nodeIds: Array.from(newNodeIds) });
+        }
+      },
+
+      // 그룹에서 노드 제거
+      removeNodesFromGroup: (groupId, nodeIds) => {
+        const { yjsDoc } = get();
+        const group = yjsDoc.groups.get(groupId);
+        if (group) {
+          const nodeIdSet = new Set(nodeIds);
+          const newNodeIds = group.nodeIds.filter(id => !nodeIdSet.has(id));
+          if (newNodeIds.length === 0) {
+            // 노드가 없으면 그룹 삭제
+            yjsDoc.groups.delete(groupId);
+          } else {
+            yjsDoc.groups.set(groupId, { ...group, nodeIds: newNodeIds });
+          }
+        }
+      },
+
+      // 노드가 속한 그룹 찾기
+      getGroupForNode: (nodeId) => {
+        const { groups } = get();
+        return groups.find(g => g.nodeIds.includes(nodeId));
       },
 
       setViewport: (viewport) => {

@@ -12,6 +12,7 @@ export { drawEdge, drawEdges, drawTempEdge, getPortPosition, type EdgeStyle } fr
 export { drawGrid } from './rendering/drawGrid';
 export { drawMinimap, isInMinimap, minimapToWorld, MINIMAP } from './rendering/drawMinimap';
 export { drawSelectionBox, isNodeInSelectionBox } from './rendering/drawSelectionBox';
+export { drawGroup, drawGroups, getGroupBounds, hitTestGroups, hitTestGroupHeader } from './rendering/drawGroup';
 
 // Interaction
 export {

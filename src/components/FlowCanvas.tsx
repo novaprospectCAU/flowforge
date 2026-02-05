@@ -7,6 +7,7 @@ import {
   drawTempEdge,
   drawMinimap,
   drawSelectionBox,
+  drawGroups,
   isNodeInSelectionBox,
   isInMinimap,
   minimapToWorld,
@@ -15,6 +16,7 @@ import {
   hitTestPort,
   hitTestEdge,
   hitTestResizeHandle,
+  hitTestGroups,
   type IRenderer,
   type PortHitResult,
   type EdgeStyle,
@@ -36,7 +38,7 @@ import { ZoomControls } from './ZoomControls';
 import { SearchDialog } from './SearchDialog';
 import { ShortcutsHelp } from './ShortcutsHelp';
 
-type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize';
+type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group';
 
 // 테스트용 노드들
 const DEMO_NODES: FlowNode[] = [
@@ -405,6 +407,9 @@ export function FlowCanvas() {
     // 그리드 배경
     drawGrid(renderer, state.viewport, canvasSize);
 
+    // 그룹 (노드/엣지 아래)
+    drawGroups(renderer, state.groups, state.nodes);
+
     // 엣지 (노드 아래)
     drawEdges(renderer, state.edges, state.nodes, edgeStyleRef.current);
 
@@ -552,6 +557,27 @@ export function FlowCanvas() {
     const hitEdge = hitTestEdge(worldPos, state.edges, state.nodes);
     if (hitEdge) {
       state.deleteEdge(hitEdge.id);
+      return;
+    }
+
+    // 그룹 헤더 클릭 확인
+    const hitGroup = hitTestGroups(worldPos, state.groups, state.nodes);
+    if (hitGroup) {
+      // 그룹의 모든 노드 선택
+      const groupNodeIds = new Set(hitGroup.nodeIds);
+      setSelectedNodes(groupNodeIds);
+      dragModeRef.current = 'node';
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+
+      // 드래그 시작 시 선택된 노드들의 현재 위치 저장
+      const dragPositions = new Map<string, Position>();
+      for (const nodeId of groupNodeIds) {
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (node) {
+          dragPositions.set(nodeId, { ...node.position });
+        }
+      }
+      nodeDragPositionsRef.current = dragPositions;
       return;
     }
 
@@ -1173,8 +1199,36 @@ export function FlowCanvas() {
         return;
       }
 
-      // Toggle Snap: G 키
-      if (e.key === 'g' && !e.ctrlKey && !e.metaKey) {
+      // Create Group: Ctrl+G / Cmd+G
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
+        e.preventDefault();
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size >= 2) {
+          const state = store.getState();
+          state.createGroup('New Group', Array.from(selectedIds));
+          forceRender(n => n + 1);
+        }
+        return;
+      }
+
+      // Ungroup: Ctrl+Shift+G / Cmd+Shift+G
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'g' || e.key === 'G')) {
+        e.preventDefault();
+        const selectedIds = selectedNodeIdsRef.current;
+        if (selectedIds.size > 0) {
+          const state = store.getState();
+          const nodeId = Array.from(selectedIds)[0];
+          const group = state.getGroupForNode(nodeId);
+          if (group) {
+            state.deleteGroup(group.id);
+            forceRender(n => n + 1);
+          }
+        }
+        return;
+      }
+
+      // Toggle Snap: G 키 (단독)
+      if (e.key === 'g' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault();
         setSnapToGrid(prev => !prev);
         return;
@@ -1316,6 +1370,28 @@ export function FlowCanvas() {
           items.push({ label: '', action: () => {}, divider: true });
           items.push({ label: 'Distribute Horizontal', action: () => distributeNodes('horizontal') });
           items.push({ label: 'Distribute Vertical', action: () => distributeNodes('vertical') });
+        }
+
+        // 그룹 옵션
+        items.push({ label: '', action: () => {}, divider: true });
+        const state = store.getState();
+        const existingGroup = state.getGroupForNode(targetNode.id);
+        if (existingGroup) {
+          items.push({
+            label: `Ungroup "${existingGroup.name}"`,
+            action: () => {
+              state.deleteGroup(existingGroup.id);
+              forceRender(n => n + 1);
+            },
+          });
+        } else {
+          items.push({
+            label: 'Group Selected (Ctrl+G)',
+            action: () => {
+              state.createGroup('New Group', Array.from(selectedNodeIdsRef.current));
+              forceRender(n => n + 1);
+            },
+          });
         }
       }
 

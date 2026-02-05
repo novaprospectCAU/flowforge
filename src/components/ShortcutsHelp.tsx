@@ -70,6 +70,14 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: 'Shift+Box', description: 'Add to selection' },
     ],
   },
+  {
+    title: 'Grouping',
+    shortcuts: [
+      { keys: 'Ctrl+G', description: 'Group selected nodes' },
+      { keys: 'Ctrl+Shift+G', description: 'Ungroup' },
+      { keys: 'Group header', description: 'Click to select all' },
+    ],
+  },
 ];
 
 export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {

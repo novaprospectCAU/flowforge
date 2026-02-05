@@ -1,16 +1,18 @@
 import * as Y from 'yjs';
-import type { FlowNode, FlowEdge, Viewport } from '@flowforge/types';
+import type { FlowNode, FlowEdge, Viewport, NodeGroup } from '@flowforge/types';
 
 /**
  * Yjs 문서 구조:
  * - nodes: Y.Map<FlowNode>  (id -> node)
  * - edges: Y.Map<FlowEdge>  (id -> edge)
+ * - groups: Y.Map<NodeGroup> (id -> group)
  * - viewport: Y.Map<number> (x, y, zoom)
  */
 export interface FlowYjsDoc {
   doc: Y.Doc;
   nodes: Y.Map<FlowNode>;
   edges: Y.Map<FlowEdge>;
+  groups: Y.Map<NodeGroup>;
   viewport: Y.Map<number>;
 }
 
@@ -18,6 +20,7 @@ export function createFlowDoc(): FlowYjsDoc {
   const doc = new Y.Doc();
   const nodes = doc.getMap<FlowNode>('nodes');
   const edges = doc.getMap<FlowEdge>('edges');
+  const groups = doc.getMap<NodeGroup>('groups');
   const viewport = doc.getMap<number>('viewport');
 
   // 기본 뷰포트 초기화
@@ -29,7 +32,7 @@ export function createFlowDoc(): FlowYjsDoc {
     });
   }
 
-  return { doc, nodes, edges, viewport };
+  return { doc, nodes, edges, groups, viewport };
 }
 
 export function getViewportFromYjs(viewport: Y.Map<number>): Viewport {
@@ -54,4 +57,8 @@ export function getNodesFromYjs(nodes: Y.Map<FlowNode>): FlowNode[] {
 
 export function getEdgesFromYjs(edges: Y.Map<FlowEdge>): FlowEdge[] {
   return Array.from(edges.values());
+}
+
+export function getGroupsFromYjs(groups: Y.Map<NodeGroup>): NodeGroup[] {
+  return Array.from(groups.values());
 }
