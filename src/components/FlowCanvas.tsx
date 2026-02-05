@@ -202,6 +202,12 @@ export function FlowCanvas() {
   const [draggingNodeIds, setDraggingNodeIds] = useState<Set<string>>(new Set());
   const [spacePressed, setSpacePressed] = useState(false); // Space 키로 Pan 모드
   const lastSaveRef = useRef<string>(''); // 마지막 저장 상태 해시
+  // 터치 관련 refs
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const lastTouchRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const lastTapTimeRef = useRef<number>(0);
   const GRID_SIZE = 20; // 스냅 그리드 크기
   const MIN_NODE_SIZE = { width: 100, height: 60 }; // 최소 노드 크기
   const AUTO_SAVE_INTERVAL = 30000; // 30초
@@ -1194,6 +1200,461 @@ export function FlowCanvas() {
     dragModeRef.current = 'none';
         setDraggingNodeIds(new Set()); // 드래그 중인 노드 초기화
     setCursorStyle('grab');
+  }, []);
+
+  // 터치 헬퍼 함수: 두 터치 포인트 사이 거리
+  const getTouchDistance = (touches: React.TouchList): number => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // 터치 헬퍼 함수: 두 터치 포인트 중심
+  const getTouchCenter = (touches: React.TouchList): { x: number; y: number } => {
+    if (touches.length < 2) {
+      return { x: touches[0].clientX, y: touches[0].clientY };
+    }
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+  };
+
+  // 터치 시작
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (widgetInteracting) return;
+
+    const canvas = canvasRef.current;
+    const store = storeRef.current;
+    if (!canvas || !store) return;
+
+    // 롱프레스 타이머 취소
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const state = store.getState();
+
+    // 두 손가락 터치 = 핀치 줌/팬
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      pinchStartRef.current = {
+        distance: getTouchDistance(e.touches),
+        zoom: state.viewport.zoom,
+      };
+      lastTouchRef.current = getTouchCenter(e.touches);
+      dragModeRef.current = 'pan';
+      return;
+    }
+
+    // 한 손가락 터치
+    const touch = e.touches[0];
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+
+    const worldPos = screenToWorld({ x: touchX, y: touchY }, state.viewport, canvasSize);
+
+    // 미니맵 터치
+    if (isInMinimap({ x: touchX, y: touchY }, canvasSize)) {
+      dragModeRef.current = 'minimap';
+      const mapWorldPos = minimapToWorld({ x: touchX, y: touchY }, state.nodes, state.viewport, canvasSize);
+      state.setViewport({ ...state.viewport, x: mapWorldPos.x, y: mapWorldPos.y });
+      forceRender(n => n + 1);
+      return;
+    }
+
+    // 포트 히트 테스트
+    const hitPort = hitTestPort(worldPos, state.nodes);
+    if (hitPort) {
+      dragModeRef.current = 'edge';
+      edgeDragRef.current = {
+        startPort: hitPort,
+        currentPos: worldPos,
+      };
+
+      // 호환 가능한 포트 계산 (마우스 핸들러와 동일)
+      const compatibleMap = new Map<string, CompatiblePorts>();
+      const sourceNode = hitPort.node;
+      const sourcePort = hitPort.port;
+      const isOutput = hitPort.isOutput;
+      const sourceDataType = sourcePort.dataType;
+
+      for (const node of state.nodes) {
+        if (node.id === sourceNode.id) continue;
+        const targetPorts = isOutput ? node.inputs : node.outputs;
+        if (!targetPorts || targetPorts.length === 0) continue;
+
+        const portIds = new Set<string>();
+        for (const port of targetPorts) {
+          if (!isTypeCompatible(sourceDataType, port.dataType)) continue;
+          if (!isOutput) {
+            portIds.add(port.id);
+          } else {
+            const alreadyConnected = state.edges.some(
+              edge => edge.target === node.id && edge.targetPort === port.id
+            );
+            if (!alreadyConnected) portIds.add(port.id);
+          }
+        }
+        if (portIds.size > 0) {
+          compatibleMap.set(node.id, { nodeId: node.id, portIds, isOutput });
+        }
+      }
+      compatiblePortsMapRef.current = compatibleMap;
+      return;
+    }
+
+    // 서브플로우 히트 테스트
+    const hitSubflow = hitTestCollapsedSubflow(worldPos, state.subflows);
+    if (hitSubflow) {
+      dragModeRef.current = 'subflow';
+      selectedSubflowIdRef.current = hitSubflow.subflow.id;
+      selectedCommentIdRef.current = null;
+      setSelectedNodes(new Set());
+      subflowDragRef.current = {
+        subflow: hitSubflow.subflow,
+        startPos: hitSubflow.subflow.collapsedPosition ? { ...hitSubflow.subflow.collapsedPosition } : { x: 0, y: 0 },
+      };
+      return;
+    }
+
+    // 코멘트 히트 테스트
+    const hitComment = hitTestComment(worldPos, state.comments);
+    if (hitComment) {
+      dragModeRef.current = 'comment';
+      selectedCommentIdRef.current = hitComment.id;
+      selectedSubflowIdRef.current = null;
+      setSelectedNodes(new Set());
+      commentDragRef.current = {
+        comment: hitComment,
+        startPos: { ...hitComment.position },
+      };
+      return;
+    }
+
+    // 노드 히트 테스트
+    const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
+    const hitNode = hitTestNode(worldPos, visibleNodes);
+
+    if (hitNode) {
+      dragModeRef.current = 'node';
+      selectedCommentIdRef.current = null;
+
+      const isAlreadySelected = selectedNodeIdsRef.current.has(hitNode.id);
+      if (!isAlreadySelected) {
+        setSelectedNodes(new Set([hitNode.id]));
+      }
+
+      const dragPositions = new Map<string, Position>();
+      const selectedIds = isAlreadySelected ? selectedNodeIdsRef.current : new Set([hitNode.id]);
+      for (const nodeId of selectedIds) {
+        const node = state.nodes.find(n => n.id === nodeId);
+        if (node) {
+          dragPositions.set(nodeId, { ...node.position });
+        }
+      }
+      nodeDragPositionsRef.current = dragPositions;
+      setDraggingNodeIds(new Set(selectedIds));
+
+      // 롱프레스 타이머 (컨텍스트 메뉴)
+      longPressTimerRef.current = window.setTimeout(() => {
+        setContextMenu({
+          x: touch.clientX,
+          y: touch.clientY,
+          worldPos,
+          targetNode: hitNode,
+        });
+        dragModeRef.current = 'none';
+        setDraggingNodeIds(new Set());
+        longPressTimerRef.current = null;
+      }, 500);
+    } else {
+      // 빈 공간 - 팬 또는 박스 선택
+      dragModeRef.current = 'pan';
+      selectedCommentIdRef.current = null;
+
+      // 롱프레스 타이머 (빈 공간 컨텍스트 메뉴)
+      longPressTimerRef.current = window.setTimeout(() => {
+        setContextMenu({
+          x: touch.clientX,
+          y: touch.clientY,
+          worldPos,
+          targetNode: null,
+        });
+        dragModeRef.current = 'none';
+        longPressTimerRef.current = null;
+      }, 500);
+    }
+  }, [widgetInteracting]);
+
+  // 터치 이동
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    const store = storeRef.current;
+    if (!canvas || !store) return;
+
+    // 롱프레스 타이머 취소 (움직이면 롱프레스 아님)
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const state = store.getState();
+    const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+
+    // 핀치 줌
+    if (e.touches.length === 2 && pinchStartRef.current) {
+      e.preventDefault();
+      const currentDistance = getTouchDistance(e.touches);
+      const center = getTouchCenter(e.touches);
+
+      // 줌 계산
+      const scale = currentDistance / pinchStartRef.current.distance;
+      const newZoom = Math.max(0.1, Math.min(5, pinchStartRef.current.zoom * scale));
+
+      // 팬 계산
+      const dx = center.x - lastTouchRef.current.x;
+      const dy = center.y - lastTouchRef.current.y;
+      lastTouchRef.current = center;
+
+      // 줌 중심점 계산
+      const centerX = center.x - rect.left;
+      const centerY = center.y - rect.top;
+      const worldPos = screenToWorld({ x: centerX, y: centerY }, state.viewport, canvasSize);
+
+      const newX = worldPos.x - (centerX - canvasSize.width / 2) / newZoom - dx / newZoom;
+      const newY = worldPos.y - (centerY - canvasSize.height / 2) / newZoom - dy / newZoom;
+
+      state.setViewport({ x: newX, y: newY, zoom: newZoom });
+      setCurrentZoom(newZoom);
+      forceRender(n => n + 1);
+      return;
+    }
+
+    // 한 손가락 터치
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const dx = touch.clientX - lastTouchRef.current.x;
+      const dy = touch.clientY - lastTouchRef.current.y;
+      lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+
+      const touchX = touch.clientX - rect.left;
+      const touchY = touch.clientY - rect.top;
+
+      if (dragModeRef.current === 'pan' || dragModeRef.current === 'minimap') {
+        if (dragModeRef.current === 'minimap') {
+          // 미니맵 드래그
+          const MINIMAP_SIZE = 180;
+          const MINIMAP_INNER = MINIMAP_SIZE - 20;
+
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const node of state.nodes) {
+            minX = Math.min(minX, node.position.x);
+            minY = Math.min(minY, node.position.y);
+            maxX = Math.max(maxX, node.position.x + node.size.width);
+            maxY = Math.max(maxY, node.position.y + node.size.height);
+          }
+
+          const vpHalfW = canvasSize.width / 2 / state.viewport.zoom;
+
+          if (state.nodes.length > 0) {
+            minX = Math.min(minX, state.viewport.x - vpHalfW) - 50;
+            maxX = Math.max(maxX, state.viewport.x + vpHalfW) + 50;
+          }
+
+          const worldW = maxX - minX;
+          const worldH = maxY - minY;
+          const scale = Math.min(MINIMAP_INNER / worldW, MINIMAP_INNER / (worldH || 1));
+
+          const worldDx = dx / scale;
+          const worldDy = dy / scale;
+
+          state.setViewport({
+            ...state.viewport,
+            x: state.viewport.x + worldDx,
+            y: state.viewport.y + worldDy,
+          });
+        } else {
+          // 일반 팬
+          state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
+        }
+        forceRender(n => n + 1);
+      } else if (dragModeRef.current === 'node') {
+        // 노드 드래그
+        const dragPositions = nodeDragPositionsRef.current;
+
+        for (const [nodeId, startPos] of dragPositions) {
+          const node = state.nodes.find(n => n.id === nodeId);
+          if (!node) continue;
+
+          const totalDx = (touch.clientX - (touchStartRef.current?.x || 0)) / state.viewport.zoom;
+          const totalDy = (touch.clientY - (touchStartRef.current?.y || 0)) / state.viewport.zoom;
+
+          let newX = startPos.x + totalDx;
+          let newY = startPos.y + totalDy;
+
+          if (snapToGridRef.current) {
+            newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+            newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+          }
+
+          state.updateNode(nodeId, { position: { x: newX, y: newY } });
+        }
+        forceRender(n => n + 1);
+      } else if (dragModeRef.current === 'edge' && edgeDragRef.current) {
+        // 엣지 드래그
+        const worldPos = screenToWorld({ x: touchX, y: touchY }, state.viewport, canvasSize);
+        edgeDragRef.current.currentPos = worldPos;
+      } else if (dragModeRef.current === 'comment' && commentDragRef.current) {
+        // 코멘트 드래그
+        const comment = commentDragRef.current.comment;
+        const startPos = commentDragRef.current.startPos;
+        const totalDx = (touch.clientX - (touchStartRef.current?.x || 0)) / state.viewport.zoom;
+        const totalDy = (touch.clientY - (touchStartRef.current?.y || 0)) / state.viewport.zoom;
+
+        state.updateComment(comment.id, {
+          position: { x: startPos.x + totalDx, y: startPos.y + totalDy },
+        });
+        forceRender(n => n + 1);
+      } else if (dragModeRef.current === 'subflow' && subflowDragRef.current) {
+        // 서브플로우 드래그
+        const subflow = subflowDragRef.current.subflow;
+        const startPos = subflowDragRef.current.startPos;
+        const totalDx = (touch.clientX - (touchStartRef.current?.x || 0)) / state.viewport.zoom;
+        const totalDy = (touch.clientY - (touchStartRef.current?.y || 0)) / state.viewport.zoom;
+
+        state.updateSubflow(subflow.id, {
+          collapsedPosition: { x: startPos.x + totalDx, y: startPos.y + totalDy },
+        });
+        forceRender(n => n + 1);
+      }
+    }
+  }, []);
+
+  // 터치 종료
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    // 롱프레스 타이머 취소
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    const canvas = canvasRef.current;
+    const store = storeRef.current;
+
+    // 핀치 종료
+    if (pinchStartRef.current) {
+      pinchStartRef.current = null;
+      if (e.touches.length === 0) {
+        dragModeRef.current = 'none';
+      }
+      return;
+    }
+
+    // 엣지 드래그 완료
+    if (dragModeRef.current === 'edge' && edgeDragRef.current && canvas && store) {
+      const rect = canvas.getBoundingClientRect();
+      const state = store.getState();
+      const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+
+      const touch = e.changedTouches[0];
+      const touchX = touch.clientX - rect.left;
+      const touchY = touch.clientY - rect.top;
+      const worldPos = screenToWorld({ x: touchX, y: touchY }, state.viewport, canvasSize);
+      const targetPort = hitTestPort(worldPos, state.nodes);
+      const startPort = edgeDragRef.current.startPort;
+
+      if (
+        targetPort &&
+        targetPort.node.id !== startPort.node.id &&
+        targetPort.isOutput !== startPort.isOutput &&
+        isTypeCompatible(startPort.port.dataType, targetPort.port.dataType)
+      ) {
+        const isFromOutput = startPort.isOutput;
+        const newEdge: FlowEdge = {
+          id: `edge-${Date.now()}`,
+          source: isFromOutput ? startPort.node.id : targetPort.node.id,
+          sourcePort: isFromOutput ? startPort.port.id : targetPort.port.id,
+          target: isFromOutput ? targetPort.node.id : startPort.node.id,
+          targetPort: isFromOutput ? targetPort.port.id : startPort.port.id,
+        };
+        state.addEdge(newEdge);
+      }
+
+      edgeDragRef.current = null;
+      compatiblePortsMapRef.current = null;
+    }
+
+    // 더블 탭 감지
+    const now = Date.now();
+    const touchStart = touchStartRef.current;
+    if (touchStart && canvas && store) {
+      const touchDuration = now - touchStart.time;
+      const touchDistance = Math.sqrt(
+        Math.pow(lastTouchRef.current.x - touchStart.x, 2) +
+        Math.pow(lastTouchRef.current.y - touchStart.y, 2)
+      );
+
+      // 짧은 탭 (이동 거리 작음)
+      if (touchDuration < 300 && touchDistance < 10) {
+        const timeSinceLastTap = now - lastTapTimeRef.current;
+
+        // 더블 탭 (300ms 내에 두 번째 탭)
+        if (timeSinceLastTap < 300) {
+          const rect = canvas.getBoundingClientRect();
+          const state = store.getState();
+          const touchX = touchStart.x - rect.left;
+          const touchY = touchStart.y - rect.top;
+          const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+          const worldPos = screenToWorld({ x: touchX, y: touchY }, state.viewport, canvasSize);
+
+          // 서브플로우 더블 탭 - 펼치기
+          const hitSubflow = hitTestCollapsedSubflow(worldPos, state.subflows);
+          if (hitSubflow) {
+            state.expandSubflow(hitSubflow.subflow.id);
+            selectedSubflowIdRef.current = hitSubflow.subflow.id;
+          } else {
+            // 빈 공간 더블 탭 - 노드 팔레트
+            const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
+            const hitNode = hitTestNode(worldPos, visibleNodes);
+            if (!hitNode) {
+              setNodePalette({
+                x: touchStart.x - 140,
+                y: touchStart.y - 100,
+                worldPos,
+              });
+            }
+          }
+          lastTapTimeRef.current = 0;
+        } else {
+          lastTapTimeRef.current = now;
+        }
+      }
+    }
+
+    // 드래그 상태 정리
+    if (dragModeRef.current === 'node') {
+      nodeDragPositionsRef.current.clear();
+      snapLinesRef.current = [];
+    }
+    if (dragModeRef.current === 'subflow') {
+      subflowDragRef.current = null;
+    }
+    if (dragModeRef.current === 'comment') {
+      commentDragRef.current = null;
+    }
+
+    dragModeRef.current = 'none';
+    setDraggingNodeIds(new Set());
+    touchStartRef.current = null;
   }, []);
 
   // Zoom (passive: false로 등록해야 preventDefault 가능)
@@ -2390,12 +2851,17 @@ export function FlowCanvas() {
         onMouseLeave={handleMouseUp}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         style={{
           width: '100%',
           height: '100%',
           display: 'block',
           background: '#1e1e1e',
           cursor: dragModeRef.current !== 'none' ? 'grabbing' : (spacePressed ? 'grab' : cursorStyle),
+          touchAction: 'none', // 브라우저 기본 터치 동작 비활성화
         }}
       />
       {/* 노드 인라인 위젯 */}
