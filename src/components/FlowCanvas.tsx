@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import {
   createRenderer,
+  drawGrid,
   drawNodes,
   drawEdges,
   drawTempEdge,
@@ -115,7 +116,10 @@ export function FlowCanvas() {
     renderer.beginFrame();
     renderer.setTransform(state.viewport, canvasSize, dpr);
 
-    // 엣지 먼저 (노드 아래)
+    // 그리드 배경
+    drawGrid(renderer, state.viewport, canvasSize);
+
+    // 엣지 (노드 아래)
     drawEdges(renderer, state.edges, state.nodes);
 
     // 드래그 중인 임시 엣지
