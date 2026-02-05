@@ -120,12 +120,18 @@ export function CommentWidget({
     onEditingEnd();
   };
 
-  // Escape 키로 편집 종료
+  // 키보드 이벤트 처리
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Escape 키로 편집 종료
     if (e.key === 'Escape') {
       e.preventDefault();
       textareaRef.current?.blur();
+      return;
     }
+
+    // 편집 중일 때 모든 키보드 이벤트가 캔버스로 전파되지 않도록 차단
+    // (Cmd+A, Cmd+C, Cmd+V 등이 텍스트에만 적용되도록)
+    e.stopPropagation();
   };
 
   // 시간 표시
