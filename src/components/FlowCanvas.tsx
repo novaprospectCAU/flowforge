@@ -64,6 +64,7 @@ import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { MobileToolbar } from './MobileToolbar';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment' | 'subflow';
 
@@ -82,6 +83,7 @@ function isTypeCompatible(sourceType: DataType, targetType: DataType): boolean {
 
 export function FlowCanvas() {
   const isMobile = useIsMobile();
+  const isTouchDevice = useIsTouchDevice();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<IRenderer | null>(null);
   const storeRef = useRef<FlowStore | null>(null);
@@ -2810,7 +2812,7 @@ export function FlowCanvas() {
         </div>
       )}
       <canvas
-        tabIndex={isMobile ? -1 : 0}
+        tabIndex={isTouchDevice ? -1 : 0}
         ref={canvasRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
