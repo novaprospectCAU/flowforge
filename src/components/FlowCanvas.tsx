@@ -1905,6 +1905,7 @@ export function FlowCanvas() {
             storeRef.current?.getState().updateNode(nodeId, { data });
           }}
           onWidgetInteraction={setWidgetInteracting}
+          isDragging={dragModeRef.current !== 'none'}
         />
       )}
       {contextMenu && (
