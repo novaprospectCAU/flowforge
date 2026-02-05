@@ -13,9 +13,10 @@ import {
   type IRenderer,
   type PortHitResult,
 } from '@flowforge/canvas';
-import { createFlowStore, type FlowStore } from '@flowforge/state';
+import { createFlowStore, nodeTypeRegistry, type FlowStore, type NodeTypeDefinition } from '@flowforge/state';
 import type { FlowNode, FlowEdge, CanvasSize, Position } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
+import { NodePalette } from './NodePalette';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge';
 
@@ -88,6 +89,11 @@ export function FlowCanvas() {
     y: number;
     worldPos: Position;
     targetNode: FlowNode | null;
+  } | null>(null);
+  const [nodePalette, setNodePalette] = useState<{
+    x: number;
+    y: number;
+    worldPos: Position;
   } | null>(null);
 
   const setSelectedNodes = (ids: Set<string>) => {
@@ -400,6 +406,28 @@ export function FlowCanvas() {
         return;
       }
 
+      // Tab: 노드 팔레트 열기
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const state = store.getState();
+        const worldPos = screenToWorld(
+          { x: rect.width / 2, y: rect.height / 2 },
+          state.viewport,
+          { width: rect.width, height: rect.height }
+        );
+
+        setNodePalette({
+          x: rect.left + rect.width / 2 - 140,
+          y: rect.top + rect.height / 2 - 200,
+          worldPos,
+        });
+        return;
+      }
+
       // Delete: 선택된 노드 삭제
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const selectedIds = selectedNodeIdsRef.current;
@@ -442,19 +470,22 @@ export function FlowCanvas() {
     });
   }, []);
 
-  // 노드 추가 함수
-  const addNewNode = useCallback((type: string, title: string, worldPos: Position) => {
+  // 노드 추가 함수 (레지스트리 기반)
+  const addNodeFromType = useCallback((typeDef: NodeTypeDefinition, worldPos: Position) => {
     const store = storeRef.current;
     if (!store) return;
 
     const newNode: FlowNode = {
       id: `node-${Date.now()}`,
-      type,
-      position: { x: worldPos.x - 90, y: worldPos.y - 50 },
-      size: { width: 180, height: 100 },
-      data: { title },
-      inputs: type === 'Input' ? [] : [{ id: 'in-1', name: 'input', dataType: 'any' }],
-      outputs: type === 'Output' ? [] : [{ id: 'out-1', name: 'output', dataType: 'any' }],
+      type: typeDef.type,
+      position: {
+        x: worldPos.x - typeDef.defaultSize.width / 2,
+        y: worldPos.y - typeDef.defaultSize.height / 2,
+      },
+      size: typeDef.defaultSize,
+      data: { title: typeDef.title },
+      inputs: typeDef.inputs,
+      outputs: typeDef.outputs,
     };
 
     store.getState().addNode(newNode);
@@ -497,21 +528,36 @@ export function FlowCanvas() {
         },
       ];
     } else {
-      // 빈 공간에서 우클릭 - 노드 추가 메뉴
-      return [
-        {
-          label: 'Add Input Node',
-          action: () => addNewNode('Input', 'Input', worldPos),
+      // 빈 공간에서 우클릭 - 카테고리별 노드 추가 메뉴
+      const categories = nodeTypeRegistry.getCategories();
+      const items: MenuItem[] = [];
+
+      for (const category of categories) {
+        const types = nodeTypeRegistry.getByCategory(category);
+        items.push({
+          label: `Add ${category}`,
+          action: () => {
+            // 해당 카테고리의 첫 번째 노드 추가
+            if (types[0]) {
+              addNodeFromType(types[0], worldPos);
+            }
+          },
+        });
+      }
+
+      items.push({ label: '', action: () => {}, divider: true });
+      items.push({
+        label: 'Search Nodes... (Tab)',
+        action: () => {
+          setNodePalette({
+            x: contextMenu?.x ?? 0,
+            y: contextMenu?.y ?? 0,
+            worldPos,
+          });
         },
-        {
-          label: 'Add Process Node',
-          action: () => addNewNode('Process', 'Process', worldPos),
-        },
-        {
-          label: 'Add Output Node',
-          action: () => addNewNode('Output', 'Output', worldPos),
-        },
-      ];
+      });
+
+      return items;
     }
   };
 
@@ -539,6 +585,17 @@ export function FlowCanvas() {
           y={contextMenu.y}
           items={getMenuItems()}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+      {nodePalette && (
+        <NodePalette
+          x={nodePalette.x}
+          y={nodePalette.y}
+          onSelect={(typeDef) => {
+            addNodeFromType(typeDef, nodePalette.worldPos);
+            setNodePalette(null);
+          }}
+          onClose={() => setNodePalette(null)}
         />
       )}
     </div>
