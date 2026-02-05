@@ -15,6 +15,7 @@ import {
 } from '@flowforge/canvas';
 import { createFlowStore, type FlowStore } from '@flowforge/state';
 import type { FlowNode, FlowEdge, CanvasSize, Position } from '@flowforge/types';
+import { ContextMenu, type MenuItem } from './ContextMenu';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge';
 
@@ -82,6 +83,12 @@ export function FlowCanvas() {
     currentPos: Position;
   } | null>(null);
   const [, forceRender] = useState(0);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    worldPos: Position;
+    targetNode: FlowNode | null;
+  } | null>(null);
 
   const setSelectedNodes = (ids: Set<string>) => {
     selectedNodeIdsRef.current = ids;
@@ -395,21 +402,130 @@ export function FlowCanvas() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // 우클릭 컨텍스트 메뉴
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+
+    const canvas = canvasRef.current;
+    const store = storeRef.current;
+    if (!canvas || !store) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
+
+    const state = store.getState();
+    const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
+    const targetNode = hitTestNode(worldPos, state.nodes);
+
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      worldPos,
+      targetNode,
+    });
+  }, []);
+
+  // 노드 추가 함수
+  const addNewNode = useCallback((type: string, title: string, worldPos: Position) => {
+    const store = storeRef.current;
+    if (!store) return;
+
+    const newNode: FlowNode = {
+      id: `node-${Date.now()}`,
+      type,
+      position: { x: worldPos.x - 90, y: worldPos.y - 50 },
+      size: { width: 180, height: 100 },
+      data: { title },
+      inputs: type === 'Input' ? [] : [{ id: 'in-1', name: 'input', dataType: 'any' }],
+      outputs: type === 'Output' ? [] : [{ id: 'out-1', name: 'output', dataType: 'any' }],
+    };
+
+    store.getState().addNode(newNode);
+    setSelectedNodes(new Set([newNode.id]));
+  }, []);
+
+  // 컨텍스트 메뉴 아이템 생성
+  const getMenuItems = (): MenuItem[] => {
+    const store = storeRef.current;
+    if (!store || !contextMenu) return [];
+
+    const { worldPos, targetNode } = contextMenu;
+
+    if (targetNode) {
+      // 노드 위에서 우클릭
+      return [
+        {
+          label: 'Delete Node',
+          action: () => {
+            store.getState().deleteNode(targetNode.id);
+            selectedNodeIdsRef.current.delete(targetNode.id);
+            forceRender(n => n + 1);
+          },
+        },
+        { label: '', action: () => {}, divider: true },
+        {
+          label: 'Duplicate',
+          action: () => {
+            const newNode: FlowNode = {
+              ...targetNode,
+              id: `node-${Date.now()}`,
+              position: {
+                x: targetNode.position.x + 20,
+                y: targetNode.position.y + 20,
+              },
+            };
+            store.getState().addNode(newNode);
+            setSelectedNodes(new Set([newNode.id]));
+          },
+        },
+      ];
+    } else {
+      // 빈 공간에서 우클릭 - 노드 추가 메뉴
+      return [
+        {
+          label: 'Add Input Node',
+          action: () => addNewNode('Input', 'Input', worldPos),
+        },
+        {
+          label: 'Add Process Node',
+          action: () => addNewNode('Process', 'Process', worldPos),
+        },
+        {
+          label: 'Add Output Node',
+          action: () => addNewNode('Output', 'Output', worldPos),
+        },
+      ];
+    }
+  };
+
   return (
-    <canvas
-      tabIndex={0}
-      ref={canvasRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
-        background: '#1e1e1e',
-        cursor: dragModeRef.current !== 'none' ? 'grabbing' : 'grab',
-      }}
-    />
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <canvas
+        tabIndex={0}
+        ref={canvasRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onContextMenu={handleContextMenu}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          background: '#1e1e1e',
+          cursor: dragModeRef.current !== 'none' ? 'grabbing' : 'grab',
+        }}
+      />
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={getMenuItems()}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </div>
   );
 }
