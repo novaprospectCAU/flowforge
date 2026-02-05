@@ -10,6 +10,7 @@ interface NodeWidgetsProps {
   onUpdateNode: (nodeId: string, data: Record<string, unknown>) => void;
   onWidgetInteraction?: (interacting: boolean) => void;
   draggingNodeIds?: Set<string>;  // 드래그 중인 노드만 위젯 숨김
+  isCanvasDragging?: boolean;  // 캔버스 드래그 중 (box select, pan 등) - 위젯 이벤트 비활성화
 }
 
 // 노드 헤더 높이 (drawNode.ts의 NODE_STYLE.headerHeight와 동일)
@@ -30,6 +31,7 @@ export function NodeWidgets({
   onUpdateNode,
   onWidgetInteraction,
   draggingNodeIds,
+  isCanvasDragging,
 }: NodeWidgetsProps) {
   // 위젯이 있는 노드만 필터링 (드래그 중인 노드 제외)
   const widgetNodes = nodes.filter(n =>
@@ -50,6 +52,7 @@ export function NodeWidgets({
           canvasSize={canvasSize}
           onUpdate={(data) => onUpdateNode(node.id, data)}
           onInteraction={onWidgetInteraction}
+          isCanvasDragging={isCanvasDragging}
         />
       ))}
     </div>
@@ -62,9 +65,10 @@ interface NodeWidgetProps {
   canvasSize: CanvasSize;
   onUpdate: (data: Record<string, unknown>) => void;
   onInteraction?: (interacting: boolean) => void;
+  isCanvasDragging?: boolean;
 }
 
-function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction }: NodeWidgetProps) {
+function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCanvasDragging }: NodeWidgetProps) {
   // 스크린 좌표 계산
   const screenPos = worldToScreen(node.position, viewport, canvasSize);
   const scaledWidth = node.size.width * viewport.zoom;
@@ -272,6 +276,8 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction }: Nod
         top: widgetTop + WIDGET_PADDING * viewport.zoom,
         width: scaledWidth - WIDGET_PADDING * 2 * viewport.zoom,
         height: widgetHeight - WIDGET_PADDING * 2 * viewport.zoom,
+        // 캔버스 드래그 중에는 위젯 이벤트 비활성화 (box select 등이 제대로 동작하도록)
+        pointerEvents: isCanvasDragging ? 'none' : 'auto',
       }}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}

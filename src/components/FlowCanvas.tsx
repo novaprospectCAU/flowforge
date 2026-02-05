@@ -162,6 +162,7 @@ export function FlowCanvas() {
   const canvasSizeRef = useRef<CanvasSize>({ width: 0, height: 0 });
   const [widgetInteracting, setWidgetInteracting] = useState(false);
   const [draggingNodeIds, setDraggingNodeIds] = useState<Set<string>>(new Set());
+  const [isCanvasDragging, setIsCanvasDragging] = useState(false); // 캔버스 드래그 중 (box select, pan 등)
   const [spacePressed, setSpacePressed] = useState(false); // Space 키로 Pan 모드
   const lastSaveRef = useRef<string>(''); // 마지막 저장 상태 해시
   // 터치 관련 refs
@@ -915,9 +916,11 @@ export function FlowCanvas() {
       // Alt 키 = Pan, 그 외 = 박스 선택
       if (e.altKey) {
         dragModeRef.current = 'pan';
+        setIsCanvasDragging(true);
       } else {
         // 박스 선택 모드 (빈 공간 드래그)
         dragModeRef.current = 'box';
+        setIsCanvasDragging(true);
         boxSelectRef.current = {
           start: worldPos,
           end: worldPos,
@@ -1258,7 +1261,8 @@ export function FlowCanvas() {
     }
 
     dragModeRef.current = 'none';
-        setDraggingNodeIds(new Set()); // 드래그 중인 노드 초기화
+    setDraggingNodeIds(new Set()); // 드래그 중인 노드 초기화
+    setIsCanvasDragging(false);
     setCursorStyle('grab');
   }, []);
 
@@ -1439,6 +1443,7 @@ export function FlowCanvas() {
         });
         dragModeRef.current = 'none';
         setDraggingNodeIds(new Set());
+        setIsCanvasDragging(false);
         longPressTimerRef.current = null;
       }, 500);
     } else {
@@ -1455,6 +1460,7 @@ export function FlowCanvas() {
           targetNode: null,
         });
         dragModeRef.current = 'none';
+        setIsCanvasDragging(false);
         longPressTimerRef.current = null;
       }, 500);
     }
@@ -1626,6 +1632,7 @@ export function FlowCanvas() {
       }
       // 핀치 후에는 항상 드래그 모드 리셋 (남은 손가락으로 갑자기 팬되는 것 방지)
       dragModeRef.current = 'none';
+      setIsCanvasDragging(false);
       return;
     }
 
@@ -1724,6 +1731,7 @@ export function FlowCanvas() {
 
     dragModeRef.current = 'none';
     setDraggingNodeIds(new Set());
+    setIsCanvasDragging(false);
     touchStartRef.current = null;
   }, []);
 
@@ -3036,6 +3044,7 @@ export function FlowCanvas() {
           }}
           onWidgetInteraction={setWidgetInteracting}
           draggingNodeIds={draggingNodeIds.size > 0 ? draggingNodeIds : undefined}
+          isCanvasDragging={isCanvasDragging}
         />
       )}
       {contextMenu && (
