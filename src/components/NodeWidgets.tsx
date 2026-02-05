@@ -8,7 +8,7 @@ interface NodeWidgetsProps {
   canvasSize: CanvasSize;
   onUpdateNode: (nodeId: string, data: Record<string, unknown>) => void;
   onWidgetInteraction?: (interacting: boolean) => void;
-  isDragging?: boolean;  // 드래그 중일 때 위젯 숨김
+  draggingNodeIds?: Set<string>;  // 드래그 중인 노드만 위젯 숨김
 }
 
 // 노드 헤더 높이 (drawNode.ts의 NODE_STYLE.headerHeight와 동일)
@@ -24,13 +24,13 @@ export function NodeWidgets({
   canvasSize,
   onUpdateNode,
   onWidgetInteraction,
-  isDragging,
+  draggingNodeIds,
 }: NodeWidgetsProps) {
-  // 드래그 중이면 위젯 숨김 (성능 최적화)
-  if (isDragging) return null;
-
-  // 위젯이 있는 노드만 필터링
-  const widgetNodes = nodes.filter(n => WIDGET_SUPPORTED_TYPES.includes(n.type));
+  // 위젯이 있는 노드만 필터링 (드래그 중인 노드 제외)
+  const widgetNodes = nodes.filter(n =>
+    WIDGET_SUPPORTED_TYPES.includes(n.type) &&
+    !(draggingNodeIds?.has(n.id))
+  );
 
   // 줌이 너무 작으면 위젯 숨김
   if (viewport.zoom < 0.5) return null;

@@ -2326,7 +2326,7 @@ export function FlowCanvas() {
             storeRef.current?.getState().updateNode(nodeId, { data });
           }}
           onWidgetInteraction={setWidgetInteracting}
-          isDragging={isDragging}
+          draggingNodeIds={isDragging && dragModeRef.current === 'node' ? selectedNodeIdsRef.current : undefined}
         />
       )}
       {contextMenu && (
