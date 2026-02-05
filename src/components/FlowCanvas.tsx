@@ -181,6 +181,7 @@ export function FlowCanvas() {
   const canvasSizeRef = useRef<CanvasSize>({ width: 0, height: 0 });
   const [widgetInteracting, setWidgetInteracting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [spacePressed, setSpacePressed] = useState(false); // Space 키로 Pan 모드
   const lastSaveRef = useRef<string>(''); // 마지막 저장 상태 해시
   const GRID_SIZE = 20; // 스냅 그리드 크기
   const MIN_NODE_SIZE = { width: 100, height: 60 }; // 최소 노드 크기
@@ -614,6 +615,13 @@ export function FlowCanvas() {
 
     if (e.button !== 0) return; // 좌클릭만
 
+    // Space 키 + 좌클릭 = Pan (Figma 스타일)
+    if (spacePressed) {
+      dragModeRef.current = 'pan';
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
     const canvas = canvasRef.current;
     const store = storeRef.current;
     if (!canvas || !store) return;
@@ -803,7 +811,7 @@ export function FlowCanvas() {
         }
       }
     }
-  }, []);
+  }, [spacePressed, widgetInteracting]);
 
   // 마우스 이동 - 노드/엣지 드래그 또는 Pan, 커서 변경
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -915,13 +923,48 @@ export function FlowCanvas() {
         canvasSize
       );
     } else if (dragModeRef.current === 'minimap') {
-      // 미니맵 드래그 - 뷰포트 이동
+      // 미니맵 드래그 - 델타 기반으로 뷰포트 이동 (더 부드럽게)
+      // 미니맵의 스케일에 맞춰 마우스 delta를 월드 delta로 변환
+      const MINIMAP_SIZE = 180; // 미니맵 너비
+      const MINIMAP_INNER = MINIMAP_SIZE - 20; // padding 제외
+
+      // 노드 바운딩 박스 계산
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const node of state.nodes) {
+        minX = Math.min(minX, node.position.x);
+        minY = Math.min(minY, node.position.y);
+        maxX = Math.max(maxX, node.position.x + node.size.width);
+        maxY = Math.max(maxY, node.position.y + node.size.height);
+      }
+
       const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
       const canvasSize: CanvasSize = { width: rect.width, height: rect.height };
-      const worldPos = minimapToWorld({ x: mouseX, y: mouseY }, state.nodes, state.viewport, canvasSize);
-      state.setViewport({ ...state.viewport, x: worldPos.x, y: worldPos.y });
+      const vpHalfW = canvasSize.width / 2 / state.viewport.zoom;
+      const vpHalfH = canvasSize.height / 2 / state.viewport.zoom;
+
+      if (state.nodes.length > 0) {
+        minX = Math.min(minX, state.viewport.x - vpHalfW) - 50;
+        minY = Math.min(minY, state.viewport.y - vpHalfH) - 50;
+        maxX = Math.max(maxX, state.viewport.x + vpHalfW) + 50;
+        maxY = Math.max(maxY, state.viewport.y + vpHalfH) + 50;
+      } else {
+        minX = state.viewport.x - vpHalfW - 50;
+        maxX = state.viewport.x + vpHalfW + 50;
+      }
+
+      const worldW = maxX - minX;
+      const worldH = maxY - minY;
+      const scale = Math.min(MINIMAP_INNER / worldW, MINIMAP_INNER / (worldH || 1));
+
+      // 마우스 델타를 월드 델타로 변환
+      const worldDx = dx / scale;
+      const worldDy = dy / scale;
+
+      state.setViewport({
+        ...state.viewport,
+        x: state.viewport.x + worldDx,
+        y: state.viewport.y + worldDy,
+      });
     } else if (dragModeRef.current === 'resize' && resizeRef.current) {
       // 노드 리사이즈
       const resize = resizeRef.current;
@@ -1126,6 +1169,13 @@ export function FlowCanvas() {
 
       // 입력 중일 때는 Ctrl/Cmd 조합 외의 단축키 무시
       if (isInputFocused && !e.ctrlKey && !e.metaKey) {
+        return;
+      }
+
+      // Space = Pan 모드 (Figma 스타일)
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault();
+        setSpacePressed(true);
         return;
       }
 
@@ -1703,8 +1753,19 @@ export function FlowCanvas() {
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Space 해제
+      if (e.code === 'Space') {
+        setSpacePressed(false);
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, []);
 
   // 우클릭 컨텍스트 메뉴
@@ -2102,7 +2163,7 @@ export function FlowCanvas() {
           height: '100%',
           display: 'block',
           background: '#1e1e1e',
-          cursor: dragModeRef.current !== 'none' ? 'grabbing' : cursorStyle,
+          cursor: dragModeRef.current !== 'none' ? 'grabbing' : (spacePressed ? 'grab' : cursorStyle),
         }}
       />
       {/* 노드 인라인 위젯 */}
