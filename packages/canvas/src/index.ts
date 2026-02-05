@@ -7,7 +7,7 @@ export { snapToHalfPixel, snapLineCoords } from './renderer/types';
 export { screenToWorld, worldToScreen, getViewportBounds } from './viewport/transform';
 
 // Rendering
-export { drawNode, drawNodes, NODE_STYLE } from './rendering/drawNode';
+export { drawNode, drawNodes, NODE_STYLE, type CompatiblePorts } from './rendering/drawNode';
 export { drawEdge, drawEdges, drawTempEdge, getPortPosition, type EdgeStyle } from './rendering/drawEdge';
 export { drawGrid } from './rendering/drawGrid';
 export { drawMinimap, isInMinimap, minimapToWorld, MINIMAP } from './rendering/drawMinimap';

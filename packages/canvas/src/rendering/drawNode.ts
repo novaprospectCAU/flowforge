@@ -10,11 +10,20 @@ const NODE_COLORS = {
   text: { r: 255, g: 255, b: 255, a: 255 } as Color,
   port: { r: 160, g: 160, b: 165, a: 255 } as Color,
   portHover: { r: 100, g: 180, b: 255, a: 255 } as Color,
+  portCompatible: { r: 72, g: 199, b: 142, a: 255 } as Color,  // 연결 가능 (초록)
+  portIncompatible: { r: 100, g: 100, b: 105, a: 100 } as Color,  // 연결 불가 (어두움)
   // 실행 상태 색상
   running: { r: 255, g: 193, b: 7, a: 255 } as Color,   // 노란색
   success: { r: 40, g: 167, b: 69, a: 255 } as Color,   // 초록색
   error: { r: 220, g: 53, b: 69, a: 255 } as Color,     // 빨간색
 };
+
+// 연결 가능한 포트 정보
+export interface CompatiblePorts {
+  nodeId: string;
+  portIds: Set<string>;
+  isOutput: boolean;
+}
 
 export const NODE_STYLE = {
   borderRadius: 8,
@@ -32,7 +41,9 @@ export function drawNode(
   renderer: IRenderer,
   node: FlowNode,
   selected: boolean = false,
-  execStatus?: ExecutionStatus
+  execStatus?: ExecutionStatus,
+  compatiblePorts?: CompatiblePorts | null,
+  hoveredPortId?: string | null
 ): void {
   const { x, y } = node.position;
   const { width, height } = node.size;
@@ -91,18 +102,68 @@ export function drawNode(
     NODE_STYLE.fontSize
   );
 
+  // 연결 중인 경우 호환성 체크
+  const isConnecting = compatiblePorts !== undefined && compatiblePorts !== null;
+  const isCompatibleNode = isConnecting && compatiblePorts.nodeId === node.id;
+
   // 5. 입력 포트 (왼쪽)
   const inputs = node.inputs || [];
   for (let i = 0; i < inputs.length; i++) {
+    const port = inputs[i];
     const portY = y + NODE_STYLE.headerHeight + NODE_STYLE.portSpacing * (i + 0.5);
-    renderer.drawCircle(x, portY, NODE_STYLE.portRadius, NODE_COLORS.port);
+
+    let portColor = NODE_COLORS.port;
+
+    if (isConnecting) {
+      // 연결 중일 때: 출력 포트에서 드래그 중이면 입력 포트만 표시
+      if (!compatiblePorts.isOutput) {
+        // 입력에서 드래그 중이면 입력 포트는 흐리게
+        portColor = NODE_COLORS.portIncompatible;
+      } else if (isCompatibleNode && compatiblePorts.portIds.has(port.id)) {
+        // 호환 가능한 입력 포트
+        portColor = NODE_COLORS.portCompatible;
+      } else if (isCompatibleNode) {
+        // 같은 노드의 비호환 포트
+        portColor = NODE_COLORS.portIncompatible;
+      }
+    }
+
+    // 호버 상태
+    if (hoveredPortId === port.id) {
+      portColor = NODE_COLORS.portHover;
+    }
+
+    renderer.drawCircle(x, portY, NODE_STYLE.portRadius, portColor);
   }
 
   // 6. 출력 포트 (오른쪽)
   const outputs = node.outputs || [];
   for (let i = 0; i < outputs.length; i++) {
+    const port = outputs[i];
     const portY = y + NODE_STYLE.headerHeight + NODE_STYLE.portSpacing * (i + 0.5);
-    renderer.drawCircle(x + width, portY, NODE_STYLE.portRadius, NODE_COLORS.port);
+
+    let portColor = NODE_COLORS.port;
+
+    if (isConnecting) {
+      // 연결 중일 때: 입력 포트에서 드래그 중이면 출력 포트만 표시
+      if (compatiblePorts.isOutput) {
+        // 출력에서 드래그 중이면 출력 포트는 흐리게
+        portColor = NODE_COLORS.portIncompatible;
+      } else if (isCompatibleNode && compatiblePorts.portIds.has(port.id)) {
+        // 호환 가능한 출력 포트
+        portColor = NODE_COLORS.portCompatible;
+      } else if (isCompatibleNode) {
+        // 같은 노드의 비호환 포트
+        portColor = NODE_COLORS.portIncompatible;
+      }
+    }
+
+    // 호버 상태
+    if (hoveredPortId === port.id) {
+      portColor = NODE_COLORS.portHover;
+    }
+
+    renderer.drawCircle(x + width, portY, NODE_STYLE.portRadius, portColor);
   }
 }
 
@@ -113,10 +174,14 @@ export function drawNodes(
   renderer: IRenderer,
   nodes: FlowNode[],
   selectedIds: Set<string> = new Set(),
-  nodeExecStates?: Map<string, ExecutionStatus>
+  nodeExecStates?: Map<string, ExecutionStatus>,
+  compatiblePortsMap?: Map<string, CompatiblePorts> | null,
+  hoveredPortInfo?: { nodeId: string; portId: string } | null
 ): void {
   for (const node of nodes) {
     const execStatus = nodeExecStates?.get(node.id);
-    drawNode(renderer, node, selectedIds.has(node.id), execStatus);
+    const compatiblePorts = compatiblePortsMap?.get(node.id) || null;
+    const hoveredPortId = hoveredPortInfo?.nodeId === node.id ? hoveredPortInfo.portId : null;
+    drawNode(renderer, node, selectedIds.has(node.id), execStatus, compatiblePorts, hoveredPortId);
   }
 }

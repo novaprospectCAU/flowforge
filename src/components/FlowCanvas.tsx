@@ -24,6 +24,7 @@ import {
   type EdgeStyle,
   type ResizeHandle,
   type SnapLine,
+  type CompatiblePorts,
   exportFlowToImage,
   downloadImage,
 } from '@flowforge/canvas';
@@ -130,6 +131,8 @@ export function FlowCanvas() {
     nodes: FlowNode[];
     edges: FlowEdge[];
   } | null>(null);
+  // 연결 프리뷰 - 호환 가능한 포트
+  const compatiblePortsMapRef = useRef<Map<string, CompatiblePorts> | null>(null);
   const [, forceRender] = useState(0);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -441,7 +444,7 @@ export function FlowCanvas() {
         nodeExecStates.set(nodeId, nodeState.status);
       }
     }
-    drawNodes(renderer, state.nodes, selectedIds, nodeExecStates);
+    drawNodes(renderer, state.nodes, selectedIds, nodeExecStates, compatiblePortsMapRef.current);
 
     // 스냅 라인 (노드 드래그 중에만)
     if (dragModeRef.current === 'node' && snapLinesRef.current.length > 0) {
@@ -564,6 +567,48 @@ export function FlowCanvas() {
         startPort: hitPort,
         currentPos: worldPos,
       };
+
+      // 호환 가능한 포트 계산
+      const compatibleMap = new Map<string, CompatiblePorts>();
+      const sourceNode = hitPort.node;
+      const isOutput = hitPort.isOutput;
+
+      for (const node of state.nodes) {
+        if (node.id === sourceNode.id) continue; // 같은 노드 제외
+
+        // 출력에서 드래그 중이면 다른 노드의 입력 포트만 대상
+        // 입력에서 드래그 중이면 다른 노드의 출력 포트만 대상
+        const targetPorts = isOutput ? node.inputs : node.outputs;
+        if (!targetPorts || targetPorts.length === 0) continue;
+
+        const portIds = new Set<string>();
+        for (const port of targetPorts) {
+          // 이미 연결된 포트인지 확인 (입력 포트는 하나의 연결만 허용)
+          if (!isOutput) {
+            // 입력에서 드래그 → 출력 포트 대상
+            portIds.add(port.id);
+          } else {
+            // 출력에서 드래그 → 입력 포트 대상
+            // 이미 연결된 입력 포트는 제외
+            const alreadyConnected = state.edges.some(
+              e => e.target === node.id && e.targetPort === port.id
+            );
+            if (!alreadyConnected) {
+              portIds.add(port.id);
+            }
+          }
+        }
+
+        if (portIds.size > 0) {
+          compatibleMap.set(node.id, {
+            nodeId: node.id,
+            portIds,
+            isOutput,
+          });
+        }
+      }
+
+      compatiblePortsMapRef.current = compatibleMap;
       return;
     }
 
@@ -856,6 +901,7 @@ export function FlowCanvas() {
       }
 
       edgeDragRef.current = null;
+      compatiblePortsMapRef.current = null; // 호환 포트 맵 정리
     }
 
     // 박스 선택 완료 시 노드 선택
