@@ -673,6 +673,7 @@ export function FlowCanvas() {
       // 클릭 위치로 즉시 이동
       const worldPos = minimapToWorld({ x: mouseX, y: mouseY }, state.nodes, state.viewport, canvasSize);
       state.setViewport({ ...state.viewport, x: worldPos.x, y: worldPos.y });
+      forceRender(n => n + 1); // 위젯 위치 업데이트
       return;
     }
 
@@ -904,6 +905,7 @@ export function FlowCanvas() {
 
     if (dragModeRef.current === 'pan') {
       state.pan(-dx / state.viewport.zoom, -dy / state.viewport.zoom);
+      forceRender(n => n + 1); // 위젯 위치 업데이트를 위해 리렌더 트리거
     } else if (dragModeRef.current === 'node') {
       // 선택된 모든 노드 이동
       const dragPositions = nodeDragPositionsRef.current;
@@ -1023,6 +1025,7 @@ export function FlowCanvas() {
         x: state.viewport.x + worldDx,
         y: state.viewport.y + worldDy,
       });
+      forceRender(n => n + 1); // 위젯 위치 업데이트
     } else if (dragModeRef.current === 'resize' && resizeRef.current) {
       // 노드 리사이즈
       const resize = resizeRef.current;
