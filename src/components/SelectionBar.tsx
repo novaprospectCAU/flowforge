@@ -1,5 +1,6 @@
 import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
+import { useTheme } from '../hooks/useTheme';
 
 interface SelectionBarProps {
   selectedCount: number;
@@ -34,11 +35,109 @@ export function SelectionBar({
 }: SelectionBarProps) {
   const lang = useLanguage();
   const t = uiTranslations[lang];
+  const { colors } = useTheme();
 
   if (selectedCount < 2) return null;
 
+  const styles: Record<string, React.CSSProperties> = {
+    container: {
+      position: 'absolute',
+      bottom: 16,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 8,
+      padding: '8px 12px',
+      zIndex: 100,
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    },
+    info: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+    },
+    count: {
+      background: colors.accent,
+      color: '#ffffff',
+      fontSize: 12,
+      fontWeight: 600,
+      padding: '2px 8px',
+      borderRadius: 10,
+      minWidth: 20,
+      textAlign: 'center',
+    },
+    label: {
+      color: colors.textMuted,
+      fontSize: 12,
+    },
+    divider: {
+      width: 1,
+      height: 24,
+      background: colors.border,
+    },
+    group: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4,
+    },
+    groupLabel: {
+      color: colors.textMuted,
+      fontSize: 10,
+      textTransform: 'uppercase',
+      marginRight: 4,
+    },
+    button: {
+      width: 28,
+      height: 28,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'transparent',
+      border: '1px solid transparent',
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 14,
+      cursor: 'pointer',
+    },
+    actionButton: {
+      padding: '6px 12px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 11,
+      cursor: 'pointer',
+    },
+    deleteButton: {
+      background: colors.error + '22',
+      borderColor: colors.error + '44',
+      color: colors.error,
+    },
+    spacer: {
+      flex: 1,
+      minWidth: 8,
+    },
+    closeButton: {
+      width: 24,
+      height: 24,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'transparent',
+      border: 'none',
+      borderRadius: 4,
+      color: colors.textMuted,
+      fontSize: 16,
+      cursor: 'pointer',
+    },
+  };
+
   return (
-    <div style={styles.container}>
+    <div style={styles.container} role="toolbar" aria-label="Selection actions">
       <div style={styles.info}>
         <span style={styles.count}>{selectedCount}</span>
         <span style={styles.label}>
@@ -49,15 +148,15 @@ export function SelectionBar({
       <div style={styles.divider} />
 
       {/* 정렬 버튼 */}
-      <div style={styles.group}>
+      <div style={styles.group} role="group" aria-label={lang === 'en' ? 'Alignment' : '정렬'}>
         <span style={styles.groupLabel}>{lang === 'en' ? 'Align' : '정렬'}</span>
-        <button onClick={onAlignLeft} style={styles.button} title={`${t.alignLeft} (Alt+←)`}>
+        <button onClick={onAlignLeft} style={styles.button} title={`${t.alignLeft} (Alt+←)`} aria-label={t.alignLeft}>
           ⫷
         </button>
-        <button onClick={onAlignCenter} style={styles.button} title={t.alignCenter}>
+        <button onClick={onAlignCenter} style={styles.button} title={t.alignCenter} aria-label={t.alignCenter}>
           ⫿
         </button>
-        <button onClick={onAlignRight} style={styles.button} title={`${t.alignRight} (Alt+→)`}>
+        <button onClick={onAlignRight} style={styles.button} title={`${t.alignRight} (Alt+→)`} aria-label={t.alignRight}>
           ⫸
         </button>
       </div>
@@ -65,12 +164,12 @@ export function SelectionBar({
       {selectedCount >= 3 && (
         <>
           <div style={styles.divider} />
-          <div style={styles.group}>
+          <div style={styles.group} role="group" aria-label={lang === 'en' ? 'Distribution' : '분배'}>
             <span style={styles.groupLabel}>{lang === 'en' ? 'Distribute' : '분배'}</span>
-            <button onClick={onDistributeH} style={styles.button} title={`${t.distributeH} (Ctrl+Shift+H)`}>
+            <button onClick={onDistributeH} style={styles.button} title={`${t.distributeH} (Ctrl+Shift+H)`} aria-label={t.distributeH}>
               ⋯
             </button>
-            <button onClick={onDistributeV} style={styles.button} title={`${t.distributeV} (Ctrl+Shift+V)`}>
+            <button onClick={onDistributeV} style={styles.button} title={`${t.distributeV} (Ctrl+Shift+V)`} aria-label={t.distributeV}>
               ⋮
             </button>
           </div>
@@ -89,7 +188,7 @@ export function SelectionBar({
       <div style={styles.divider} />
 
       {/* 액션 버튼 */}
-      <div style={styles.group}>
+      <div style={styles.group} role="group" aria-label={lang === 'en' ? 'Actions' : '작업'}>
         {hasGroup ? (
           <button onClick={onUngroup} style={styles.actionButton} title={lang === 'en' ? 'Ungroup (Ctrl+Shift+U)' : '그룹 해제 (Ctrl+Shift+U)'}>
             {lang === 'en' ? 'Ungroup' : '그룹 해제'}
@@ -109,106 +208,9 @@ export function SelectionBar({
 
       <div style={styles.spacer} />
 
-      <button onClick={onDeselect} style={styles.closeButton} title={lang === 'en' ? 'Deselect (Esc)' : '선택 해제 (Esc)'}>
+      <button onClick={onDeselect} style={styles.closeButton} title={lang === 'en' ? 'Deselect (Esc)' : '선택 해제 (Esc)'} aria-label={lang === 'en' ? 'Deselect all' : '선택 해제'}>
         ×
       </button>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'absolute',
-    bottom: 16,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 8,
-    padding: '8px 12px',
-    zIndex: 100,
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-  },
-  info: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-  },
-  count: {
-    background: '#0078d4',
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 600,
-    padding: '2px 8px',
-    borderRadius: 10,
-    minWidth: 20,
-    textAlign: 'center',
-  },
-  label: {
-    color: '#a0a0a0',
-    fontSize: 12,
-  },
-  divider: {
-    width: 1,
-    height: 24,
-    background: '#3c3c3c',
-  },
-  group: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-  },
-  groupLabel: {
-    color: '#808080',
-    fontSize: 10,
-    textTransform: 'uppercase',
-    marginRight: 4,
-  },
-  button: {
-    width: 28,
-    height: 28,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'transparent',
-    border: '1px solid transparent',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 14,
-    cursor: 'pointer',
-  },
-  actionButton: {
-    padding: '6px 12px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 11,
-    cursor: 'pointer',
-  },
-  deleteButton: {
-    background: '#5a2d2d',
-    borderColor: '#7a3d3d',
-    color: '#ff6b6b',
-  },
-  spacer: {
-    flex: 1,
-    minWidth: 8,
-  },
-  closeButton: {
-    width: 24,
-    height: 24,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 4,
-    color: '#808080',
-    fontSize: 16,
-    cursor: 'pointer',
-  },
-};

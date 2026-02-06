@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FlowNode } from '@flowforge/types';
 import { useLanguage } from '../i18n';
+import { useTheme } from '../hooks/useTheme';
 
 interface SearchDialogProps {
   nodes: FlowNode[];
@@ -14,6 +15,7 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const lang = useLanguage();
+  const { colors } = useTheme();
 
   const filteredNodes = search
     ? nodes.filter(node => {
@@ -59,8 +61,97 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
     }
   };
 
+  const styles: Record<string, React.CSSProperties> = {
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: colors.bgOverlay,
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      paddingTop: 100,
+      zIndex: 1000,
+    },
+    dialog: {
+      width: 400,
+      maxHeight: 500,
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 8,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    header: {
+      padding: 12,
+      borderBottom: `1px solid ${colors.border}`,
+    },
+    input: {
+      width: '100%',
+      padding: '10px 14px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 6,
+      color: colors.textPrimary,
+      fontSize: 14,
+      outline: 'none',
+      boxSizing: 'border-box',
+    },
+    list: {
+      flex: 1,
+      overflowY: 'auto',
+      maxHeight: 350,
+    },
+    item: {
+      padding: '10px 14px',
+      cursor: 'pointer',
+      borderBottom: `1px solid ${colors.bgTertiary}`,
+    },
+    itemTitle: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: 500,
+      marginBottom: 4,
+    },
+    itemMeta: {
+      display: 'flex',
+      gap: 12,
+    },
+    itemType: {
+      color: colors.textMuted,
+      fontSize: 12,
+    },
+    itemId: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontFamily: 'monospace',
+      opacity: 0.7,
+    },
+    empty: {
+      padding: 24,
+      textAlign: 'center',
+      color: colors.textMuted,
+      fontSize: 14,
+    },
+    footer: {
+      padding: '8px 12px',
+      borderTop: `1px solid ${colors.border}`,
+      display: 'flex',
+      gap: 16,
+      justifyContent: 'center',
+    },
+    hint: {
+      color: colors.textMuted,
+      fontSize: 11,
+    },
+  };
+
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div style={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="search-title">
       <div style={styles.dialog} onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
         <div style={styles.header}>
           <input
@@ -70,9 +161,10 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={styles.input}
+            aria-label={lang === 'en' ? 'Search nodes' : '노드 검색'}
           />
         </div>
-        <div ref={listRef} style={styles.list}>
+        <div ref={listRef} style={styles.list} role="listbox">
           {filteredNodes.length > 0 ? (
             filteredNodes.map((node, index) => {
               const isSelected = index === selectedIndex;
@@ -84,8 +176,10 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
                   onMouseEnter={() => setSelectedIndex(index)}
                   style={{
                     ...styles.item,
-                    background: isSelected ? '#094771' : 'transparent',
+                    background: isSelected ? colors.accent + '44' : 'transparent',
                   }}
+                  role="option"
+                  aria-selected={isSelected}
                 >
                   <div style={styles.itemTitle}>{title}</div>
                   <div style={styles.itemMeta}>
@@ -112,91 +206,3 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    paddingTop: 100,
-    zIndex: 1000,
-  },
-  dialog: {
-    width: 400,
-    maxHeight: 500,
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 8,
-    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  header: {
-    padding: 12,
-    borderBottom: '1px solid #3c3c3c',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 14px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 6,
-    color: '#ffffff',
-    fontSize: 14,
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
-  list: {
-    flex: 1,
-    overflowY: 'auto',
-    maxHeight: 350,
-  },
-  item: {
-    padding: '10px 14px',
-    cursor: 'pointer',
-    borderBottom: '1px solid #2d2d2d',
-  },
-  itemTitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 500,
-    marginBottom: 4,
-  },
-  itemMeta: {
-    display: 'flex',
-    gap: 12,
-  },
-  itemType: {
-    color: '#808080',
-    fontSize: 12,
-  },
-  itemId: {
-    color: '#606060',
-    fontSize: 12,
-    fontFamily: 'monospace',
-  },
-  empty: {
-    padding: 24,
-    textAlign: 'center',
-    color: '#808080',
-    fontSize: 14,
-  },
-  footer: {
-    padding: '8px 12px',
-    borderTop: '1px solid #3c3c3c',
-    display: 'flex',
-    gap: 16,
-    justifyContent: 'center',
-  },
-  hint: {
-    color: '#606060',
-    fontSize: 11,
-  },
-};

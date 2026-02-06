@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTheme } from '../hooks/useTheme';
 
 interface ZoomControlsProps {
   zoom: number;
@@ -27,6 +28,7 @@ export function ZoomControls({
   onFitView,
   onZoomTo,
 }: ZoomControlsProps) {
+  const { colors } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const zoomPercent = Math.round(zoom * 100);
@@ -57,12 +59,93 @@ export function ZoomControls({
     setShowDropdown(false);
   };
 
+  const styles: Record<string, React.CSSProperties> = {
+    container: {
+      position: 'absolute',
+      bottom: 16,
+      left: 16,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 2,
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 6,
+      padding: 4,
+      zIndex: 100,
+    },
+    button: {
+      width: 32,
+      height: 28,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'transparent',
+      border: 'none',
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 16,
+      cursor: 'pointer',
+      transition: 'background 0.15s',
+    },
+    zoomLevel: {
+      minWidth: 58,
+      height: 28,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'transparent',
+      border: 'none',
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontFamily: 'monospace',
+      cursor: 'pointer',
+    },
+    divider: {
+      width: 1,
+      height: 20,
+      background: colors.border,
+      margin: '0 4px',
+    },
+    dropdown: {
+      position: 'absolute',
+      bottom: '100%',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      marginBottom: 8,
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 6,
+      padding: 4,
+      minWidth: 100,
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    },
+    dropdownItem: {
+      width: '100%',
+      padding: '8px 12px',
+      display: 'block',
+      background: 'transparent',
+      border: 'none',
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 12,
+      textAlign: 'left',
+      cursor: 'pointer',
+    },
+    dropdownDivider: {
+      height: 1,
+      background: colors.border,
+      margin: '4px 0',
+    },
+  };
+
   return (
     <div style={styles.container}>
       <button
         onClick={onZoomOut}
         style={styles.button}
         title="Zoom Out (Scroll Down)"
+        aria-label="Zoom out"
       >
         −
       </button>
@@ -71,24 +154,27 @@ export function ZoomControls({
           onClick={() => setShowDropdown(!showDropdown)}
           style={{
             ...styles.zoomLevel,
-            background: showDropdown ? '#3c3c3c' : 'transparent',
+            background: showDropdown ? colors.bgHover : 'transparent',
           }}
           title="Click for zoom presets"
+          aria-label={`Zoom level ${zoomPercent}%`}
+          aria-expanded={showDropdown}
         >
           {zoomPercent}%
           <span style={{ fontSize: 8, marginLeft: 4, opacity: 0.6 }}>▼</span>
         </button>
         {showDropdown && (
-          <div style={styles.dropdown}>
+          <div style={styles.dropdown} role="menu">
             {ZOOM_PRESETS.map((preset) => (
               <button
                 key={preset.value}
                 onClick={() => handleZoomPreset(preset.value)}
                 style={{
                   ...styles.dropdownItem,
-                  background: Math.abs(zoom - preset.value) < 0.01 ? '#3c3c3c' : 'transparent',
+                  background: Math.abs(zoom - preset.value) < 0.01 ? colors.bgHover : 'transparent',
                   fontWeight: Math.abs(zoom - preset.value) < 0.01 ? 600 : 400,
                 }}
+                role="menuitem"
               >
                 {preset.label}
               </button>
@@ -100,6 +186,7 @@ export function ZoomControls({
                 setShowDropdown(false);
               }}
               style={styles.dropdownItem}
+              role="menuitem"
             >
               Fit to View
             </button>
@@ -110,6 +197,7 @@ export function ZoomControls({
         onClick={onZoomIn}
         style={styles.button}
         title="Zoom In (Scroll Up)"
+        aria-label="Zoom in"
       >
         +
       </button>
@@ -118,89 +206,10 @@ export function ZoomControls({
         onClick={onFitView}
         style={styles.button}
         title="Fit View (F)"
+        aria-label="Fit view"
       >
         ⊡
       </button>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 2,
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 6,
-    padding: 4,
-    zIndex: 100,
-  },
-  button: {
-    width: 32,
-    height: 28,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 16,
-    cursor: 'pointer',
-    transition: 'background 0.15s',
-  },
-  zoomLevel: {
-    minWidth: 58,
-    height: 28,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 12,
-    fontFamily: 'monospace',
-    cursor: 'pointer',
-  },
-  divider: {
-    width: 1,
-    height: 20,
-    background: '#3c3c3c',
-    margin: '0 4px',
-  },
-  dropdown: {
-    position: 'absolute',
-    bottom: '100%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    marginBottom: 8,
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 6,
-    padding: 4,
-    minWidth: 100,
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-  },
-  dropdownItem: {
-    width: '100%',
-    padding: '8px 12px',
-    display: 'block',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 12,
-    textAlign: 'left',
-    cursor: 'pointer',
-  },
-  dropdownDivider: {
-    height: 1,
-    background: '#3c3c3c',
-    margin: '4px 0',
-  },
-};
