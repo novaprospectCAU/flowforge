@@ -3161,6 +3161,24 @@ export function FlowCanvas() {
           saveStatus={saveStatus}
           snapToGrid={snapToGrid}
           onToggleSnap={() => setSnapToGrid(prev => !prev)}
+          onSearch={() => setShowSearch(true)}
+          onTemplates={() => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const store = storeRef.current;
+            if (!store) return;
+            const worldPos = screenToWorld(
+              { x: rect.width / 2, y: rect.height / 2 },
+              store.getState().viewport,
+              { width: rect.width, height: rect.height }
+            );
+            setTemplateBrowser({
+              x: rect.left + rect.width / 2 - 150,
+              y: rect.top + rect.height / 2 - 200,
+              worldPos,
+            });
+          }}
         />
       )}
       {/* 터치 기기에서 화면 중심 버튼 (미니맵 대체) */}
