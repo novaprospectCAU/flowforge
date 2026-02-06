@@ -128,6 +128,7 @@ export function FlowCanvas() {
     nodes: FlowNode[];
     edges: FlowEdge[];
     groups: NodeGroup[];
+    comments: Comment[];
   } | null>(null);
   // 연결 프리뷰 - 호환 가능한 포트
   const compatiblePortsMapRef = useRef<Map<string, CompatiblePorts> | null>(null);
@@ -1954,7 +1955,10 @@ export function FlowCanvas() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         e.preventDefault();
         const selectedIds = selectedNodeIdsRef.current;
-        if (selectedIds.size === 0) return;
+        const selectedCommentId = selectedCommentIdRef.current;
+
+        // 노드나 코멘트가 선택되어야 복사 가능
+        if (selectedIds.size === 0 && !selectedCommentId) return;
 
         const state = store.getState();
         const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
@@ -1970,10 +1974,35 @@ export function FlowCanvas() {
           g => g.nodeIds.length > 0 && g.nodeIds.every(id => selectedNodeIds.has(id))
         );
 
+        // 코멘트 복사: 선택된 코멘트 또는 선택된 노드들의 바운딩 박스 내 코멘트
+        let selectedComments: Comment[] = [];
+        if (selectedCommentId) {
+          const comment = state.comments.find(c => c.id === selectedCommentId);
+          if (comment) {
+            selectedComments = [comment];
+          }
+        } else if (selectedNodes.length > 0) {
+          // 선택된 노드들의 바운딩 박스 계산
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const node of selectedNodes) {
+            minX = Math.min(minX, node.position.x);
+            minY = Math.min(minY, node.position.y);
+            maxX = Math.max(maxX, node.position.x + node.size.width);
+            maxY = Math.max(maxY, node.position.y + node.size.height);
+          }
+          // 바운딩 박스 내 코멘트 찾기
+          selectedComments = state.comments.filter(c => {
+            const cx = c.position.x + c.size.width / 2;
+            const cy = c.position.y + c.size.height / 2;
+            return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
+          });
+        }
+
         clipboardRef.current = {
           nodes: selectedNodes,
           edges: selectedEdges,
           groups: selectedGroups,
+          comments: selectedComments,
         };
         return;
       }
@@ -1981,21 +2010,30 @@ export function FlowCanvas() {
       // Paste: Ctrl+V / Cmd+V
       if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
         e.preventDefault();
-        if (!clipboardRef.current || clipboardRef.current.nodes.length === 0) return;
+        if (!clipboardRef.current) return;
+
+        const { nodes: copiedNodes, edges: copiedEdges, groups: copiedGroups, comments: copiedComments } = clipboardRef.current;
+
+        // 노드나 코멘트가 있어야 붙여넣기 가능
+        if (copiedNodes.length === 0 && copiedComments.length === 0) return;
 
         const state = store.getState();
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const { nodes: copiedNodes, edges: copiedEdges, groups: copiedGroups } = clipboardRef.current;
-
-        // 복사된 노드들의 바운딩 박스 중앙 계산
+        // 복사된 모든 요소의 바운딩 박스 중앙 계산
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         for (const node of copiedNodes) {
           minX = Math.min(minX, node.position.x);
           minY = Math.min(minY, node.position.y);
           maxX = Math.max(maxX, node.position.x + node.size.width);
           maxY = Math.max(maxY, node.position.y + node.size.height);
+        }
+        for (const comment of copiedComments) {
+          minX = Math.min(minX, comment.position.x);
+          minY = Math.min(minY, comment.position.y);
+          maxX = Math.max(maxX, comment.position.x + comment.size.width);
+          maxY = Math.max(maxY, comment.position.y + comment.size.height);
         }
         const copiedCenterX = (minX + maxX) / 2;
         const copiedCenterY = (minY + maxY) / 2;
@@ -2066,8 +2104,33 @@ export function FlowCanvas() {
           }
         }
 
+        // 코멘트 추가
+        const newComments: Comment[] = [];
+        const commentIdMap = new Map<string, string>();
+        for (const comment of copiedComments) {
+          const newId = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          commentIdMap.set(comment.id, newId);
+          const now = Date.now();
+          const newComment: Comment = {
+            ...comment,
+            id: newId,
+            position: {
+              x: comment.position.x + offsetX,
+              y: comment.position.y + offsetY,
+            },
+            createdAt: now,
+            updatedAt: now,
+          };
+          newComments.push(newComment);
+          state.addComment(newComment);
+        }
+
         // 새로 붙여넣은 노드들 선택
         setSelectedNodes(new Set(newNodeIds));
+        // 코멘트만 복사한 경우, 첫 번째 코멘트 선택
+        if (newNodeIds.length === 0 && newComments.length > 0) {
+          selectedCommentIdRef.current = newComments[0].id;
+        }
 
         // 클립보드 위치 업데이트 (연속 붙여넣기 시 계속 오프셋)
         clipboardRef.current = {
@@ -2081,6 +2144,7 @@ export function FlowCanvas() {
             ...g,
             nodeIds: g.nodeIds.map(id => idMap.get(id) || id),
           })),
+          comments: newComments,
         };
         return;
       }
@@ -2089,7 +2153,10 @@ export function FlowCanvas() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
         const selectedIds = selectedNodeIdsRef.current;
-        if (selectedIds.size === 0) return;
+        const selectedCommentId = selectedCommentIdRef.current;
+
+        // 노드나 코멘트가 선택되어야 복제 가능
+        if (selectedIds.size === 0 && !selectedCommentId) return;
 
         const state = store.getState();
         const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
@@ -2097,6 +2164,28 @@ export function FlowCanvas() {
         const selectedEdges = state.edges.filter(
           e => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
         );
+
+        // 코멘트 선택: 선택된 코멘트 또는 선택된 노드들의 바운딩 박스 내 코멘트
+        let commentsToDuplicate: Comment[] = [];
+        if (selectedCommentId) {
+          const comment = state.comments.find(c => c.id === selectedCommentId);
+          if (comment) {
+            commentsToDuplicate = [comment];
+          }
+        } else if (selectedNodes.length > 0) {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const node of selectedNodes) {
+            minX = Math.min(minX, node.position.x);
+            minY = Math.min(minY, node.position.y);
+            maxX = Math.max(maxX, node.position.x + node.size.width);
+            maxY = Math.max(maxY, node.position.y + node.size.height);
+          }
+          commentsToDuplicate = state.comments.filter(c => {
+            const cx = c.position.x + c.size.width / 2;
+            const cy = c.position.y + c.size.height / 2;
+            return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
+          });
+        }
 
         const offset = 30;
         const idMap = new Map<string, string>();
@@ -2132,7 +2221,31 @@ export function FlowCanvas() {
           }
         }
 
-        setSelectedNodes(new Set(newNodeIds));
+        // 코멘트 복제
+        let newCommentId: string | null = null;
+        for (const comment of commentsToDuplicate) {
+          const newId = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          if (!newCommentId) newCommentId = newId;
+          const now = Date.now();
+          state.addComment({
+            ...comment,
+            id: newId,
+            position: {
+              x: comment.position.x + offset,
+              y: comment.position.y + offset,
+            },
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+
+        // 선택 업데이트
+        if (newNodeIds.length > 0) {
+          setSelectedNodes(new Set(newNodeIds));
+        } else if (newCommentId) {
+          selectedCommentIdRef.current = newCommentId;
+          forceRender(n => n + 1);
+        }
         return;
       }
 
