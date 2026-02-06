@@ -137,6 +137,7 @@ export function FlowCanvas() {
     y: number;
     worldPos: Position;
     targetNode: FlowNode | null;
+    targetCommentId?: string;
   } | null>(null);
   const [nodePalette, setNodePalette] = useState<{
     x: number;
@@ -1415,6 +1416,21 @@ export function FlowCanvas() {
         comment: hitComment,
         startPos: { ...hitComment.position },
       };
+
+      // 롱프레스 타이머 (코멘트 삭제 메뉴)
+      longPressTimerRef.current = window.setTimeout(() => {
+        setContextMenu({
+          x: touch.clientX,
+          y: touch.clientY,
+          worldPos,
+          targetNode: null,
+          targetCommentId: hitComment.id,
+        });
+        dragModeRef.current = 'none';
+        commentDragRef.current = null;
+        setIsCanvasDragging(false);
+        longPressTimerRef.current = null;
+      }, 500);
       return;
     }
 
@@ -2634,7 +2650,32 @@ export function FlowCanvas() {
     const store = storeRef.current;
     if (!store || !contextMenu) return [];
 
-    const { worldPos, targetNode } = contextMenu;
+    const { worldPos, targetNode, targetCommentId } = contextMenu;
+
+    // 코멘트 메뉴
+    if (targetCommentId) {
+      return [
+        {
+          label: 'Edit Comment',
+          action: () => {
+            setEditingCommentId(targetCommentId);
+            selectedCommentIdRef.current = targetCommentId;
+            forceRender(n => n + 1);
+          },
+        },
+        { label: '', action: () => {}, divider: true },
+        {
+          label: 'Delete Comment',
+          action: () => {
+            store.getState().deleteComment(targetCommentId);
+            if (selectedCommentIdRef.current === targetCommentId) {
+              selectedCommentIdRef.current = null;
+            }
+            forceRender(n => n + 1);
+          },
+        },
+      ];
+    }
 
     if (targetNode) {
       // 노드 위에서 우클릭
