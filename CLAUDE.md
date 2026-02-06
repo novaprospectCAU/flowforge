@@ -1,57 +1,101 @@
 # FlowForge - AI-Native Node Editor
 
-## 프로젝트 개요
-FlowForge는 AI 워크플로우를 위한 노드 에디터 플랫폼입니다.
-ComfyUI 같은 도구를 목표로 하며, 8주 MVP 일정으로 개발 중입니다.
+## Project Overview
+FlowForge는 AI 워크플로우를 위한 비주얼 노드 에디터입니다.
+ComfyUI와 유사한 인터페이스로 LLM, 이미지 생성 등 AI 작업을 노드로 연결합니다.
 
-## 현재 상태
-- **Week 0.5**: 캔버스 계약 테스트 완료
-- 브라우저에서 개발 중 (Tauri는 나중에)
+## Current Status
+- MVP 기능 대부분 구현 완료
+- 30+ 노드 타입, AI 통합, 서브플로우, 모바일 지원
 
-## 기술 스택
-- Frontend: React 18 + Vite 5 + TypeScript
-- Canvas: WebGPU (primary) + WebGL2/Canvas2D (fallback)
-- State: Yjs + Zustand (Week 1에서 추가)
-- 데스크탑: Tauri (나중에)
+## Tech Stack
+- **Frontend**: React 18 + Vite 5 + TypeScript
+- **State**: Zustand + Yjs (CRDT for undo/redo)
+- **Canvas**: WebGPU (primary) + WebGL2 (fallback)
+- **AI**: OpenAI API, Anthropic API
+- **Storage**: localStorage + IndexedDB (encrypted API keys)
+- **Desktop**: Tauri (optional)
 
-## 프로젝트 구조
+## Project Structure
 ```
 flowforge/
-├── src/                    # React 앱
+├── src/                      # React application
+│   ├── components/           # UI components
+│   │   ├── FlowCanvas.tsx    # Main canvas (3600+ lines)
+│   │   ├── ai/               # AI node widgets
+│   │   ├── ErrorBoundary.tsx # Error handling
+│   │   └── ...
+│   ├── hooks/                # useIsMobile, useIsTouchDevice
+│   └── i18n/                 # Internationalization (en/ko)
 ├── packages/
-│   └── canvas/            # 캔버스 렌더러
+│   ├── canvas/               # Canvas rendering
+│   │   └── src/
+│   │       ├── renderer/     # WebGPU/WebGL2 renderers
+│   │       ├── drawing/      # Node, edge, grid drawing
+│   │       └── viewport/     # Coordinate transforms
+│   └── state/                # State management
 │       └── src/
-│           ├── renderer/  # WebGPU/WebGL2
-│           └── viewport/  # 좌표 변환
+│           ├── store.ts      # Zustand + Yjs store
+│           ├── ai/           # AI providers, key management
+│           ├── execution/    # Flow execution engine
+│           ├── nodeTypes.ts  # Node type definitions
+│           └── performance.ts # Viewport culling, memoization
 ├── shared/
-│   └── types/             # 공유 타입
-└── CLAUDE.md              # 이 파일
+│   └── types/                # Shared TypeScript types
+└── src-tauri/                # Tauri desktop app
 ```
 
-## 주요 파일
-- `shared/types/src/index.ts` - Viewport, FlowNode, FlowEdge 등 핵심 타입
-- `packages/canvas/src/renderer/` - 렌더러 구현
-- `packages/canvas/src/viewport/transform.ts` - 좌표 변환 함수
+## Key Files
+- `src/components/FlowCanvas.tsx` - Main canvas with all interactions
+- `packages/state/src/store.ts` - Yjs + Zustand state management
+- `packages/state/src/nodeTypes.ts` - 30+ node type definitions
+- `packages/state/src/ai/` - AI provider integrations
+- `packages/canvas/src/drawing/` - Canvas rendering functions
 
-## 개발 명령어
-- `npm run dev` - 개발 서버 (http://localhost:1420)
-- `npm run build` - 프로덕션 빌드
-- `npm run typecheck` - 타입 체크
+## Commands
+```bash
+npm run dev        # Dev server (http://localhost:1420)
+npm run build      # Production build
+npm run typecheck  # Type check
+npm run tauri:dev  # Tauri desktop app
+```
 
-## 현재 마일스톤: Week 1
-- [ ] 모노레포 구조 확장 (pnpm workspace)
-- [ ] packages/state 추가 (Yjs + Zustand)
-- [ ] 기본 노드 렌더링
-- [ ] Pan/Zoom 인터랙션
+## Architecture Notes
 
-## 코딩 규칙
+### State Management
+- **Yjs**: CRDT for collaborative editing and undo/redo
+- **Zustand**: React state management, synced with Yjs
+- **UndoManager**: Yjs-based, supports history visualization
+
+### Rendering
+- **WebGPU/WebGL2**: Hardware-accelerated canvas
+- **Viewport culling**: Only render visible nodes (performance.ts)
+- **60fps target**: requestAnimationFrame render loop
+
+### AI Integration
+- API keys encrypted with Web Crypto API, stored in IndexedDB
+- Streaming responses via SSE parsing
+- Supports OpenAI (GPT-4, DALL-E) and Anthropic (Claude)
+
+### Execution Engine
+- Topological sort for dependency resolution
+- Async node execution with streaming support
+- Status visualization (running/success/error)
+
+## Coding Conventions
 - TypeScript strict mode
-- 함수형 컴포넌트 + hooks
-- 타입은 shared/types에 정의
-- 좌표는 CSS px 기준 (DPR은 내부 처리)
+- Functional components with hooks
+- Types in shared/types package
+- CSS-in-JS with inline styles
+- Korean comments allowed
 
-## 참고: v3.4 설계서 핵심
-- Viewport: `{ x, y, zoom }` - 화면 중심의 월드 좌표
-- 좌표 변환: `screenToWorld()`, `worldToScreen()`
-- 렌더러: IRenderer 인터페이스로 추상화
-- 텍스트: 정수 스냅 (half-pixel은 라인만)
+## Keyboard Shortcuts (40+)
+See `src/i18n/translations.ts` for full list.
+Key ones:
+- `Tab` - Node palette
+- `Ctrl+Z/Y` - Undo/Redo
+- `Ctrl+H` - History panel
+- `Ctrl+G` - Group nodes
+- `Ctrl+Shift+G` - Create subflow
+- `Ctrl+Shift+A` - Auto-layout
+- `?` - Shortcuts help

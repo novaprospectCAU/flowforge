@@ -1,100 +1,176 @@
-# FlowForge - Week 0.5 Contract Test
+# FlowForge
 
-FlowForge MVP의 첫 번째 마일스톤: 캔버스 계약 테스트
+**AI-Native Visual Node Editor for Building Workflows**
 
-## 🎯 목표
+FlowForge는 AI 워크플로우를 시각적으로 설계하고 실행할 수 있는 노드 기반 에디터입니다. ComfyUI와 유사한 인터페이스로, LLM 채팅, 이미지 생성 등 다양한 AI 작업을 노드로 연결하여 복잡한 파이프라인을 구축할 수 있습니다.
 
-Week 1 시작 전에 핵심 기술 스택이 동작하는지 검증:
+## Features
 
-1. **렌더러 생성** - WebGPU 또는 WebGL2 fallback
-2. **DPR 반영** - 고해상도 디스플레이 지원
-3. **좌표 변환** - World ↔ Screen 변환 정확성
-4. **기본 렌더링** - 선, 사각형, 원 등 기본 도형
+### Core
+- **Visual Node Editor** - 드래그 앤 드롭으로 노드 연결
+- **Real-time Execution** - 플로우 실행 및 스트리밍 결과 확인
+- **Auto-save** - localStorage 자동 저장
+- **Undo/Redo** - 무제한 실행 취소/다시 실행 (Yjs 기반)
+- **Export/Import** - JSON 파일로 플로우 저장 및 불러오기
 
-## 📦 설치
+### AI Integration
+- **LLM Chat** - OpenAI GPT, Anthropic Claude 지원
+- **Image Generation** - DALL-E 이미지 생성
+- **Prompt Templates** - 변수 치환 템플릿 (`{{variable}}`)
+- **Streaming Response** - 실시간 스트리밍 응답 표시
+- **API Key Management** - 안전한 API 키 저장 (Web Crypto API)
+
+### Node Types (30+)
+| Category | Nodes |
+|----------|-------|
+| **Input** | Number, Text, Image |
+| **AI** | LLM Chat, Image Generate, Prompt Template |
+| **Logic** | Condition, Compare, Gate, Switch |
+| **Text** | Join, Split, Replace, Length, Case |
+| **Data** | JSON Parse/Stringify, Get Property, Array operations |
+| **Utility** | Delay, Debug, Random, Timestamp |
+| **Convert** | To String, To Number, To Boolean |
+| **Process** | Math, Resize, Filter, Merge |
+| **Output** | Display, Save Image |
+
+### Organization
+- **Groups** - 노드 그룹화 및 색상 지정
+- **Subflows** - 노드 그룹을 재사용 가능한 서브플로우로 변환
+- **Templates** - 서브플로우 템플릿 저장 및 재사용
+- **Comments** - 스티키 노트 스타일 코멘트
+
+### UX
+- **Keyboard Shortcuts** - 40+ 단축키 지원
+- **Multi-language** - 한국어/영어 지원
+- **Mobile Support** - 터치 기기 최적화 (핀치 줌, 제스처)
+- **Auto-layout** - 계층적 자동 노드 정렬
+- **Minimap** - 전체 플로우 미니맵
+- **History Panel** - 시각적 Undo/Redo 히스토리
+
+## Installation
 
 ```bash
-# 의존성 설치
+# Clone repository
+git clone https://github.com/novaprospectCAU/flowforge.git
+cd flowforge
+
+# Install dependencies
 npm install
 
-# 개발 서버 실행 (브라우저)
+# Start development server
 npm run dev
+```
 
-# Tauri 앱 실행 (데스크탑)
+브라우저에서 http://localhost:1420 접속
+
+## Keyboard Shortcuts
+
+### General
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+H` | History panel |
+| `Ctrl+S` | Save to file |
+| `Ctrl+O` | Open file |
+| `Ctrl+A` | Select all |
+| `Delete` | Delete selected |
+| `?` / `F1` | Show shortcuts help |
+
+### Nodes
+| Shortcut | Action |
+|----------|--------|
+| `Tab` | Open node palette |
+| `Double-click` | Quick add node |
+| `Ctrl+C/V` | Copy/Paste |
+| `Ctrl+D` | Duplicate |
+| `Ctrl+Shift+A` | Auto-layout selected |
+| `Alt+A` | Auto-layout all |
+
+### Navigation
+| Shortcut | Action |
+|----------|--------|
+| `Space+Drag` | Pan canvas |
+| `Scroll` | Zoom |
+| `F` | Fit view |
+| `Ctrl+0` | Reset zoom |
+
+### Organization
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+G` | Group nodes |
+| `Ctrl+Shift+G` | Create subflow |
+| `Ctrl+Shift+U` | Ungroup |
+| `C` | Add comment |
+| `T` | Template browser |
+
+## Project Structure
+
+```
+flowforge/
+├── src/                      # React application
+│   ├── components/           # UI components
+│   │   ├── FlowCanvas.tsx    # Main canvas component
+│   │   ├── ai/               # AI node widgets
+│   │   └── ...
+│   ├── hooks/                # Custom React hooks
+│   └── i18n/                 # Internationalization
+├── packages/
+│   ├── canvas/               # Canvas rendering engine
+│   │   └── src/
+│   │       ├── renderer/     # WebGPU/WebGL2 renderers
+│   │       ├── drawing/      # Draw functions
+│   │       └── viewport/     # Coordinate transforms
+│   └── state/                # State management
+│       └── src/
+│           ├── store.ts      # Zustand + Yjs store
+│           ├── ai/           # AI providers & executors
+│           ├── execution/    # Flow execution engine
+│           └── performance.ts # Performance utilities
+├── shared/
+│   └── types/                # Shared TypeScript types
+└── src-tauri/                # Tauri desktop app (optional)
+```
+
+## Tech Stack
+
+- **Frontend**: React 18 + TypeScript + Vite 5
+- **State**: Zustand + Yjs (CRDT for undo/redo)
+- **Rendering**: WebGPU (primary) + WebGL2 (fallback)
+- **AI**: OpenAI API, Anthropic API
+- **Storage**: localStorage + IndexedDB (API keys)
+- **Desktop**: Tauri (optional)
+
+## Development
+
+```bash
+# Type check
+npm run typecheck
+
+# Build
+npm run build
+
+# Tauri desktop app (requires Rust)
 npm run tauri:dev
 ```
 
-## 🧪 테스트 항목
+## API Keys Setup
 
-| # | 테스트 | 설명 |
-|---|--------|------|
-| 1 | 렌더러 생성 | WebGPU/WebGL2 초기화 |
-| 2 | WebGPU/WebGL2 지원 | 렌더러 타입 확인 |
-| 3 | DPR 반영 | devicePixelRatio 적용 |
-| 4 | World→Screen 변환 | 좌표 변환 정확성 |
-| 5 | Screen→World 변환 | 역변환 정확성 |
-| 6 | 줌 변환 | 줌 레벨에 따른 변환 |
-| 7 | 포인터 왕복 | Screen→World→Screen |
-| 8 | 줌 레벨별 왕복 | 0.25x ~ 4x 줌에서 왕복 |
-| 9 | 기본 렌더링 | Line, Rect, Circle 등 |
+1. Press `Ctrl+K` or click "API Keys" in toolbar
+2. Add your OpenAI or Anthropic API key
+3. Keys are encrypted and stored locally in IndexedDB
 
-## ✅ 통과 기준
+## Browser Support
 
-- 모든 9개 테스트 통과
-- 창 리사이즈 시 깨짐/깜빡임 없음
-- 다른 모니터 이동 시 DPR 대응
+- Chrome/Edge 113+ (WebGPU)
+- Firefox 120+ (WebGPU behind flag)
+- Safari 17+ (WebGPU)
+- Older browsers fall back to WebGL2
 
-## 📁 프로젝트 구조
+## License
 
-```
-flowforge-week0.5/
-├── src/
-│   ├── main.tsx           # React 진입점
-│   ├── App.tsx            # 메인 앱
-│   └── test/
-│       └── CanvasContractTest.tsx  # 계약 테스트
-├── packages/
-│   └── canvas/
-│       └── src/
-│           ├── index.ts           # 패키지 진입점
-│           ├── renderer/          # 렌더러
-│           │   ├── types.ts
-│           │   ├── WebGPURenderer.ts
-│           │   ├── WebGL2Renderer.ts
-│           │   └── createRenderer.ts
-│           └── viewport/
-│               └── transform.ts   # 좌표 변환
-├── shared/
-│   └── types/
-│       └── src/
-│           └── index.ts           # 공유 타입
-├── src-tauri/                     # Tauri 설정
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
-
-## 🚀 다음 단계
-
-테스트 통과 후:
-
-1. **Week 1**: 모노레포 셋업 + 기본 캔버스 렌더링
-2. **Week 2**: 노드 렌더링 + 인터랙션
-3. **Week 3**: 엣지 연결 + 드래그
-
-## 📝 기술 스택
-
-- **Shell**: Tauri v1.5
-- **Frontend**: React 18 + Vite 5
-- **Rendering**: WebGPU (primary) + WebGL2/Canvas2D (fallback)
-- **Language**: TypeScript 5.3
-
-## 🔧 개발 환경 요구사항
-
-- Node.js 18+
-- Rust 1.70+
-- Tauri CLI (`npm install -g @tauri-apps/cli`)
+MIT
 
 ---
 
-**FlowForge** - AI-Native Node Editor Platform
+**FlowForge** - Build AI workflows visually
