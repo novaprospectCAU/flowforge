@@ -11,6 +11,8 @@ interface MobileToolbarProps {
   isRunning: boolean;
   onHelp: () => void;
   onAPIKeys: () => void;
+  onExport: () => void;
+  onImport: () => void;
   saveStatus: 'saved' | 'saving' | 'unsaved';
   snapToGrid: boolean;
   onToggleSnap: () => void;
@@ -25,6 +27,8 @@ export function MobileToolbar({
   isRunning,
   onHelp,
   onAPIKeys,
+  onExport,
+  onImport,
   saveStatus,
   snapToGrid,
   onToggleSnap,
@@ -124,6 +128,21 @@ export function MobileToolbar({
             >
               <span>API Keys</span>
               <span>🔑</span>
+            </button>
+            <div style={styles.menuDivider} />
+            <button
+              onClick={() => { onExport(); setMenuOpen(false); }}
+              style={styles.menuItem}
+            >
+              <span>{lang === 'en' ? 'Export Flow' : '플로우 내보내기'}</span>
+              <span>↓</span>
+            </button>
+            <button
+              onClick={() => { onImport(); setMenuOpen(false); }}
+              style={styles.menuItem}
+            >
+              <span>{lang === 'en' ? 'Import Flow' : '플로우 가져오기'}</span>
+              <span>↑</span>
             </button>
             <div style={styles.menuDivider} />
             <button

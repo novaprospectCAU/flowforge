@@ -2857,6 +2857,42 @@ export function FlowCanvas() {
           isRunning={isRunning}
           onHelp={() => setShowHelp(true)}
           onAPIKeys={() => setShowAPIKeys(true)}
+          onExport={() => {
+            const store = storeRef.current;
+            if (!store) return;
+            const state = store.getState();
+            downloadFlow(
+              state.nodes,
+              state.edges,
+              state.groups,
+              state.viewport,
+              'flowforge-export.json',
+              state.comments,
+              state.subflows
+            );
+          }}
+          onImport={async () => {
+            try {
+              const flow = await loadFlowFromFile();
+              const store = storeRef.current;
+              if (!store) return;
+              const state = store.getState();
+              state.loadFlow(
+                flow.nodes,
+                flow.edges,
+                flow.groups,
+                flow.viewport,
+                flow.comments,
+                flow.subflows
+              );
+              setSelectedNodes(new Set());
+              selectedCommentIdRef.current = null;
+              selectedSubflowIdRef.current = null;
+              forceRender(n => n + 1);
+            } catch (err) {
+              console.error('Failed to import flow:', err);
+            }
+          }}
           saveStatus={saveStatus}
           snapToGrid={snapToGrid}
           onToggleSnap={() => setSnapToGrid(prev => !prev)}
@@ -3020,6 +3056,75 @@ export function FlowCanvas() {
           </button>
           {/* 언어 선택 */}
           <LanguageSwitcher />
+          {/* 내보내기/가져오기 */}
+          <div style={{ display: 'flex', gap: 2 }}>
+            <button
+              onClick={() => {
+                const store = storeRef.current;
+                if (!store) return;
+                const state = store.getState();
+                downloadFlow(
+                  state.nodes,
+                  state.edges,
+                  state.groups,
+                  state.viewport,
+                  'flowforge-export.json',
+                  state.comments,
+                  state.subflows
+                );
+              }}
+              title="Export Flow (JSON)"
+              style={{
+                padding: '8px 10px',
+                background: '#2d3748',
+                color: '#a0aec0',
+                border: '1px solid #4a5568',
+                borderRadius: '4px 0 0 4px',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              ↓ Export
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const flow = await loadFlowFromFile();
+                  const store = storeRef.current;
+                  if (!store) return;
+                  const state = store.getState();
+                  // 현재 플로우를 새로 불러온 것으로 교체
+                  state.loadFlow(
+                    flow.nodes,
+                    flow.edges,
+                    flow.groups,
+                    flow.viewport,
+                    flow.comments,
+                    flow.subflows
+                  );
+                  setSelectedNodes(new Set());
+                  selectedCommentIdRef.current = null;
+                  selectedSubflowIdRef.current = null;
+                  forceRender(n => n + 1);
+                } catch (err) {
+                  console.error('Failed to import flow:', err);
+                }
+              }}
+              title="Import Flow (JSON)"
+              style={{
+                padding: '8px 10px',
+                background: '#2d3748',
+                color: '#a0aec0',
+                border: '1px solid #4a5568',
+                borderLeft: 'none',
+                borderRadius: '0 4px 4px 0',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              ↑ Import
+            </button>
+          </div>
           {/* API 키 관리 */}
           <button
             onClick={() => setShowAPIKeys(true)}
