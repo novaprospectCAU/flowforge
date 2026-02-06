@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Comment, Viewport, CanvasSize } from '@flowforge/types';
 import { worldToScreen } from '@flowforge/canvas';
 import { useLanguage } from '../i18n';
+import { useTheme } from '../hooks/useTheme';
 
 interface CommentWidgetProps {
   comment: Comment;
@@ -65,6 +66,7 @@ export function CommentWidget({
   const [localText, setLocalText] = useState(comment.text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const language = useLanguage();
+  const { mode } = useTheme();
 
   // 외부 변경 반영
   useEffect(() => {
@@ -162,6 +164,10 @@ export function CommentWidget({
   const padding = 8 * viewport.zoom;
   const timestampHeight = displayTime ? Math.max(14, 18 * viewport.zoom) : 0;
 
+  // Theme-aware colors for comment text (comments are on yellow/light background)
+  const textColor = mode === 'dark' ? '#3c3c3c' : '#2d2d2d';
+  const timestampColor = mode === 'dark' ? '#666' : '#888';
+
   return (
     <div
       style={{
@@ -185,6 +191,7 @@ export function CommentWidget({
         onBlur={handleTextareaBlur}
         onKeyDown={handleKeyDown}
         readOnly={!isEditing}
+        aria-label={language === 'ko' ? '코멘트' : 'Comment'}
         style={{
           flex: 1,
           width: '100%',
@@ -193,7 +200,7 @@ export function CommentWidget({
           fontSize: fontSize,
           fontFamily: 'system-ui, -apple-system, sans-serif',
           lineHeight: 1.4,
-          color: '#3c3c3c',
+          color: textColor,
           backgroundColor: 'transparent',
           border: 'none',
           outline: 'none',
@@ -210,7 +217,7 @@ export function CommentWidget({
             height: timestampHeight,
             padding: `0 ${padding}px ${padding / 2}px`,
             fontSize: Math.max(8, 10 * viewport.zoom),
-            color: '#999',
+            color: timestampColor,
             textAlign: 'right',
             lineHeight: 1,
             pointerEvents: 'none',
