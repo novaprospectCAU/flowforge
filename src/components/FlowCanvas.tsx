@@ -48,6 +48,7 @@ import {
   cullNodesByViewport,
   cullEdgesByViewport,
   cullCommentsByViewport,
+  generateId,
   type FlowStore,
   type NodeTypeDefinition,
   type ExecutionState,
@@ -1296,7 +1297,7 @@ export function FlowCanvas() {
       ) {
         const isFromOutput = startPort.isOutput;
         const newEdge: FlowEdge = {
-          id: `edge-${Date.now()}`,
+          id: generateId('edge'),
           source: isFromOutput ? startPort.node.id : targetPort.node.id,
           sourcePort: isFromOutput ? startPort.port.id : targetPort.port.id,
           target: isFromOutput ? targetPort.node.id : startPort.node.id,
@@ -1771,7 +1772,7 @@ export function FlowCanvas() {
       ) {
         const isFromOutput = startPort.isOutput;
         const newEdge: FlowEdge = {
-          id: `edge-${Date.now()}`,
+          id: generateId('edge'),
           source: isFromOutput ? startPort.node.id : targetPort.node.id,
           sourcePort: isFromOutput ? startPort.port.id : targetPort.port.id,
           target: isFromOutput ? targetPort.node.id : startPort.node.id,
@@ -2173,7 +2174,7 @@ export function FlowCanvas() {
           const newNodeIds: string[] = [];
 
           for (const node of copiedNodes) {
-            const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            const newId = generateId('node');
             idMap.set(node.id, newId);
 
             const newNode: FlowNode = {
@@ -2199,7 +2200,7 @@ export function FlowCanvas() {
             const newTargetId = idMap.get(edge.target);
             if (newSourceId && newTargetId) {
               const newEdge: FlowEdge = {
-                id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                id: generateId('edge'),
                 source: newSourceId,
                 sourcePort: edge.sourcePort,
                 target: newTargetId,
@@ -2219,7 +2220,7 @@ export function FlowCanvas() {
               state.createGroup(group.name, newNodeIdsForGroup, group.color);
               newGroups.push({
                 ...group,
-                id: `group-${Date.now()}`,
+                id: generateId('group'),
                 nodeIds: newNodeIdsForGroup,
               });
             }
@@ -2229,7 +2230,7 @@ export function FlowCanvas() {
           const newComments: Comment[] = [];
           const commentIdMap = new Map<string, string>();
           for (const comment of copiedComments) {
-            const newId = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            const newId = generateId('comment');
             commentIdMap.set(comment.id, newId);
             const now = Date.now();
             const newComment: Comment = {
@@ -2316,7 +2317,7 @@ export function FlowCanvas() {
         const newNodeIds: string[] = [];
 
         for (const node of selectedNodes) {
-          const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          const newId = generateId('node');
           idMap.set(node.id, newId);
 
           const newNode: FlowNode = {
@@ -2336,7 +2337,7 @@ export function FlowCanvas() {
           const newTargetId = idMap.get(edge.target);
           if (newSourceId && newTargetId) {
             state.addEdge({
-              id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              id: generateId('edge'),
               source: newSourceId,
               sourcePort: edge.sourcePort,
               target: newTargetId,
@@ -2348,7 +2349,7 @@ export function FlowCanvas() {
         // 코멘트 복제
         let newCommentId: string | null = null;
         for (const comment of commentsToDuplicate) {
-          const newId = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          const newId = generateId('comment');
           if (!newCommentId) newCommentId = newId;
           const now = Date.now();
           state.addComment({
@@ -2709,7 +2710,7 @@ export function FlowCanvas() {
       if (e.key === 'c' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
         e.preventDefault();
         const state = store.getState();
-        const commentId = `comment-${Date.now()}`;
+        const commentId = generateId('comment');
         const newComment: Comment = {
           id: commentId,
           text: '',
@@ -2897,7 +2898,7 @@ export function FlowCanvas() {
     const aiDefaultData = getAINodeDefaultData(typeDef.type);
 
     const newNode: FlowNode = {
-      id: `node-${Date.now()}`,
+      id: generateId('node'),
       type: typeDef.type,
       position: snapToGridRef.current ? snapPosition(rawPosition) : rawPosition,
       size: typeDef.defaultSize,
@@ -2959,7 +2960,7 @@ export function FlowCanvas() {
           action: () => {
             const newNode: FlowNode = {
               ...targetNode,
-              id: `node-${Date.now()}`,
+              id: generateId('node'),
               position: {
                 x: targetNode.position.x + 20,
                 y: targetNode.position.y + 20,
@@ -3083,7 +3084,7 @@ export function FlowCanvas() {
         label: 'Add Comment (C)',
         action: () => {
           const state = store.getState();
-          const commentId = `comment-${Date.now()}`;
+          const commentId = generateId('comment');
           const newComment: Comment = {
             id: commentId,
             text: '',
@@ -3554,7 +3555,7 @@ export function FlowCanvas() {
               state.addEdge(edge);
             }
             // 서브플로우 생성
-            const subflowId = `subflow-${Date.now()}`;
+            const subflowId = generateId('subflow');
             state.yjsDoc.subflows.set(subflowId, {
               ...subflow,
               id: subflowId,
@@ -3666,7 +3667,7 @@ export function FlowCanvas() {
           const newNodeIds: string[] = [];
 
           for (const node of selectedNodes) {
-            const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            const newId = generateId('node');
             idMap.set(node.id, newId);
             state.addNode({
               ...node,
@@ -3681,7 +3682,7 @@ export function FlowCanvas() {
             const newTargetId = idMap.get(edge.target);
             if (newSourceId && newTargetId) {
               state.addEdge({
-                id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                id: generateId('edge'),
                 source: newSourceId,
                 sourcePort: edge.sourcePort,
                 target: newTargetId,

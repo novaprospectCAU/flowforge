@@ -3,6 +3,7 @@ import * as Y from 'yjs';
 import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment, Subflow, SubflowPortMapping } from '@flowforge/types';
 import type { FlowYjsDoc } from './yjsDoc';
 import { DEFAULT_COLORS } from './nodeTypes';
+import { generateId } from './utils';
 import {
   createFlowDoc,
   getViewportFromYjs,
@@ -166,7 +167,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       // 그룹 생성
       createGroup: (name, nodeIds, color) => {
         const { yjsDoc } = get();
-        const groupId = `group-${Date.now()}`;
+        const groupId = generateId('group', false);
         const group: NodeGroup = {
           id: groupId,
           name,
@@ -250,7 +251,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
         if (nodeIds.length < 2) return null;
 
         const { yjsDoc, nodes, edges } = get();
-        const subflowId = `subflow-${Date.now()}`;
+        const subflowId = generateId('subflow', false);
         const nodeIdSet = new Set(nodeIds);
 
         // 선택된 노드들 가져오기

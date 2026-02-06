@@ -128,3 +128,6 @@ export {
   extractVariables,
   substituteTemplate,
 } from './ai';
+
+// 공통 유틸리티
+export { generateId } from './utils';
