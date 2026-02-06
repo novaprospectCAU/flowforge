@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { FlowNode, Viewport, CanvasSize } from '@flowforge/types';
 import { worldToScreen } from '@flowforge/canvas';
 import { LLMChatWidget, ImageGenerateWidget, PromptTemplateWidget } from './ai';
+import { NodeErrorBoundary } from './ErrorBoundary';
 
 interface NodeWidgetsProps {
   nodes: FlowNode[];
@@ -283,7 +284,9 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCan
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {renderWidget()}
+      <NodeErrorBoundary nodeId={node.id} nodeType={node.type}>
+        {renderWidget()}
+      </NodeErrorBoundary>
     </div>
   );
 }
