@@ -2,7 +2,7 @@
  * OpenAI 프로바이더 (GPT, DALL-E)
  */
 
-import { BaseProvider, providerRegistry } from './base';
+import { BaseProvider, providerRegistry, API_TIMEOUTS } from './base';
 import type {
   LLMChatRequest,
   LLMChatResponse,
@@ -198,7 +198,7 @@ class OpenAIProvider extends BaseProvider {
         }),
         signal: request.signal,
       },
-      120000 // 이미지 생성은 더 긴 타임아웃
+      API_TIMEOUTS.IMAGE_GENERATION
     );
 
     if (!response.ok) {
@@ -230,7 +230,7 @@ class OpenAIProvider extends BaseProvider {
             Authorization: `Bearer ${apiKey}`,
           },
         },
-        10000
+        API_TIMEOUTS.VALIDATION
       );
       return response.ok;
     } catch {

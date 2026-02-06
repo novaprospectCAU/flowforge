@@ -2,6 +2,18 @@
  * AI 프로바이더 공통 인터페이스 및 유틸리티
  */
 
+/**
+ * API 타임아웃 상수 (밀리초)
+ */
+export const API_TIMEOUTS = {
+  /** 기본 요청 타임아웃 */
+  DEFAULT: 60000,
+  /** API 키 검증용 짧은 타임아웃 */
+  VALIDATION: 10000,
+  /** 이미지 생성용 긴 타임아웃 */
+  IMAGE_GENERATION: 120000,
+} as const;
+
 import type {
   AIProvider,
   AIProviderType,

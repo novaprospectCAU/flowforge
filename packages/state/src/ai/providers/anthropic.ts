@@ -2,7 +2,7 @@
  * Anthropic 프로바이더 (Claude)
  */
 
-import { BaseProvider, providerRegistry } from './base';
+import { BaseProvider, providerRegistry, API_TIMEOUTS } from './base';
 import type { LLMChatRequest, LLMChatResponse, StreamChunkCallback } from '../types';
 import { AIError } from '../types';
 import { processAnthropicStream } from '../streaming';
@@ -229,7 +229,7 @@ class AnthropicProvider extends BaseProvider {
             max_tokens: 1,
           }),
         },
-        10000
+        API_TIMEOUTS.VALIDATION
       );
       return response.ok;
     } catch {
