@@ -3,6 +3,7 @@ import type { FlowNode, Viewport, CanvasSize } from '@flowforge/types';
 import { worldToScreen } from '@flowforge/canvas';
 import { LLMChatWidget, ImageGenerateWidget, PromptTemplateWidget } from './ai';
 import { NodeErrorBoundary } from './ErrorBoundary';
+import { useTheme } from '../hooks/useTheme';
 
 interface NodeWidgetsProps {
   nodes: FlowNode[];
@@ -44,7 +45,15 @@ export function NodeWidgets({
   if (viewport.zoom < 0.5) return null;
 
   return (
-    <div style={styles.container}>
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+      zIndex: 10,
+    }}>
       {widgetNodes.map(node => (
         <NodeWidget
           key={node.id}
@@ -272,13 +281,15 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCan
   return (
     <div
       style={{
-        ...styles.widget,
+        position: 'absolute',
+        pointerEvents: isCanvasDragging ? 'none' : 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
         left: screenPos.x + WIDGET_PADDING * viewport.zoom,
         top: widgetTop + WIDGET_PADDING * viewport.zoom,
         width: scaledWidth - WIDGET_PADDING * 2 * viewport.zoom,
         height: widgetHeight - WIDGET_PADDING * 2 * viewport.zoom,
-        // 캔버스 드래그 중에는 위젯 이벤트 비활성화 (box select 등이 제대로 동작하도록)
-        pointerEvents: isCanvasDragging ? 'none' : 'auto',
       }}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
@@ -306,6 +317,7 @@ function NumberWidget({ value, onChange, fontSize, min, max, step = 1, showSlide
   const [localValue, setLocalValue] = useState(value);
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (!isDragging) {
@@ -360,7 +372,7 @@ function NumberWidget({ value, onChange, fontSize, min, max, step = 1, showSlide
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: '#2d2d30',
+          background: colors.bgTertiary,
           borderRadius: 4,
           padding: '2px 6px',
           cursor: 'ew-resize',
@@ -375,8 +387,14 @@ function NumberWidget({ value, onChange, fontSize, min, max, step = 1, showSlide
           min={min}
           max={max}
           step={step}
+          aria-label="Number value"
           style={{
-            ...styles.input,
+            background: 'transparent',
+            border: 'none',
+            color: colors.textPrimary,
+            fontFamily: 'monospace',
+            outline: 'none',
+            padding: 0,
             fontSize,
             width: '100%',
             cursor: 'text',
@@ -391,10 +409,11 @@ function NumberWidget({ value, onChange, fontSize, min, max, step = 1, showSlide
           min={min}
           max={max}
           step={step}
+          aria-label="Slider"
           style={{
             width: '100%',
             height: 4,
-            accentColor: '#0078d4',
+            accentColor: colors.accent,
           }}
         />
       )}
@@ -411,6 +430,7 @@ interface TextWidgetProps {
 
 function TextWidget({ value, onChange, fontSize }: TextWidgetProps) {
   const [localValue, setLocalValue] = useState(value);
+  const { colors } = useTheme();
 
   useEffect(() => {
     setLocalValue(value);
@@ -426,12 +446,20 @@ function TextWidget({ value, onChange, fontSize }: TextWidgetProps) {
       value={localValue}
       onChange={handleChange}
       placeholder="Enter text..."
+      aria-label="Text input"
       style={{
-        ...styles.textarea,
+        background: colors.bgTertiary,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 4,
+        color: colors.textPrimary,
+        fontFamily: 'monospace',
+        outline: 'none',
+        padding: 6,
         fontSize,
         width: '100%',
         height: '100%',
         resize: 'none',
+        boxSizing: 'border-box',
       }}
     />
   );
@@ -446,12 +474,21 @@ interface SelectWidgetProps {
 }
 
 function SelectWidget({ value, options, onChange, fontSize }: SelectWidgetProps) {
+  const { colors } = useTheme();
+
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      aria-label="Select option"
       style={{
-        ...styles.select,
+        background: colors.bgTertiary,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 4,
+        color: colors.textPrimary,
+        outline: 'none',
+        padding: '4px 8px',
+        cursor: 'pointer',
         fontSize,
         width: '100%',
       }}
@@ -475,6 +512,7 @@ interface ImageWidgetProps {
 
 function ImageWidget({ imageData, fileName, onChange, fontSize }: ImageWidgetProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { colors } = useTheme();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -500,6 +538,7 @@ function ImageWidget({ imageData, fileName, onChange, fontSize }: ImageWidgetPro
         accept="image/*"
         onChange={handleFileSelect}
         style={{ display: 'none' }}
+        aria-label="Select image file"
       />
       {imageData ? (
         <div
@@ -519,14 +558,15 @@ function ImageWidget({ imageData, fileName, onChange, fontSize }: ImageWidgetPro
               objectFit: 'contain',
               maxHeight: '100%',
               borderRadius: 4,
-              background: '#1e1e1e',
+              background: colors.bgPrimary,
+              cursor: 'pointer',
             }}
             onClick={handleClick}
           />
           <div
             style={{
               fontSize: fontSize * 0.8,
-              color: '#888',
+              color: colors.textMuted,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -540,10 +580,10 @@ function ImageWidget({ imageData, fileName, onChange, fontSize }: ImageWidgetPro
           onClick={handleClick}
           style={{
             flex: 1,
-            background: '#2d2d30',
-            border: '2px dashed #4a4a4a',
+            background: colors.bgTertiary,
+            border: `2px dashed ${colors.borderLight}`,
             borderRadius: 4,
-            color: '#888',
+            color: colors.textMuted,
             fontSize,
             cursor: 'pointer',
             display: 'flex',
@@ -565,6 +605,8 @@ interface DisplayWidgetProps {
 }
 
 function DisplayWidget({ data, fontSize }: DisplayWidgetProps) {
+  const { colors } = useTheme();
+
   // 이미지 데이터인 경우
   if (data && typeof data === 'object' && 'imageData' in (data as Record<string, unknown>)) {
     const imageData = (data as Record<string, unknown>).imageData as string;
@@ -578,7 +620,7 @@ function DisplayWidget({ data, fontSize }: DisplayWidgetProps) {
             height: '100%',
             objectFit: 'contain',
             borderRadius: 4,
-            background: '#1e1e1e',
+            background: colors.bgPrimary,
           }}
         />
       </div>
@@ -598,14 +640,15 @@ function DisplayWidget({ data, fontSize }: DisplayWidgetProps) {
         width: '100%',
         height: '100%',
         overflow: 'auto',
-        background: '#1e1e1e',
+        background: colors.bgPrimary,
         borderRadius: 4,
         padding: 6,
         fontSize,
         fontFamily: 'monospace',
-        color: '#e0e0e0',
+        color: colors.textSecondary,
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-all',
+        boxSizing: 'border-box',
       }}
     >
       {displayText}
@@ -622,6 +665,7 @@ interface SaveImageWidgetProps {
 
 function SaveImageWidget({ path, onChange, fontSize }: SaveImageWidgetProps) {
   const [localPath, setLocalPath] = useState(path);
+  const { colors } = useTheme();
 
   useEffect(() => {
     setLocalPath(path);
@@ -634,69 +678,25 @@ function SaveImageWidget({ path, onChange, fontSize }: SaveImageWidgetProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-      <div style={{ fontSize: fontSize * 0.9, color: '#888' }}>Filename:</div>
+      <div style={{ fontSize: fontSize * 0.9, color: colors.textMuted }}>Filename:</div>
       <input
         type="text"
         value={localPath}
         onChange={handleChange}
         placeholder="output.png"
+        aria-label="Output filename"
         style={{
-          background: '#2d2d30',
-          border: '1px solid #3c3c3c',
+          background: colors.bgTertiary,
+          border: `1px solid ${colors.border}`,
           borderRadius: 4,
-          color: '#e0e0e0',
+          color: colors.textPrimary,
           fontSize,
           padding: '4px 8px',
           outline: 'none',
           width: '100%',
+          boxSizing: 'border-box',
         }}
       />
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    pointerEvents: 'none',
-    zIndex: 10,
-  },
-  widget: {
-    position: 'absolute',
-    pointerEvents: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-  },
-  input: {
-    background: 'transparent',
-    border: 'none',
-    color: '#e0e0e0',
-    fontFamily: 'monospace',
-    outline: 'none',
-    padding: 0,
-    MozAppearance: 'textfield',
-  },
-  textarea: {
-    background: '#2d2d30',
-    border: '1px solid #3c3c3c',
-    borderRadius: 4,
-    color: '#e0e0e0',
-    fontFamily: 'monospace',
-    outline: 'none',
-    padding: 6,
-  },
-  select: {
-    background: '#2d2d30',
-    border: '1px solid #3c3c3c',
-    borderRadius: 4,
-    color: '#e0e0e0',
-    outline: 'none',
-    padding: '4px 8px',
-    cursor: 'pointer',
-  },
-};
