@@ -129,5 +129,5 @@ export {
   substituteTemplate,
 } from './ai';
 
-// 공통 유틸리티
-export { generateId } from './utils';
+// 공통 유틸리티 및 상수
+export { generateId, STORAGE_KEYS, DB_CONFIG } from './utils';

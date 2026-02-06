@@ -1,6 +1,32 @@
 /**
- * 공통 유틸리티 함수
+ * 공통 유틸리티 및 상수
  */
+
+/**
+ * localStorage/IndexedDB 키 상수
+ */
+export const STORAGE_KEYS = {
+  /** 플로우 자동 저장 */
+  AUTOSAVE: 'flowforge_autosave',
+  /** 서브플로우 템플릿 */
+  SUBFLOW_TEMPLATES: 'flowforge-subflow-templates',
+  /** 온보딩 완료 여부 */
+  ONBOARDING_COMPLETED: 'flowforge-onboarding-completed',
+  /** 언어 설정 */
+  LANGUAGE: 'flowforge-language',
+} as const;
+
+/**
+ * IndexedDB 설정 상수
+ */
+export const DB_CONFIG = {
+  /** AI 모듈 DB 이름 */
+  AI_DB_NAME: 'flowforge-ai',
+  /** AI 모듈 DB 버전 */
+  AI_DB_VERSION: 1,
+  /** 로컬 키 암호화 솔트 */
+  LOCAL_KEY_SALT: 'flowforge-local-key-v1',
+} as const;
 
 /**
  * 고유 ID 생성

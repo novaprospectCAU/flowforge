@@ -1,13 +1,12 @@
 import type { FlowNode, FlowEdge, Subflow, SubflowTemplate } from '@flowforge/types';
-
-const TEMPLATES_KEY = 'flowforge-subflow-templates';
+import { STORAGE_KEYS } from './utils';
 
 /**
  * 템플릿 목록 로드
  */
 export function loadTemplates(): SubflowTemplate[] {
   try {
-    const data = localStorage.getItem(TEMPLATES_KEY);
+    const data = localStorage.getItem(STORAGE_KEYS.SUBFLOW_TEMPLATES);
     if (!data) return [];
     return JSON.parse(data);
   } catch {
@@ -19,7 +18,7 @@ export function loadTemplates(): SubflowTemplate[] {
  * 템플릿 목록 저장
  */
 export function saveTemplates(templates: SubflowTemplate[]): void {
-  localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+  localStorage.setItem(STORAGE_KEYS.SUBFLOW_TEMPLATES, JSON.stringify(templates));
 }
 
 /**

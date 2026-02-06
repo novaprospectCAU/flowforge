@@ -1,4 +1,5 @@
 import type { FlowNode, FlowEdge, NodeGroup, Viewport, Comment, Subflow } from '@flowforge/types';
+import { STORAGE_KEYS } from './utils';
 
 /**
  * 저장 가능한 플로우 데이터 형식
@@ -93,8 +94,6 @@ export function downloadFlow(
   URL.revokeObjectURL(url);
 }
 
-// localStorage 키
-const AUTOSAVE_KEY = 'flowforge_autosave';
 
 /**
  * localStorage에 플로우 저장
@@ -109,7 +108,7 @@ export function saveToLocalStorage(
 ): void {
   try {
     const json = serializeFlow(nodes, edges, groups, viewport, 'Autosave', comments, subflows);
-    localStorage.setItem(AUTOSAVE_KEY, json);
+    localStorage.setItem(STORAGE_KEYS.AUTOSAVE, json);
   } catch (err) {
     console.error('Failed to save to localStorage:', err);
   }
@@ -120,7 +119,7 @@ export function saveToLocalStorage(
  */
 export function loadFromLocalStorage(): SerializedFlow | null {
   try {
-    const json = localStorage.getItem(AUTOSAVE_KEY);
+    const json = localStorage.getItem(STORAGE_KEYS.AUTOSAVE);
     if (!json) return null;
     return deserializeFlow(json);
   } catch (err) {
@@ -134,7 +133,7 @@ export function loadFromLocalStorage(): SerializedFlow | null {
  */
 export function clearLocalStorage(): void {
   try {
-    localStorage.removeItem(AUTOSAVE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.AUTOSAVE);
   } catch (err) {
     console.error('Failed to clear localStorage:', err);
   }

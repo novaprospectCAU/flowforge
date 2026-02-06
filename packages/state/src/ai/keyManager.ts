@@ -4,9 +4,7 @@
  */
 
 import type { AIProviderType, APIKeyEntry, MaskedAPIKeyEntry } from './types';
-
-const DB_NAME = 'flowforge-ai';
-const DB_VERSION = 1;
+import { DB_CONFIG } from '../utils';
 const STORE_NAME = 'api-keys';
 
 // 암호화 설정
@@ -41,7 +39,7 @@ class KeyManager {
    */
   private openDatabase(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      const request = indexedDB.open(DB_CONFIG.AI_DB_NAME, DB_CONFIG.AI_DB_VERSION);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
@@ -64,7 +62,7 @@ class KeyManager {
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
       'raw',
-      encoder.encode('flowforge-local-key-v1'),
+      encoder.encode(DB_CONFIG.LOCAL_KEY_SALT),
       KEY_DERIVATION_ALGORITHM,
       false,
       ['deriveKey']
