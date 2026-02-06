@@ -82,11 +82,6 @@ export {
   cullCommentsByViewport,
   isEdgeInViewport,
   cullEdgesByViewport,
-  memoizeOne,
-  debounce,
-  throttle,
-  processInChunks,
-  RenderStats,
   type ViewportBounds,
 } from './performance';
 

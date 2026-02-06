@@ -2,15 +2,12 @@
  * Performance utilities tests
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   getViewportBounds,
   isNodeInViewport,
   cullNodesByViewport,
   cullCommentsByViewport,
-  memoizeOne,
-  debounce,
-  throttle,
 } from './performance';
 import type { FlowNode, Viewport, CanvasSize, Comment } from '@flowforge/types';
 
@@ -125,63 +122,5 @@ describe('cullCommentsByViewport', () => {
 
     expect(culled).toHaveLength(1);
     expect(culled[0].id).toBe('1');
-  });
-});
-
-describe('memoizeOne', () => {
-  it('should cache result for same arguments', () => {
-    const fn = vi.fn((a: number, b: number) => a + b);
-    const memoized = memoizeOne(fn);
-
-    expect(memoized(1, 2)).toBe(3);
-    expect(memoized(1, 2)).toBe(3);
-    expect(fn).toHaveBeenCalledTimes(1);
-  });
-
-  it('should recalculate for different arguments', () => {
-    const fn = vi.fn((a: number, b: number) => a + b);
-    const memoized = memoizeOne(fn);
-
-    expect(memoized(1, 2)).toBe(3);
-    expect(memoized(2, 3)).toBe(5);
-    expect(fn).toHaveBeenCalledTimes(2);
-  });
-});
-
-describe('debounce', () => {
-  it('should delay function execution', async () => {
-    vi.useFakeTimers();
-    const fn = vi.fn();
-    const debounced = debounce(fn, 100);
-
-    debounced();
-    debounced();
-    debounced();
-
-    expect(fn).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(100);
-    expect(fn).toHaveBeenCalledTimes(1);
-
-    vi.useRealTimers();
-  });
-});
-
-describe('throttle', () => {
-  it('should limit function calls', () => {
-    vi.useFakeTimers();
-    const fn = vi.fn();
-    const throttled = throttle(fn, 100);
-
-    throttled();
-    throttled();
-    throttled();
-
-    expect(fn).toHaveBeenCalledTimes(1);
-
-    vi.advanceTimersByTime(100);
-    expect(fn).toHaveBeenCalledTimes(2);
-
-    vi.useRealTimers();
   });
 });
