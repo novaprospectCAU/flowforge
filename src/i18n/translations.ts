@@ -246,6 +246,8 @@ export const shortcutsTranslations: Record<Language, {
           { keys: 'Alt+↑/↓', description: 'Align top/bottom' },
           { keys: 'Ctrl+Shift+H', description: 'Distribute horizontal' },
           { keys: 'Ctrl+Shift+V', description: 'Distribute vertical' },
+          { keys: 'Ctrl+Shift+A', description: 'Auto-layout selected' },
+          { keys: 'Alt+A', description: 'Auto-layout all nodes' },
         ],
       },
       {
@@ -355,6 +357,8 @@ export const shortcutsTranslations: Record<Language, {
           { keys: 'Alt+↑/↓', description: '위/아래 정렬' },
           { keys: 'Ctrl+Shift+H', description: '수평 분배' },
           { keys: 'Ctrl+Shift+V', description: '수직 분배' },
+          { keys: 'Ctrl+Shift+A', description: '선택 노드 자동 정렬' },
+          { keys: 'Alt+A', description: '모든 노드 자동 정렬' },
         ],
       },
       {

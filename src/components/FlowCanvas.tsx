@@ -427,75 +427,150 @@ export function FlowCanvas() {
     }
   };
 
-  // 자동 배치 - 노드들을 겹치지 않게 그리드 형태로 배치
-  const autoArrangeNodes = () => {
+  // 자동 배치 - 플로우 방향(왼쪽→오른쪽) 기반 계층적 정렬
+  const autoArrangeNodes = (arrangeAll = false) => {
     const store = storeRef.current;
     if (!store) return;
 
-    const selectedIds = selectedNodeIdsRef.current;
-    if (selectedIds.size < 2) return;
-
     const state = store.getState();
-    const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
+    const selectedIds = selectedNodeIdsRef.current;
 
-    // 선택된 노드들의 중심점 계산
-    const centerX = selectedNodes.reduce((sum, n) => sum + n.position.x + n.size.width / 2, 0) / selectedNodes.length;
-    const centerY = selectedNodes.reduce((sum, n) => sum + n.position.y + n.size.height / 2, 0) / selectedNodes.length;
+    // 대상 노드 결정: arrangeAll이면 모든 노드, 아니면 선택된 노드
+    const targetNodes = arrangeAll
+      ? state.nodes
+      : state.nodes.filter(n => selectedIds.has(n.id));
 
-    // 노드 간 간격
-    const GAP = 20;
+    if (targetNodes.length < 2) return;
 
-    // 그리드 열 수 계산 (대략 정사각형 형태가 되도록)
-    const cols = Math.ceil(Math.sqrt(selectedNodes.length));
+    const targetNodeIds = new Set(targetNodes.map(n => n.id));
 
-    // 노드들을 원래 위치 기준으로 정렬 (왼쪽 위부터)
-    const sorted = [...selectedNodes].sort((a, b) => {
-      const rowA = Math.floor(a.position.y / 100);
-      const rowB = Math.floor(b.position.y / 100);
-      if (rowA !== rowB) return rowA - rowB;
-      return a.position.x - b.position.x;
-    });
+    // 대상 노드들 사이의 엣지만 고려
+    const relevantEdges = state.edges.filter(
+      e => targetNodeIds.has(e.source) && targetNodeIds.has(e.target)
+    );
 
-    // 최대 너비/높이 계산 (각 열/행별)
-    const colWidths: number[] = [];
-    const rowHeights: number[] = [];
-    sorted.forEach((node, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      colWidths[col] = Math.max(colWidths[col] || 0, node.size.width);
-      rowHeights[row] = Math.max(rowHeights[row] || 0, node.size.height);
-    });
+    // 인접 리스트 및 진입 차수 계산
+    const adjacency = new Map<string, string[]>();
+    const inDegree = new Map<string, number>();
 
-    // 전체 그리드 크기 계산
-    const totalWidth = colWidths.reduce((sum, w) => sum + w + GAP, -GAP);
-    const totalHeight = rowHeights.reduce((sum, h) => sum + h + GAP, -GAP);
+    for (const node of targetNodes) {
+      adjacency.set(node.id, []);
+      inDegree.set(node.id, 0);
+    }
 
-    // 시작 위치 (중심점 기준)
-    const startX = centerX - totalWidth / 2;
-    const startY = centerY - totalHeight / 2;
+    for (const edge of relevantEdges) {
+      adjacency.get(edge.source)?.push(edge.target);
+      inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
+    }
 
-    // 각 노드 배치
-    sorted.forEach((node, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
+    // BFS로 레이어 할당 (가장 긴 경로 기준)
+    const layers = new Map<string, number>();
+    const queue: string[] = [];
 
-      // 해당 열/행까지의 오프셋 계산
-      let x = startX;
-      for (let c = 0; c < col; c++) {
-        x += colWidths[c] + GAP;
+    // 진입 차수가 0인 노드들이 첫 레이어
+    for (const node of targetNodes) {
+      if ((inDegree.get(node.id) || 0) === 0) {
+        queue.push(node.id);
+        layers.set(node.id, 0);
       }
-      // 열 내에서 중앙 정렬
-      x += (colWidths[col] - node.size.width) / 2;
+    }
 
-      let y = startY;
-      for (let r = 0; r < row; r++) {
-        y += rowHeights[r] + GAP;
+    // BFS로 레이어 전파
+    while (queue.length > 0) {
+      const nodeId = queue.shift()!;
+      const currentLayer = layers.get(nodeId) || 0;
+
+      for (const targetId of adjacency.get(nodeId) || []) {
+        const existingLayer = layers.get(targetId);
+        const newLayer = currentLayer + 1;
+
+        if (existingLayer === undefined || newLayer > existingLayer) {
+          layers.set(targetId, newLayer);
+        }
+
+        // 모든 선행 노드 처리 후 큐에 추가
+        const targetInDegree = inDegree.get(targetId) || 0;
+        inDegree.set(targetId, targetInDegree - 1);
+        if (targetInDegree - 1 === 0) {
+          queue.push(targetId);
+        }
       }
-      // 행 내에서 중앙 정렬
-      y += (rowHeights[row] - node.size.height) / 2;
+    }
 
-      state.updateNode(node.id, { position: { x, y } });
-    });
+    // 레이어가 할당되지 않은 노드 처리 (연결 안 된 노드들)
+    let maxLayer = 0;
+    for (const layer of layers.values()) {
+      maxLayer = Math.max(maxLayer, layer);
+    }
+    for (const node of targetNodes) {
+      if (!layers.has(node.id)) {
+        layers.set(node.id, maxLayer + 1);
+      }
+    }
+
+    // 레이어별로 노드 그룹화
+    const layerGroups = new Map<number, FlowNode[]>();
+    for (const node of targetNodes) {
+      const layer = layers.get(node.id) || 0;
+      if (!layerGroups.has(layer)) {
+        layerGroups.set(layer, []);
+      }
+      layerGroups.get(layer)!.push(node);
+    }
+
+    // 각 레이어 내에서 Y 위치 기준 정렬 (기존 순서 유지)
+    for (const nodes of layerGroups.values()) {
+      nodes.sort((a, b) => a.position.y - b.position.y);
+    }
+
+    // 간격 설정
+    const HORIZONTAL_GAP = 80;
+    const VERTICAL_GAP = 30;
+
+    // 기존 중심점 계산
+    const centerX = targetNodes.reduce((sum, n) => sum + n.position.x + n.size.width / 2, 0) / targetNodes.length;
+    const centerY = targetNodes.reduce((sum, n) => sum + n.position.y + n.size.height / 2, 0) / targetNodes.length;
+
+    // 각 레이어의 최대 너비 계산
+    const layerWidths: number[] = [];
+    const sortedLayers = [...layerGroups.keys()].sort((a, b) => a - b);
+
+    for (const layer of sortedLayers) {
+      const nodes = layerGroups.get(layer) || [];
+      const maxWidth = Math.max(...nodes.map(n => n.size.width));
+      layerWidths.push(maxWidth);
+    }
+
+    // 전체 너비 계산
+    const totalWidth = layerWidths.reduce((sum, w) => sum + w + HORIZONTAL_GAP, -HORIZONTAL_GAP);
+
+    // 각 레이어의 X 시작 위치 계산
+    const layerXPositions: number[] = [];
+    let currentX = centerX - totalWidth / 2;
+    for (let i = 0; i < sortedLayers.length; i++) {
+      layerXPositions.push(currentX);
+      currentX += layerWidths[i] + HORIZONTAL_GAP;
+    }
+
+    // 노드 배치
+    for (let i = 0; i < sortedLayers.length; i++) {
+      const layer = sortedLayers[i];
+      const nodes = layerGroups.get(layer) || [];
+      const layerX = layerXPositions[i];
+      const layerWidth = layerWidths[i];
+
+      // 레이어의 총 높이 계산
+      const totalHeight = nodes.reduce((sum, n) => sum + n.size.height, 0) + VERTICAL_GAP * (nodes.length - 1);
+      let y = centerY - totalHeight / 2;
+
+      for (const node of nodes) {
+        // X: 레이어 내 중앙 정렬
+        const x = layerX + (layerWidth - node.size.width) / 2;
+
+        state.updateNode(node.id, { position: { x, y } });
+        y += node.size.height + VERTICAL_GAP;
+      }
+    }
   };
 
   // 선택된 노드들의 그룹 해제
@@ -2557,6 +2632,20 @@ export function FlowCanvas() {
             forceRender(n => n + 1);
           }
         }
+        return;
+      }
+
+      // Auto-arrange selected: Ctrl+Shift+A / Cmd+Shift+A
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        autoArrangeNodes(false);
+        return;
+      }
+
+      // Auto-arrange all: Alt+A
+      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        autoArrangeNodes(true);
         return;
       }
 
