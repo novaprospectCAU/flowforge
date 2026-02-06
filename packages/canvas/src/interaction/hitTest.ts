@@ -1,12 +1,20 @@
 import type { FlowNode, FlowEdge, Position, PortDefinition, Subflow } from '@flowforge/types';
 import { calculateCollapsedSize, SUBFLOW_STYLE } from '../rendering/drawSubflow';
 import { getPortPosition } from '../rendering/drawEdge';
+import { NODE_STYLE } from '../rendering/drawNode';
 
-const NODE_STYLE = {
-  headerHeight: 28,
-  portRadius: 6,
-  portSpacing: 24,
-};
+/**
+ * Hit detection 상수
+ */
+const HIT_DETECTION = {
+  PORT_CLICK_TOLERANCE: 4,      // 포트 클릭 여유 거리
+  EDGE_HIT_DISTANCE: 8,         // 엣지 히트 거리
+  RESIZE_HANDLE_SIZE: 8,        // 리사이즈 핸들 크기
+  EDGE_THRESHOLD: 6,            // 가장자리 감지 두께
+  BEZIER_SAMPLES: 20,           // 베지어 곡선 샘플링 수
+  CONTROL_OFFSET_MIN: 50,       // 베지어 컨트롤 포인트 최소 오프셋
+  CONTROL_OFFSET_RATIO: 0.5,    // 베지어 컨트롤 포인트 비율
+} as const;
 
 export interface PortHitResult {
   node: FlowNode;
@@ -57,7 +65,7 @@ export function hitTestPort(
   worldPos: Position,
   nodes: FlowNode[]
 ): PortHitResult | null {
-  const hitRadius = NODE_STYLE.portRadius + 4; // 클릭 여유
+  const hitRadius = NODE_STYLE.portRadius + HIT_DETECTION.PORT_CLICK_TOLERANCE;
 
   for (let i = nodes.length - 1; i >= 0; i--) {
     const node = nodes[i];
@@ -111,7 +119,7 @@ function distanceToBezier(
 ): number {
   // 베지어 커브를 여러 점으로 샘플링하여 최소 거리 계산
   let minDist = Infinity;
-  const samples = 20;
+  const samples = HIT_DETECTION.BEZIER_SAMPLES;
 
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
@@ -149,8 +157,8 @@ export function hitTestResizeHandle(
   nodes: FlowNode[],
   selectedIds: Set<string>
 ): ResizeHitResult | null {
-  const handleSize = 8; // 핸들 크기
-  const edgeThreshold = 6; // 가장자리 감지 두께
+  const handleSize = HIT_DETECTION.RESIZE_HANDLE_SIZE;
+  const edgeThreshold = HIT_DETECTION.EDGE_THRESHOLD;
 
   // 선택된 노드만 검사 (역순)
   for (let i = nodes.length - 1; i >= 0; i--) {
@@ -209,7 +217,7 @@ export function hitTestEdge(
   edges: FlowEdge[],
   nodes: FlowNode[]
 ): FlowEdge | null {
-  const hitDistance = 8;
+  const hitDistance = HIT_DETECTION.EDGE_HIT_DISTANCE;
 
   for (const edge of edges) {
     const sourceNode = nodes.find(n => n.id === edge.source);
@@ -221,7 +229,7 @@ export function hitTestEdge(
     if (!sourcePos || !targetPos) continue;
 
     const dx = Math.abs(targetPos.x - sourcePos.x);
-    const controlOffset = Math.max(50, dx * 0.5);
+    const controlOffset = Math.max(HIT_DETECTION.CONTROL_OFFSET_MIN, dx * HIT_DETECTION.CONTROL_OFFSET_RATIO);
 
     const dist = distanceToBezier(
       worldPos.x, worldPos.y,
@@ -288,7 +296,7 @@ export function hitTestSubflowPort(
   worldPos: Position,
   subflows: Subflow[]
 ): SubflowPortHitResult | null {
-  const hitRadius = SUBFLOW_STYLE.portRadius + 4;
+  const hitRadius = SUBFLOW_STYLE.portRadius + HIT_DETECTION.PORT_CLICK_TOLERANCE;
 
   for (let i = subflows.length - 1; i >= 0; i--) {
     const subflow = subflows[i];

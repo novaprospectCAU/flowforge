@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import * as Y from 'yjs';
 import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment, Subflow, SubflowPortMapping } from '@flowforge/types';
 import type { FlowYjsDoc } from './yjsDoc';
-import { DEFAULT_COLORS } from './nodeTypes';
+import { DEFAULT_COLORS, SUBFLOW_LAYOUT } from './nodeTypes';
 import { generateId } from './utils';
 import {
   createFlowDoc,
@@ -327,8 +327,8 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
 
         // 접힌 크기 계산 (포트 수 기반)
         const portCount = Math.max(inputMappings.length, outputMappings.length, 1);
-        const collapsedHeight = 28 + portCount * 24 + 12; // 헤더 + 포트 + 패딩
-        const collapsedWidth = 180;
+        const collapsedHeight = SUBFLOW_LAYOUT.HEADER_HEIGHT + portCount * SUBFLOW_LAYOUT.PORT_SPACING + SUBFLOW_LAYOUT.PADDING_BOTTOM;
+        const collapsedWidth = SUBFLOW_LAYOUT.COLLAPSED_WIDTH;
 
         const subflow: Subflow = {
           id: subflowId,

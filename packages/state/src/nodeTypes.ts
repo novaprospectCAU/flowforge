@@ -26,6 +26,17 @@ export const NODE_SIZES = {
 } as const;
 
 /**
+ * 서브플로우 레이아웃 상수
+ * 접힌 서브플로우의 크기 계산에 사용
+ */
+export const SUBFLOW_LAYOUT = {
+  COLLAPSED_WIDTH: 180,        // 접힌 상태 기본 너비
+  HEADER_HEIGHT: 28,           // 헤더 영역 높이
+  PORT_SPACING: 24,            // 포트 간 간격
+  PADDING_BOTTOM: 12,          // 하단 패딩
+} as const;
+
+/**
  * 기본 색상 상수
  * 그룹, 서브플로우, AI 노드 등의 기본 색상
  */

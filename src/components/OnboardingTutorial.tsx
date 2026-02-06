@@ -215,16 +215,16 @@ export function OnboardingTutorial({ onComplete, onSkip }: OnboardingTutorialPro
 
         {/* Footer */}
         <div style={styles.footer}>
-          <button onClick={handleSkip} style={styles.skipBtn}>
+          <button onClick={handleSkip} style={styles.skipBtn} aria-label={t.skipButton}>
             {t.skipButton}
           </button>
           <div style={styles.navBtns}>
             {currentStep > 0 && (
-              <button onClick={handlePrev} style={styles.prevBtn}>
+              <button onClick={handlePrev} style={styles.prevBtn} aria-label={t.backButton}>
                 {t.backButton}
               </button>
             )}
-            <button onClick={handleNext} style={styles.nextBtn}>
+            <button onClick={handleNext} style={styles.nextBtn} aria-label={isLastStep ? t.getStartedButton : t.nextButton}>
               {isLastStep ? t.getStartedButton : t.nextButton}
             </button>
           </div>

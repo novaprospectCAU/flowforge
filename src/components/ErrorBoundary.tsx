@@ -80,10 +80,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             )}
 
             <div style={styles.buttons}>
-              <button onClick={this.handleReset} style={styles.primaryBtn}>
+              <button onClick={this.handleReset} style={styles.primaryBtn} aria-label="Try again">
                 Try Again
               </button>
-              <button onClick={this.handleReload} style={styles.secondaryBtn}>
+              <button onClick={this.handleReload} style={styles.secondaryBtn} aria-label="Reload page">
                 Reload Page
               </button>
             </div>
@@ -150,7 +150,7 @@ export class NodeErrorBoundary extends Component<NodeErrorBoundaryProps, NodeErr
         <div style={nodeStyles.container}>
           <div style={nodeStyles.icon}>⚠️</div>
           <div style={nodeStyles.message}>Widget Error</div>
-          <button onClick={this.handleRetry} style={nodeStyles.retryBtn}>
+          <button onClick={this.handleRetry} style={nodeStyles.retryBtn} aria-label="Retry loading widget">
             Retry
           </button>
         </div>

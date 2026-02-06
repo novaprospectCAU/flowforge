@@ -12,6 +12,8 @@ export const SUBFLOW_STYLE = {
   portLabelFontSize: 10,
   portLabelOffset: 12,
   iconSize: 16,
+  collapsedWidth: 180,      // 접힌 상태 기본 너비
+  collapsedPaddingBottom: 12, // 접힌 상태 하단 패딩
 };
 
 const SUBFLOW_COLORS = {
@@ -94,8 +96,8 @@ export function calculateCollapsedSize(subflow: Subflow): { width: number; heigh
   }
   const portCount = Math.max(subflow.inputMappings.length, subflow.outputMappings.length, 1);
   return {
-    width: 180,
-    height: SUBFLOW_STYLE.headerHeight + portCount * SUBFLOW_STYLE.portSpacing + 12,
+    width: SUBFLOW_STYLE.collapsedWidth,
+    height: SUBFLOW_STYLE.headerHeight + portCount * SUBFLOW_STYLE.portSpacing + SUBFLOW_STYLE.collapsedPaddingBottom,
   };
 }
 

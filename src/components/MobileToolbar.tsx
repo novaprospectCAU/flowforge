@@ -225,7 +225,14 @@ export function MobileToolbar({
       {/* 드롭다운 메뉴 */}
       {menuOpen && (
         <>
-          <div style={styles.menuOverlay} onClick={() => setMenuOpen(false)} />
+          <div
+            style={styles.menuOverlay}
+            onClick={() => setMenuOpen(false)}
+            onKeyDown={(e) => e.key === 'Escape' && setMenuOpen(false)}
+            role="button"
+            tabIndex={0}
+            aria-label="Close menu"
+          />
           <div style={styles.menu} role="menu">
             {/* 검색 & 템플릿 */}
             {(onSearch || onTemplates) && (
