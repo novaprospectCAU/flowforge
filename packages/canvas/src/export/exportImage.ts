@@ -265,14 +265,27 @@ export async function exportFlowToImage(
 
 /**
  * 이미지를 파일로 다운로드
+ * @param source - Blob 또는 data URL 문자열
+ * @param filename - 저장할 파일 이름
  */
-export function downloadImage(blob: Blob, filename: string = 'flow.png'): void {
-  const url = URL.createObjectURL(blob);
+export function downloadImage(source: Blob | string, filename: string = 'flow.png'): void {
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename.endsWith('.png') ? filename : `${filename}.png`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  if (source instanceof Blob) {
+    // Blob인 경우: Object URL 생성 후 정리
+    const url = URL.createObjectURL(source);
+    a.href = url;
+    a.download = filename.endsWith('.png') ? filename : `${filename}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } else {
+    // data URL 문자열인 경우
+    a.href = source;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
 }

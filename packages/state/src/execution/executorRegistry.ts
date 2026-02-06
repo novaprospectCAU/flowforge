@@ -1,4 +1,5 @@
 import type { NodeExecutor, ExecutionContext, ExecutionResult } from './types';
+import { downloadImage } from '@flowforge/canvas';
 
 // === 이미지 처리 헬퍼 함수들 ===
 
@@ -76,18 +77,6 @@ async function applyFilter(dataUrl: string, filterType: string): Promise<string>
 
   ctx.drawImage(img, 0, 0);
   return canvasToDataUrl(canvas);
-}
-
-/**
- * 이미지 다운로드
- */
-function downloadImage(dataUrl: string, filename: string): void {
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 }
 
 /**
