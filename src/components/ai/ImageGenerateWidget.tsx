@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { FlowNode } from '@flowforge/types';
 import { keyManager } from '@flowforge/state';
 import type { AIProviderType, ImageSize, MaskedAPIKeyEntry } from '@flowforge/state';
+import { useTheme } from '../../hooks/useTheme';
 
 interface ImageGenerateWidgetProps {
   node: FlowNode;
@@ -36,6 +37,7 @@ export function ImageGenerateWidget({
 }: ImageGenerateWidgetProps) {
   const [keys, setKeys] = useState<MaskedAPIKeyEntry[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(true);
+  const { colors } = useTheme();
 
   // 노드 데이터 추출
   const provider = (node.data.provider as AIProviderType) || 'openai';
@@ -72,6 +74,14 @@ export function ImageGenerateWidget({
   // 스타일 계산
   const baseFontSize = Math.max(10, Math.min(14, 12 * zoom));
 
+  const inputStyle: React.CSSProperties = {
+    backgroundColor: colors.bgTertiary,
+    border: `1px solid ${colors.borderLight}`,
+    borderRadius: 4,
+    color: colors.textPrimary,
+    outline: 'none',
+  };
+
   return (
     <div
       style={{
@@ -96,6 +106,7 @@ export function ImageGenerateWidget({
           }}
           value={model}
           onChange={e => handleChange('model', e.target.value)}
+          aria-label="Image model"
         >
           {IMAGE_MODELS.map(m => (
             <option key={m} value={m}>
@@ -113,6 +124,7 @@ export function ImageGenerateWidget({
           }}
           value={size}
           onChange={e => handleChange('size', e.target.value)}
+          aria-label="Image size"
         >
           {IMAGE_SIZES.map(s => (
             <option key={s} value={s}>
@@ -133,6 +145,7 @@ export function ImageGenerateWidget({
           }}
           value={quality}
           onChange={e => handleChange('quality', e.target.value)}
+          aria-label="Image quality"
         >
           <option value="standard">Standard</option>
           <option value="hd">HD</option>
@@ -148,6 +161,7 @@ export function ImageGenerateWidget({
           value={apiKeyId}
           onChange={e => handleChange('apiKeyId', e.target.value)}
           onFocus={loadKeys}
+          aria-label="API Key"
         >
           <option value="">
             {isLoadingKeys ? 'Loading...' : 'Select API Key'}
@@ -166,7 +180,7 @@ export function ImageGenerateWidget({
           style={{
             borderRadius: 4 * zoom,
             overflow: 'hidden',
-            backgroundColor: '#1a1a1a',
+            backgroundColor: colors.bgPrimary,
           }}
         >
           <img
@@ -183,8 +197,8 @@ export function ImageGenerateWidget({
               style={{
                 padding: 6 * zoom,
                 fontSize: baseFontSize * 0.8,
-                color: '#888',
-                borderTop: '1px solid #333',
+                color: colors.textMuted,
+                borderTop: `1px solid ${colors.border}`,
               }}
             >
               <strong>Revised:</strong> {revisedPrompt}
@@ -197,12 +211,12 @@ export function ImageGenerateWidget({
       {lastError && (
         <div
           style={{
-            backgroundColor: '#3f1d1d',
-            border: '1px solid #ef4444',
+            backgroundColor: colors.error + '22',
+            border: `1px solid ${colors.error}`,
             borderRadius: 4 * zoom,
             padding: 6 * zoom,
             fontSize: baseFontSize * 0.85,
-            color: '#fca5a5',
+            color: colors.error,
           }}
         >
           {lastError}
@@ -211,11 +225,3 @@ export function ImageGenerateWidget({
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: '#2a2a2a',
-  border: '1px solid #444',
-  borderRadius: 4,
-  color: '#fff',
-  outline: 'none',
-};

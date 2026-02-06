@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { keyManager } from '@flowforge/state';
 import type { AIProviderType, MaskedAPIKeyEntry } from '@flowforge/state';
 import { providerRegistry } from '@flowforge/state';
+import { useTheme } from '../../hooks/useTheme';
 
 interface APIKeyManagerProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
   const [keys, setKeys] = useState<MaskedAPIKeyEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { colors } = useTheme();
 
   // 새 키 추가 폼 상태
   const [showAddForm, setShowAddForm] = useState(false);
@@ -109,17 +111,233 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
 
   if (!isOpen) return null;
 
+  const styles: Record<string, React.CSSProperties> = {
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.bgOverlay,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10000,
+    },
+    modal: {
+      backgroundColor: colors.bgPrimary,
+      borderRadius: 8,
+      width: 480,
+      maxWidth: '90vw',
+      maxHeight: '80vh',
+      display: 'flex',
+      flexDirection: 'column',
+      boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)',
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '16px 20px',
+      borderBottom: `1px solid ${colors.border}`,
+    },
+    title: {
+      margin: 0,
+      fontSize: 18,
+      fontWeight: 600,
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      background: 'none',
+      border: 'none',
+      fontSize: 24,
+      color: colors.textMuted,
+      cursor: 'pointer',
+      padding: 0,
+      lineHeight: 1,
+    },
+    content: {
+      padding: 20,
+      flex: 1,
+      overflowY: 'auto',
+    },
+    error: {
+      backgroundColor: colors.error,
+      color: '#fff',
+      padding: '8px 12px',
+      margin: '0 20px',
+      borderRadius: 4,
+      fontSize: 14,
+    },
+    loading: {
+      textAlign: 'center',
+      color: colors.textMuted,
+      padding: 40,
+    },
+    keyList: {
+      marginBottom: 16,
+    },
+    emptyState: {
+      color: colors.textMuted,
+      textAlign: 'center',
+      padding: 20,
+    },
+    keyItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 16px',
+      backgroundColor: colors.bgSecondary,
+      borderRadius: 6,
+      marginBottom: 8,
+    },
+    keyInfo: {
+      display: 'flex',
+      gap: 12,
+      alignItems: 'center',
+    },
+    keyProvider: {
+      backgroundColor: colors.accent,
+      color: '#fff',
+      padding: '2px 8px',
+      borderRadius: 4,
+      fontSize: 12,
+      fontWeight: 500,
+      textTransform: 'uppercase',
+    },
+    keyName: {
+      color: colors.textPrimary,
+      fontWeight: 500,
+    },
+    keyMasked: {
+      color: colors.textMuted,
+      fontFamily: 'monospace',
+      fontSize: 13,
+    },
+    deleteButton: {
+      backgroundColor: 'transparent',
+      color: colors.error,
+      border: `1px solid ${colors.error}`,
+      padding: '4px 12px',
+      borderRadius: 4,
+      cursor: 'pointer',
+      fontSize: 13,
+    },
+    addButton: {
+      width: '100%',
+      padding: '12px 16px',
+      backgroundColor: colors.bgTertiary,
+      color: colors.textPrimary,
+      border: `1px dashed ${colors.borderLight}`,
+      borderRadius: 6,
+      cursor: 'pointer',
+      fontSize: 14,
+    },
+    addForm: {
+      backgroundColor: colors.bgSecondary,
+      borderRadius: 6,
+      padding: 16,
+    },
+    formTitle: {
+      margin: '0 0 16px 0',
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    formField: {
+      marginBottom: 12,
+    },
+    label: {
+      display: 'block',
+      color: colors.textSecondary,
+      marginBottom: 4,
+      fontSize: 13,
+    },
+    input: {
+      width: '100%',
+      padding: '8px 12px',
+      backgroundColor: colors.bgPrimary,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textPrimary,
+      fontSize: 14,
+      boxSizing: 'border-box',
+    },
+    select: {
+      width: '100%',
+      padding: '8px 12px',
+      backgroundColor: colors.bgPrimary,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textPrimary,
+      fontSize: 14,
+    },
+    testResult: {
+      fontSize: 13,
+      marginBottom: 12,
+    },
+    formActions: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginTop: 16,
+    },
+    formActionRight: {
+      display: 'flex',
+      gap: 8,
+    },
+    testButton: {
+      padding: '8px 16px',
+      backgroundColor: 'transparent',
+      color: colors.info,
+      border: `1px solid ${colors.info}`,
+      borderRadius: 4,
+      cursor: 'pointer',
+      fontSize: 14,
+    },
+    cancelButton: {
+      padding: '8px 16px',
+      backgroundColor: 'transparent',
+      color: colors.textMuted,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      cursor: 'pointer',
+      fontSize: 14,
+    },
+    saveButton: {
+      padding: '8px 16px',
+      backgroundColor: colors.accent,
+      color: '#fff',
+      border: 'none',
+      borderRadius: 4,
+      cursor: 'pointer',
+      fontSize: 14,
+    },
+    envNote: {
+      padding: '12px 20px',
+      borderTop: `1px solid ${colors.border}`,
+      fontSize: 12,
+      color: colors.textMuted,
+      lineHeight: 1.6,
+    },
+    code: {
+      backgroundColor: colors.bgTertiary,
+      padding: '2px 6px',
+      borderRadius: 3,
+      fontFamily: 'monospace',
+      fontSize: 11,
+    },
+  };
+
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div style={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="api-keys-title">
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.header}>
-          <h2 style={styles.title}>API Keys</h2>
-          <button style={styles.closeButton} onClick={onClose}>
+          <h2 id="api-keys-title" style={styles.title}>API Keys</h2>
+          <button style={styles.closeButton} onClick={onClose} aria-label="Close">
             &times;
           </button>
         </div>
 
-        {error && <div style={styles.error}>{error}</div>}
+        {error && <div style={styles.error} role="alert">{error}</div>}
 
         <div style={styles.content}>
           {isLoading ? (
@@ -127,14 +345,14 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
           ) : (
             <>
               {/* 저장된 키 목록 */}
-              <div style={styles.keyList}>
+              <div style={styles.keyList} role="list" aria-label="Saved API keys">
                 {keys.length === 0 ? (
                   <div style={styles.emptyState}>
                     No API keys saved. Add one below.
                   </div>
                 ) : (
                   keys.map(key => (
-                    <div key={key.id} style={styles.keyItem}>
+                    <div key={key.id} style={styles.keyItem} role="listitem">
                       <div style={styles.keyInfo}>
                         <span style={styles.keyProvider}>{key.provider}</span>
                         <span style={styles.keyName}>{key.name}</span>
@@ -143,6 +361,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                       <button
                         style={styles.deleteButton}
                         onClick={() => handleDeleteKey(key.id)}
+                        aria-label={`Delete ${key.name}`}
                       >
                         Delete
                       </button>
@@ -171,6 +390,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                       onChange={e =>
                         setNewKeyProvider(e.target.value as AIProviderType)
                       }
+                      aria-label="Provider"
                     >
                       <option value="openai">OpenAI</option>
                       <option value="anthropic">Anthropic</option>
@@ -185,6 +405,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                       placeholder="e.g., My OpenAI Key"
                       value={newKeyName}
                       onChange={e => setNewKeyName(e.target.value)}
+                      aria-label="Key name"
                     />
                   </div>
 
@@ -199,6 +420,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                         setNewKeyValue(e.target.value);
                         setTestResult(null);
                       }}
+                      aria-label="API key value"
                     />
                   </div>
 
@@ -206,8 +428,9 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                     <div
                       style={{
                         ...styles.testResult,
-                        color: testResult === 'success' ? '#10b981' : '#ef4444',
+                        color: testResult === 'success' ? colors.success : colors.error,
                       }}
+                      role="status"
                     >
                       {testResult === 'success' ? 'Key is valid' : 'Key is invalid'}
                     </div>
@@ -259,219 +482,3 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10000,
-  },
-  modal: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 8,
-    width: 480,
-    maxWidth: '90vw',
-    maxHeight: '80vh',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px 20px',
-    borderBottom: '1px solid #333',
-  },
-  title: {
-    margin: 0,
-    fontSize: 18,
-    fontWeight: 600,
-    color: '#fff',
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    fontSize: 24,
-    color: '#888',
-    cursor: 'pointer',
-    padding: 0,
-    lineHeight: 1,
-  },
-  content: {
-    padding: 20,
-    flex: 1,
-    overflowY: 'auto',
-  },
-  error: {
-    backgroundColor: '#ef4444',
-    color: '#fff',
-    padding: '8px 12px',
-    margin: '0 20px',
-    borderRadius: 4,
-    fontSize: 14,
-  },
-  loading: {
-    textAlign: 'center',
-    color: '#888',
-    padding: 40,
-  },
-  keyList: {
-    marginBottom: 16,
-  },
-  emptyState: {
-    color: '#888',
-    textAlign: 'center',
-    padding: 20,
-  },
-  keyItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 16px',
-    backgroundColor: '#2a2a2a',
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  keyInfo: {
-    display: 'flex',
-    gap: 12,
-    alignItems: 'center',
-  },
-  keyProvider: {
-    backgroundColor: '#10a37f',
-    color: '#fff',
-    padding: '2px 8px',
-    borderRadius: 4,
-    fontSize: 12,
-    fontWeight: 500,
-    textTransform: 'uppercase',
-  },
-  keyName: {
-    color: '#fff',
-    fontWeight: 500,
-  },
-  keyMasked: {
-    color: '#888',
-    fontFamily: 'monospace',
-    fontSize: 13,
-  },
-  deleteButton: {
-    backgroundColor: 'transparent',
-    color: '#ef4444',
-    border: '1px solid #ef4444',
-    padding: '4px 12px',
-    borderRadius: 4,
-    cursor: 'pointer',
-    fontSize: 13,
-  },
-  addButton: {
-    width: '100%',
-    padding: '12px 16px',
-    backgroundColor: '#333',
-    color: '#fff',
-    border: '1px dashed #555',
-    borderRadius: 6,
-    cursor: 'pointer',
-    fontSize: 14,
-  },
-  addForm: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 6,
-    padding: 16,
-  },
-  formTitle: {
-    margin: '0 0 16px 0',
-    fontSize: 16,
-    color: '#fff',
-  },
-  formField: {
-    marginBottom: 12,
-  },
-  label: {
-    display: 'block',
-    color: '#ccc',
-    marginBottom: 4,
-    fontSize: 13,
-  },
-  input: {
-    width: '100%',
-    padding: '8px 12px',
-    backgroundColor: '#1e1e1e',
-    border: '1px solid #444',
-    borderRadius: 4,
-    color: '#fff',
-    fontSize: 14,
-    boxSizing: 'border-box',
-  },
-  select: {
-    width: '100%',
-    padding: '8px 12px',
-    backgroundColor: '#1e1e1e',
-    border: '1px solid #444',
-    borderRadius: 4,
-    color: '#fff',
-    fontSize: 14,
-  },
-  testResult: {
-    fontSize: 13,
-    marginBottom: 12,
-  },
-  formActions: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  formActionRight: {
-    display: 'flex',
-    gap: 8,
-  },
-  testButton: {
-    padding: '8px 16px',
-    backgroundColor: 'transparent',
-    color: '#3b82f6',
-    border: '1px solid #3b82f6',
-    borderRadius: 4,
-    cursor: 'pointer',
-    fontSize: 14,
-  },
-  cancelButton: {
-    padding: '8px 16px',
-    backgroundColor: 'transparent',
-    color: '#888',
-    border: '1px solid #555',
-    borderRadius: 4,
-    cursor: 'pointer',
-    fontSize: 14,
-  },
-  saveButton: {
-    padding: '8px 16px',
-    backgroundColor: '#10a37f',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 4,
-    cursor: 'pointer',
-    fontSize: 14,
-  },
-  envNote: {
-    padding: '12px 20px',
-    borderTop: '1px solid #333',
-    fontSize: 12,
-    color: '#888',
-    lineHeight: 1.6,
-  },
-  code: {
-    backgroundColor: '#333',
-    padding: '2px 6px',
-    borderRadius: 3,
-    fontFamily: 'monospace',
-    fontSize: 11,
-  },
-};

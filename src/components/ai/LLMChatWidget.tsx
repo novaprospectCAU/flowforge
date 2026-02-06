@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { FlowNode } from '@flowforge/types';
 import { keyManager, providerRegistry } from '@flowforge/state';
 import type { AIProviderType, MaskedAPIKeyEntry } from '@flowforge/state';
+import { useTheme } from '../../hooks/useTheme';
 
 interface LLMChatWidgetProps {
   node: FlowNode;
@@ -26,6 +27,7 @@ export function LLMChatWidget({
 }: LLMChatWidgetProps) {
   const [keys, setKeys] = useState<MaskedAPIKeyEntry[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(true);
+  const { colors } = useTheme();
 
   // 노드 데이터 추출
   const provider = (node.data.provider as AIProviderType) || 'openai';
@@ -67,6 +69,14 @@ export function LLMChatWidget({
   // 스타일 계산
   const baseFontSize = Math.max(10, Math.min(14, 12 * zoom));
 
+  const inputStyle: React.CSSProperties = {
+    backgroundColor: colors.bgTertiary,
+    border: `1px solid ${colors.borderLight}`,
+    borderRadius: 4,
+    color: colors.textPrimary,
+    outline: 'none',
+  };
+
   return (
     <div
       style={{
@@ -95,6 +105,7 @@ export function LLMChatWidget({
             handleChange('apiKeyId', '');
             handleChange('model', e.target.value === 'openai' ? 'gpt-4o-mini' : 'claude-3-haiku-20240307');
           }}
+          aria-label="AI Provider"
         >
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
@@ -109,6 +120,7 @@ export function LLMChatWidget({
           }}
           value={model}
           onChange={e => handleChange('model', e.target.value)}
+          aria-label="Model"
         >
           {models.map(m => (
             <option key={m} value={m}>
@@ -128,6 +140,7 @@ export function LLMChatWidget({
         value={apiKeyId}
         onChange={e => handleChange('apiKeyId', e.target.value)}
         onFocus={loadKeys}
+        aria-label="API Key"
       >
         <option value="">
           {isLoadingKeys ? 'Loading...' : 'Select API Key'}
@@ -141,7 +154,7 @@ export function LLMChatWidget({
 
       {/* Temperature & Max Tokens */}
       <div style={{ display: 'flex', gap: 4 * zoom, alignItems: 'center' }}>
-        <label style={{ color: '#888', fontSize: baseFontSize * 0.9 }}>
+        <label style={{ color: colors.textMuted, fontSize: baseFontSize * 0.9 }}>
           Temp:
         </label>
         <input
@@ -157,9 +170,10 @@ export function LLMChatWidget({
           step={0.1}
           value={temperature}
           onChange={e => handleChange('temperature', parseFloat(e.target.value))}
+          aria-label="Temperature"
         />
 
-        <label style={{ color: '#888', fontSize: baseFontSize * 0.9, marginLeft: 4 * zoom }}>
+        <label style={{ color: colors.textMuted, fontSize: baseFontSize * 0.9, marginLeft: 4 * zoom }}>
           Max:
         </label>
         <input
@@ -175,6 +189,7 @@ export function LLMChatWidget({
           step={256}
           value={maxTokens}
           onChange={e => handleChange('maxTokens', parseInt(e.target.value))}
+          aria-label="Max tokens"
         />
 
         <label
@@ -182,7 +197,7 @@ export function LLMChatWidget({
             display: 'flex',
             alignItems: 'center',
             gap: 2 * zoom,
-            color: '#888',
+            color: colors.textMuted,
             fontSize: baseFontSize * 0.9,
             marginLeft: 'auto',
           }}
@@ -200,13 +215,13 @@ export function LLMChatWidget({
       {streamingResponse && (
         <div
           style={{
-            backgroundColor: '#1a1a1a',
+            backgroundColor: colors.bgPrimary,
             borderRadius: 4 * zoom,
             padding: 8 * zoom,
             maxHeight: 100 * zoom,
             overflowY: 'auto',
             fontSize: baseFontSize * 0.9,
-            color: '#e0e0e0',
+            color: colors.textSecondary,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
             lineHeight: 1.4,
@@ -219,7 +234,7 @@ export function LLMChatWidget({
                 display: 'inline-block',
                 width: 2,
                 height: baseFontSize,
-                backgroundColor: '#10a37f',
+                backgroundColor: colors.success,
                 animation: 'blink 1s infinite',
                 marginLeft: 2,
                 verticalAlign: 'text-bottom',
@@ -233,12 +248,12 @@ export function LLMChatWidget({
       {lastError && (
         <div
           style={{
-            backgroundColor: '#3f1d1d',
-            border: '1px solid #ef4444',
+            backgroundColor: colors.error + '22',
+            border: `1px solid ${colors.error}`,
             borderRadius: 4 * zoom,
             padding: 6 * zoom,
             fontSize: baseFontSize * 0.85,
-            color: '#fca5a5',
+            color: colors.error,
           }}
         >
           {lastError}
@@ -247,11 +262,3 @@ export function LLMChatWidget({
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: '#2a2a2a',
-  border: '1px solid #444',
-  borderRadius: 4,
-  color: '#fff',
-  outline: 'none',
-};

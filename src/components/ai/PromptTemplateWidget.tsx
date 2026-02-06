@@ -4,6 +4,7 @@
  */
 
 import type { FlowNode } from '@flowforge/types';
+import { useTheme } from '../../hooks/useTheme';
 
 interface PromptTemplateWidgetProps {
   node: FlowNode;
@@ -33,6 +34,8 @@ export function PromptTemplateWidget({
   onUpdate,
   onInteraction,
 }: PromptTemplateWidgetProps) {
+  const { colors } = useTheme();
+
   // 노드 데이터 추출
   const template = (node.data.template as string) || '';
   const lastResult = node.data.lastResult as string | undefined;
@@ -65,10 +68,10 @@ export function PromptTemplateWidget({
       {/* 템플릿 입력 */}
       <textarea
         style={{
-          backgroundColor: '#2a2a2a',
-          border: '1px solid #444',
+          backgroundColor: colors.bgTertiary,
+          border: `1px solid ${colors.borderLight}`,
           borderRadius: 4 * zoom,
-          color: '#fff',
+          color: colors.textPrimary,
           padding: 8 * zoom,
           fontSize: baseFontSize,
           resize: 'vertical',
@@ -80,6 +83,7 @@ export function PromptTemplateWidget({
         value={template}
         onChange={e => handleChange(e.target.value)}
         placeholder="Enter template with {{variables}}..."
+        aria-label="Prompt template"
       />
 
       {/* 변수 목록 */}
@@ -90,18 +94,21 @@ export function PromptTemplateWidget({
             flexWrap: 'wrap',
             gap: 4 * zoom,
           }}
+          role="list"
+          aria-label="Template variables"
         >
           {variables.map(v => (
             <span
               key={v}
               style={{
-                backgroundColor: unsubstitutedVars.includes(v) ? '#854d0e' : '#166534',
+                backgroundColor: unsubstitutedVars.includes(v) ? colors.warning : colors.success,
                 color: '#fff',
                 padding: `${2 * zoom}px ${6 * zoom}px`,
                 borderRadius: 3 * zoom,
                 fontSize: baseFontSize * 0.85,
                 fontFamily: 'monospace',
               }}
+              role="listitem"
             >
               {v}
             </span>
@@ -113,12 +120,12 @@ export function PromptTemplateWidget({
       {lastResult && (
         <div
           style={{
-            backgroundColor: '#1a1a1a',
-            border: '1px solid #333',
+            backgroundColor: colors.bgPrimary,
+            border: `1px solid ${colors.border}`,
             borderRadius: 4 * zoom,
             padding: 8 * zoom,
             fontSize: baseFontSize * 0.9,
-            color: '#ccc',
+            color: colors.textSecondary,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
             maxHeight: 60 * zoom,
