@@ -209,7 +209,7 @@ export const shortcutsTranslations: Record<Language, {
       {
         title: 'Clipboard',
         shortcuts: [
-          { keys: 'Ctrl+C', description: 'Copy nodes (with groups)' },
+          { keys: 'Ctrl+C', description: 'Copy (nodes, groups, comments)' },
           { keys: 'Ctrl+V', description: 'Paste to viewport center' },
           { keys: 'Ctrl+D', description: 'Duplicate selected' },
         ],
@@ -318,7 +318,7 @@ export const shortcutsTranslations: Record<Language, {
       {
         title: '클립보드',
         shortcuts: [
-          { keys: 'Ctrl+C', description: '노드 복사 (그룹 포함)' },
+          { keys: 'Ctrl+C', description: '복사 (노드, 그룹, 코멘트)' },
           { keys: 'Ctrl+V', description: '뷰포트 중앙에 붙여넣기' },
           { keys: 'Ctrl+D', description: '선택 항목 복제' },
         ],
