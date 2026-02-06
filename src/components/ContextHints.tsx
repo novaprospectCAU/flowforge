@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useLanguage } from '../i18n';
 import { contextHintsTranslations } from '../i18n/translations';
+import { useTheme } from '../hooks/useTheme';
 
 interface ContextHintsProps {
   nodeCount: number;
@@ -22,6 +23,7 @@ export function ContextHints({
 }: ContextHintsProps) {
   const lang = useLanguage();
   const t = contextHintsTranslations[lang];
+  const { colors, mode } = useTheme();
 
   const hints = useMemo(() => {
     const result: Hint[] = [];
@@ -59,8 +61,42 @@ export function ContextHints({
 
   if (hints.length === 0) return null;
 
+  const styles: Record<string, React.CSSProperties> = {
+    container: {
+      position: 'absolute',
+      bottom: 16,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      gap: 16,
+      padding: '8px 16px',
+      background: mode === 'dark' ? 'rgba(30, 30, 32, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+      borderRadius: 8,
+      border: `1px solid ${colors.border}`,
+      zIndex: 50,
+    },
+    hint: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+    },
+    shortcut: {
+      padding: '2px 6px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 3,
+      color: colors.textMuted,
+      fontSize: 10,
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    },
+    text: {
+      color: colors.textMuted,
+      fontSize: 11,
+    },
+  };
+
   return (
-    <div style={styles.container}>
+    <div style={styles.container} role="status" aria-live="polite">
       {hints.map((hint, i) => (
         <div key={i} style={styles.hint}>
           {hint.shortcut && <kbd style={styles.shortcut}>{hint.shortcut}</kbd>}
@@ -70,37 +106,3 @@ export function ContextHints({
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'absolute',
-    bottom: 16,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    display: 'flex',
-    gap: 16,
-    padding: '8px 16px',
-    background: 'rgba(30, 30, 32, 0.9)',
-    borderRadius: 8,
-    border: '1px solid #3c3c3c',
-    zIndex: 50,
-  },
-  hint: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-  },
-  shortcut: {
-    padding: '2px 6px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 3,
-    color: '#a0a0a0',
-    fontSize: 10,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  },
-  text: {
-    color: '#808080',
-    fontSize: 11,
-  },
-};

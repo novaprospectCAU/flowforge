@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../i18n';
+import { useTheme } from '../hooks/useTheme';
 
 interface HistoryPanelProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function HistoryPanel({
   onRedo,
 }: HistoryPanelProps) {
   const lang = useLanguage();
+  const { colors } = useTheme();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   // ESC 키로 닫기
@@ -68,13 +70,168 @@ export function HistoryPanel({
     clickToJump: lang === 'ko' ? '클릭하여 이동' : 'Click to jump',
   };
 
+  const styles: Record<string, React.CSSProperties> = {
+    overlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: colors.bgOverlay,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    },
+    panel: {
+      width: 320,
+      maxHeight: '70vh',
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 12,
+      boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    },
+    header: {
+      padding: '14px 16px',
+      borderBottom: `1px solid ${colors.border}`,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    title: {
+      margin: 0,
+      fontSize: 15,
+      fontWeight: 600,
+      color: colors.textPrimary,
+    },
+    closeBtn: {
+      width: 28,
+      height: 28,
+      background: 'transparent',
+      border: 'none',
+      borderRadius: 6,
+      color: colors.textMuted,
+      fontSize: 20,
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    controls: {
+      padding: '10px 16px',
+      borderBottom: `1px solid ${colors.border}`,
+      display: 'flex',
+      gap: 8,
+    },
+    controlBtn: {
+      flex: 1,
+      padding: '8px 12px',
+      background: colors.bgHover,
+      border: 'none',
+      borderRadius: 6,
+      color: colors.textSecondary,
+      fontSize: 12,
+      cursor: 'pointer',
+    },
+    timeline: {
+      flex: 1,
+      overflowY: 'auto',
+      padding: '12px 16px',
+    },
+    empty: {
+      textAlign: 'center',
+      color: colors.textMuted,
+      fontSize: 13,
+      padding: '20px 0',
+    },
+    section: {
+      marginBottom: 12,
+    },
+    sectionLabel: {
+      fontSize: 10,
+      fontWeight: 600,
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      marginBottom: 6,
+      letterSpacing: 0.5,
+    },
+    item: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '8px 10px',
+      borderRadius: 6,
+      cursor: 'pointer',
+      transition: 'background 0.15s',
+      marginBottom: 2,
+    },
+    itemHover: {
+      background: colors.bgHover,
+    },
+    undoItem: {
+      borderLeft: `2px solid ${colors.info}`,
+      marginLeft: 8,
+    },
+    redoItem: {
+      borderLeft: `2px solid ${colors.success}`,
+      marginLeft: 8,
+    },
+    itemDot: {
+      width: 6,
+      height: 6,
+      borderRadius: '50%',
+      background: colors.textMuted,
+    },
+    itemLabel: {
+      flex: 1,
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    itemHint: {
+      fontSize: 10,
+      color: colors.textMuted,
+      opacity: 0.6,
+    },
+    currentState: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '10px 12px',
+      background: colors.bgTertiary,
+      borderRadius: 6,
+      marginBottom: 12,
+      border: `1px solid ${colors.border}`,
+    },
+    currentDot: {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: colors.success,
+    },
+    currentLabel: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: colors.success,
+    },
+    footer: {
+      padding: '10px 16px',
+      borderTop: `1px solid ${colors.border}`,
+      textAlign: 'center',
+      color: colors.textMuted,
+      fontSize: 11,
+    },
+  };
+
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div style={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="history-title">
       <div style={styles.panel} onClick={e => e.stopPropagation()}>
         {/* 헤더 */}
         <div style={styles.header}>
-          <h3 style={styles.title}>{t.title}</h3>
-          <button onClick={onClose} style={styles.closeBtn}>×</button>
+          <h3 id="history-title" style={styles.title}>{t.title}</h3>
+          <button onClick={onClose} style={styles.closeBtn} aria-label="Close">×</button>
         </div>
 
         {/* Undo/Redo 버튼 */}
@@ -85,7 +242,9 @@ export function HistoryPanel({
             style={{
               ...styles.controlBtn,
               opacity: undoStackLength === 0 ? 0.4 : 1,
+              cursor: undoStackLength === 0 ? 'not-allowed' : 'pointer',
             }}
+            aria-label={t.undo}
           >
             ↶ {t.undo}
           </button>
@@ -95,14 +254,16 @@ export function HistoryPanel({
             style={{
               ...styles.controlBtn,
               opacity: redoStackLength === 0 ? 0.4 : 1,
+              cursor: redoStackLength === 0 ? 'not-allowed' : 'pointer',
             }}
+            aria-label={t.redo}
           >
             ↷ {t.redo}
           </button>
         </div>
 
         {/* 히스토리 타임라인 */}
-        <div style={styles.timeline}>
+        <div style={styles.timeline} role="list">
           {totalSteps === 0 ? (
             <div style={styles.empty}>{t.empty}</div>
           ) : (
@@ -127,6 +288,7 @@ export function HistoryPanel({
                         onClick={() => handleRedoClick(redoIndex)}
                         onMouseEnter={() => setHoveredIndex(stepNumber)}
                         onMouseLeave={() => setHoveredIndex(null)}
+                        role="listitem"
                       >
                         <div style={styles.itemDot} />
                         <span style={styles.itemLabel}>
@@ -140,7 +302,7 @@ export function HistoryPanel({
               )}
 
               {/* 현재 상태 */}
-              <div style={styles.currentState}>
+              <div style={styles.currentState} aria-current="step">
                 <div style={styles.currentDot} />
                 <span style={styles.currentLabel}>
                   ● {t.current} ({t.step} {currentPosition})
@@ -167,6 +329,7 @@ export function HistoryPanel({
                         onClick={() => handleUndoClick(undoIndex)}
                         onMouseEnter={() => setHoveredIndex(stepNumber)}
                         onMouseLeave={() => setHoveredIndex(null)}
+                        role="listitem"
                       >
                         <div style={styles.itemDot} />
                         <span style={styles.itemLabel}>
@@ -194,157 +357,3 @@ export function HistoryPanel({
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.4)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  panel: {
-    width: 320,
-    maxHeight: '70vh',
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 12,
-    boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  header: {
-    padding: '14px 16px',
-    borderBottom: '1px solid #3c3c3c',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: {
-    margin: 0,
-    fontSize: 15,
-    fontWeight: 600,
-    color: '#ffffff',
-  },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 6,
-    color: '#808080',
-    fontSize: 20,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  controls: {
-    padding: '10px 16px',
-    borderBottom: '1px solid #3c3c3c',
-    display: 'flex',
-    gap: 8,
-  },
-  controlBtn: {
-    flex: 1,
-    padding: '8px 12px',
-    background: '#3c3c3c',
-    border: 'none',
-    borderRadius: 6,
-    color: '#e0e0e0',
-    fontSize: 12,
-    cursor: 'pointer',
-  },
-  timeline: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '12px 16px',
-  },
-  empty: {
-    textAlign: 'center',
-    color: '#606060',
-    fontSize: 13,
-    padding: '20px 0',
-  },
-  section: {
-    marginBottom: 12,
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#606060',
-    textTransform: 'uppercase',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  item: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '8px 10px',
-    borderRadius: 6,
-    cursor: 'pointer',
-    transition: 'background 0.15s',
-    marginBottom: 2,
-  },
-  itemHover: {
-    background: '#3c3c3c',
-  },
-  undoItem: {
-    borderLeft: '2px solid #4a90d9',
-    marginLeft: 8,
-  },
-  redoItem: {
-    borderLeft: '2px solid #68d391',
-    marginLeft: 8,
-  },
-  itemDot: {
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    background: '#606060',
-  },
-  itemLabel: {
-    flex: 1,
-    fontSize: 12,
-    color: '#a0a0a0',
-  },
-  itemHint: {
-    fontSize: 10,
-    color: '#505050',
-  },
-  currentState: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '10px 12px',
-    background: '#2d3748',
-    borderRadius: 6,
-    marginBottom: 12,
-    border: '1px solid #4a5568',
-  },
-  currentDot: {
-    width: 8,
-    height: 8,
-    borderRadius: '50%',
-    background: '#68d391',
-  },
-  currentLabel: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#68d391',
-  },
-  footer: {
-    padding: '10px 16px',
-    borderTop: '1px solid #3c3c3c',
-    textAlign: 'center',
-    color: '#505050',
-    fontSize: 11,
-  },
-};
