@@ -3,6 +3,7 @@ import { nodeTypeRegistry, type NodeTypeDefinition } from '@flowforge/state';
 import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
+import { useTheme } from '../hooks/useTheme';
 
 interface NodePaletteProps {
   x: number;
@@ -19,6 +20,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
   const lang = useLanguage();
   const t = uiTranslations[lang];
   const isTouchDevice = useIsTouchDevice();
+  const { colors } = useTheme();
 
   const allTypes = nodeTypeRegistry.getAll();
   const filteredTypes = search
@@ -88,16 +90,18 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
         top: y,
         width: 280,
         maxHeight: 400,
-        background: '#252526',
-        border: '1px solid #3c3c3c',
+        background: colors.bgSecondary,
+        border: `1px solid ${colors.border}`,
         borderRadius: 6,
         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
         zIndex: 1000,
         overflow: 'hidden',
       }}
       onKeyDown={handleKeyDown}
+      role="listbox"
+      aria-label={lang === 'en' ? 'Node types' : '노드 타입'}
     >
-      <div style={{ padding: 8, borderBottom: '1px solid #3c3c3c' }}>
+      <div style={{ padding: 8, borderBottom: `1px solid ${colors.border}` }}>
         <input
           ref={inputRef}
           type="text"
@@ -107,13 +111,15 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
           style={{
             width: '100%',
             padding: '8px 12px',
-            background: '#3c3c3c',
+            background: colors.bgHover,
             border: 'none',
             borderRadius: 4,
-            color: '#cccccc',
+            color: colors.textSecondary,
             fontSize: 14,
             outline: 'none',
+            boxSizing: 'border-box',
           }}
+          aria-label={t.searchNodes}
         />
       </div>
       <div
@@ -124,12 +130,12 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
         }}
       >
         {Object.entries(grouped).map(([category, types]) => (
-          <div key={category}>
+          <div key={category} role="group" aria-label={category}>
             <div
               style={{
                 padding: '6px 12px',
                 fontSize: 11,
-                color: '#808080',
+                color: colors.textMuted,
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
               }}
@@ -146,14 +152,16 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
                   style={{
                     padding: '8px 12px',
                     cursor: 'pointer',
-                    background: isSelected ? '#094771' : 'transparent',
-                    color: '#cccccc',
+                    background: isSelected ? colors.accent + '44' : 'transparent',
+                    color: colors.textSecondary,
                   }}
                   onMouseEnter={() => setSelectedIndex(globalIndex)}
+                  role="option"
+                  aria-selected={isSelected}
                 >
                   <div style={{ fontWeight: 500 }}>{type.title}</div>
                   {type.description && (
-                    <div style={{ fontSize: 12, color: '#808080', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                       {type.description}
                     </div>
                   )}
@@ -163,8 +171,8 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
           </div>
         ))}
         {filteredTypes.length === 0 && (
-          <div style={{ padding: 16, color: '#808080', textAlign: 'center' }}>
-            No nodes found
+          <div style={{ padding: 16, color: colors.textMuted, textAlign: 'center' }}>
+            {lang === 'en' ? 'No nodes found' : '노드를 찾을 수 없습니다'}
           </div>
         )}
       </div>
