@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as Y from 'yjs';
 import type { FlowNode, FlowEdge, Viewport, NodeGroup, Comment, Subflow, SubflowPortMapping } from '@flowforge/types';
 import type { FlowYjsDoc } from './yjsDoc';
+import { DEFAULT_COLORS } from './nodeTypes';
 import {
   createFlowDoc,
   getViewportFromYjs,
@@ -170,7 +171,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
           id: groupId,
           name,
           nodeIds: [...nodeIds],
-          color: color ?? '#4a5568',
+          color: color ?? DEFAULT_COLORS.GROUP,
         };
         yjsDoc.groups.set(groupId, group);
         return groupId;
@@ -338,7 +339,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
           collapsed: false,
           collapsedPosition: { x: centerX - collapsedWidth / 2, y: centerY - collapsedHeight / 2 },
           collapsedSize: { width: collapsedWidth, height: collapsedHeight },
-          color: '#3b82f6', // 파란색
+          color: DEFAULT_COLORS.SUBFLOW,
         };
 
         yjsDoc.subflows.set(subflowId, subflow);

@@ -13,7 +13,7 @@ export {
 export { createFlowStore, type FlowState, type FlowStore } from './store';
 
 // 노드 타입 레지스트리
-export { nodeTypeRegistry, NODE_SIZES, type NodeTypeDefinition } from './nodeTypes';
+export { nodeTypeRegistry, NODE_SIZES, DEFAULT_COLORS, type NodeTypeDefinition } from './nodeTypes';
 
 // 실행 엔진
 export {

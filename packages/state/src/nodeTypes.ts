@@ -26,6 +26,21 @@ export const NODE_SIZES = {
 } as const;
 
 /**
+ * 기본 색상 상수
+ * 그룹, 서브플로우, AI 노드 등의 기본 색상
+ */
+export const DEFAULT_COLORS = {
+  // 그룹/서브플로우 기본 색상
+  GROUP: '#4a5568',      // 회색 - 노드 그룹
+  SUBFLOW: '#3b82f6',    // 파란색 - 서브플로우
+
+  // AI 노드 브랜드 색상
+  AI_OPENAI: '#10a37f',  // OpenAI 녹색 - LLM Chat
+  AI_IMAGE: '#ff6b35',   // 주황색 - Image Generate
+  AI_TEMPLATE: '#8b5cf6', // 보라색 - Prompt Template
+} as const;
+
+/**
  * 노드 타입 정의
  */
 export interface NodeTypeDefinition {
