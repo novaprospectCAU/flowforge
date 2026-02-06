@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FlowNode } from '@flowforge/types';
 import { nodeTypeRegistry } from '@flowforge/state';
+import { useTheme } from '../hooks/useTheme';
 
 interface PropertyPanelProps {
   node: FlowNode;
@@ -9,6 +10,7 @@ interface PropertyPanelProps {
 
 export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
   const [localData, setLocalData] = useState<Record<string, unknown>>(node.data);
+  const { colors } = useTheme();
 
   // 노드가 바뀌면 로컬 데이터 갱신
   useEffect(() => {
@@ -23,6 +25,92 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
     onUpdate(node.id, newData);
   };
 
+  const styles: Record<string, React.CSSProperties> = {
+    panel: {
+      position: 'absolute',
+      top: 16,
+      left: 16,
+      width: 280,
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 8,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+      zIndex: 100,
+      overflow: 'hidden',
+    },
+    header: {
+      padding: '12px 16px',
+      borderBottom: `1px solid ${colors.border}`,
+      background: colors.bgTertiary,
+    },
+    nodeType: {
+      fontSize: 10,
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 4,
+    },
+    nodeTitle: {
+      fontSize: 16,
+      fontWeight: 600,
+      color: colors.textPrimary,
+    },
+    content: {
+      padding: 16,
+    },
+    field: {
+      marginBottom: 16,
+    },
+    label: {
+      display: 'block',
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: 6,
+    },
+    input: {
+      width: '100%',
+      padding: '8px 12px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 14,
+      outline: 'none',
+      boxSizing: 'border-box',
+    },
+    select: {
+      width: '100%',
+      padding: '8px 12px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 14,
+      outline: 'none',
+      boxSizing: 'border-box',
+      cursor: 'pointer',
+    },
+    info: {
+      marginTop: 20,
+      paddingTop: 16,
+      borderTop: `1px solid ${colors.border}`,
+    },
+    infoRow: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    infoLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    infoValue: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontFamily: 'monospace',
+    },
+  };
+
   // 노드 타입별 설정 UI
   const renderTypeSpecificFields = () => {
     switch (node.type) {
@@ -35,6 +123,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
               value={Number(localData.value ?? 0)}
               onChange={e => handleChange('value', parseFloat(e.target.value) || 0)}
               style={styles.input}
+              aria-label="Number value"
             />
           </div>
         );
@@ -48,6 +137,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
               value={String(localData.text ?? '')}
               onChange={e => handleChange('text', e.target.value)}
               style={styles.input}
+              aria-label="Text value"
             />
           </div>
         );
@@ -60,6 +150,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
               value={String(localData.operation ?? 'add')}
               onChange={e => handleChange('operation', e.target.value)}
               style={styles.select}
+              aria-label="Math operation"
             >
               <option value="add">Add (+)</option>
               <option value="subtract">Subtract (-)</option>
@@ -79,6 +170,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
               value={String(localData.filter ?? 'none')}
               onChange={e => handleChange('filter', e.target.value)}
               style={styles.select}
+              aria-label="Filter type"
             >
               <option value="none">None</option>
               <option value="grayscale">Grayscale</option>
@@ -97,6 +189,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
               value={String(localData.mode ?? 'array')}
               onChange={e => handleChange('mode', e.target.value)}
               style={styles.select}
+              aria-label="Merge mode"
             >
               <option value="array">Array</option>
               <option value="object">Object</option>
@@ -114,6 +207,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
               onChange={e => handleChange('path', e.target.value)}
               style={styles.input}
               placeholder="output.png"
+              aria-label="File path"
             />
           </div>
         );
@@ -128,6 +222,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
               onChange={e => handleChange('src', e.target.value)}
               style={styles.input}
               placeholder="path/to/image.png"
+              aria-label="Image source path"
             />
           </div>
         );
@@ -138,7 +233,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
   };
 
   return (
-    <div style={styles.panel}>
+    <div style={styles.panel} role="region" aria-label="Property panel">
       <div style={styles.header}>
         <div style={styles.nodeType}>{typeDef?.category ?? 'Node'}</div>
         <div style={styles.nodeTitle}>{typeDef?.title ?? node.type}</div>
@@ -153,6 +248,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
             value={String(localData.title ?? typeDef?.title ?? node.type)}
             onChange={e => handleChange('title', e.target.value)}
             style={styles.input}
+            aria-label="Node title"
           />
         </div>
 
@@ -182,89 +278,3 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  panel: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    width: 280,
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 8,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-    zIndex: 100,
-    overflow: 'hidden',
-  },
-  header: {
-    padding: '12px 16px',
-    borderBottom: '1px solid #3c3c3c',
-    background: '#2d2d2d',
-  },
-  nodeType: {
-    fontSize: 10,
-    color: '#808080',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  nodeTitle: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#ffffff',
-  },
-  content: {
-    padding: 16,
-  },
-  field: {
-    marginBottom: 16,
-  },
-  label: {
-    display: 'block',
-    fontSize: 12,
-    color: '#808080',
-    marginBottom: 6,
-  },
-  input: {
-    width: '100%',
-    padding: '8px 12px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 14,
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
-  select: {
-    width: '100%',
-    padding: '8px 12px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 14,
-    outline: 'none',
-    boxSizing: 'border-box',
-    cursor: 'pointer',
-  },
-  info: {
-    marginTop: 20,
-    paddingTop: 16,
-    borderTop: '1px solid #3c3c3c',
-  },
-  infoRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: '#606060',
-  },
-  infoValue: {
-    fontSize: 12,
-    color: '#808080',
-    fontFamily: 'monospace',
-  },
-};

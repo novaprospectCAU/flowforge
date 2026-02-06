@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Subflow, SubflowPortMapping, FlowNode, FlowEdge } from '@flowforge/types';
 import { saveAsTemplate } from '@flowforge/state';
+import { useTheme } from '../hooks/useTheme';
 
 interface SubflowPanelProps {
   subflow: Subflow;
@@ -25,6 +26,7 @@ export function SubflowPanel({
   const [localName, setLocalName] = useState(subflow.name);
   const [localInputs, setLocalInputs] = useState<SubflowPortMapping[]>(subflow.inputMappings);
   const [localOutputs, setLocalOutputs] = useState<SubflowPortMapping[]>(subflow.outputMappings);
+  const { colors } = useTheme();
 
   // 서브플로우가 바뀌면 로컬 상태 갱신
   useEffect(() => {
@@ -66,6 +68,169 @@ export function SubflowPanel({
     }
   };
 
+  const styles: Record<string, React.CSSProperties> = {
+    panel: {
+      position: 'absolute',
+      top: 16,
+      left: 16,
+      width: 280,
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 8,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+      zIndex: 100,
+      overflow: 'hidden',
+      maxHeight: 'calc(100vh - 100px)',
+      overflowY: 'auto',
+    },
+    header: {
+      padding: '12px 16px',
+      borderBottom: `1px solid ${colors.border}`,
+      background: colors.accent,
+    },
+    nodeType: {
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.7)',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 4,
+    },
+    nodeTitle: {
+      fontSize: 16,
+      fontWeight: 600,
+      color: '#ffffff',
+    },
+    content: {
+      padding: 16,
+    },
+    field: {
+      marginBottom: 16,
+    },
+    label: {
+      display: 'block',
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: 6,
+    },
+    input: {
+      width: '100%',
+      padding: '8px 12px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 14,
+      outline: 'none',
+      boxSizing: 'border-box',
+    },
+    section: {
+      marginBottom: 16,
+    },
+    sectionHeader: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: 8,
+      fontWeight: 600,
+    },
+    portRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 6,
+    },
+    portInput: {
+      flex: 1,
+      padding: '6px 10px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 12,
+      outline: 'none',
+    },
+    portType: {
+      fontSize: 10,
+      color: colors.textMuted,
+      padding: '2px 6px',
+      background: colors.bgTertiary,
+      borderRadius: 3,
+    },
+    removeBtn: {
+      width: 20,
+      height: 20,
+      padding: 0,
+      background: 'transparent',
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 3,
+      color: colors.textMuted,
+      fontSize: 12,
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emptyPorts: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontStyle: 'italic',
+      padding: '8px 0',
+    },
+    actions: {
+      display: 'flex',
+      gap: 8,
+      marginTop: 16,
+    },
+    actionBtn: {
+      flex: 1,
+      padding: '8px 12px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 12,
+      cursor: 'pointer',
+    },
+    deleteBtn: {
+      background: colors.error + '22',
+      borderColor: colors.error + '44',
+      color: colors.error,
+    },
+    templateSection: {
+      marginTop: 12,
+    },
+    templateBtn: {
+      width: '100%',
+      background: colors.success + '22',
+      borderColor: colors.success + '44',
+      color: colors.success,
+    },
+    saveMessage: {
+      marginTop: 8,
+      fontSize: 11,
+      color: colors.success,
+      textAlign: 'center' as const,
+    },
+    info: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTop: `1px solid ${colors.border}`,
+    },
+    infoRow: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    infoLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    infoValue: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontFamily: 'monospace',
+    },
+  };
+
   const renderPortList = (ports: SubflowPortMapping[], isOutput: boolean) => {
     if (ports.length === 0) {
       return <div style={styles.emptyPorts}>No {isOutput ? 'output' : 'input'} ports</div>;
@@ -78,12 +243,14 @@ export function SubflowPanel({
           value={port.exposedPortName}
           onChange={e => handlePortNameChange(isOutput, port.exposedPortId, e.target.value)}
           style={styles.portInput}
+          aria-label={`${isOutput ? 'Output' : 'Input'} port name`}
         />
         <span style={styles.portType}>{port.dataType}</span>
         <button
           onClick={() => handleRemovePort(isOutput, port.exposedPortId)}
           style={styles.removeBtn}
           title="Remove port"
+          aria-label={`Remove ${port.exposedPortName} port`}
         >
           x
         </button>
@@ -92,7 +259,7 @@ export function SubflowPanel({
   };
 
   return (
-    <div style={styles.panel}>
+    <div style={styles.panel} role="region" aria-label="Subflow panel">
       <div style={styles.header}>
         <div style={styles.nodeType}>Subflow</div>
         <div style={styles.nodeTitle}>{localName || 'Untitled'}</div>
@@ -108,23 +275,24 @@ export function SubflowPanel({
             onChange={e => handleNameChange(e.target.value)}
             style={styles.input}
             placeholder="Subflow name"
+            aria-label="Subflow name"
           />
         </div>
 
         {/* 입력 포트 */}
-        <div style={styles.section}>
+        <div style={styles.section} role="group" aria-label="Input ports">
           <div style={styles.sectionHeader}>Input Ports ({localInputs.length})</div>
           {renderPortList(localInputs, false)}
         </div>
 
         {/* 출력 포트 */}
-        <div style={styles.section}>
+        <div style={styles.section} role="group" aria-label="Output ports">
           <div style={styles.sectionHeader}>Output Ports ({localOutputs.length})</div>
           {renderPortList(localOutputs, true)}
         </div>
 
         {/* 액션 버튼 */}
-        <div style={styles.actions}>
+        <div style={styles.actions} role="group" aria-label="Actions">
           <button
             onClick={() => subflow.collapsed ? onExpand(subflow.id) : onCollapse(subflow.id)}
             style={styles.actionBtn}
@@ -151,7 +319,7 @@ export function SubflowPanel({
           >
             Save as Template
           </button>
-          {saveMessage && <div style={styles.saveMessage}>{saveMessage}</div>}
+          {saveMessage && <div style={styles.saveMessage} role="status">{saveMessage}</div>}
         </div>
 
         {/* 서브플로우 정보 */}
@@ -173,166 +341,3 @@ export function SubflowPanel({
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  panel: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    width: 280,
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 8,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-    zIndex: 100,
-    overflow: 'hidden',
-    maxHeight: 'calc(100vh - 100px)',
-    overflowY: 'auto',
-  },
-  header: {
-    padding: '12px 16px',
-    borderBottom: '1px solid #3c3c3c',
-    background: '#1e3a5f',
-  },
-  nodeType: {
-    fontSize: 10,
-    color: '#80b0e0',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  nodeTitle: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#ffffff',
-  },
-  content: {
-    padding: 16,
-  },
-  field: {
-    marginBottom: 16,
-  },
-  label: {
-    display: 'block',
-    fontSize: 12,
-    color: '#808080',
-    marginBottom: 6,
-  },
-  input: {
-    width: '100%',
-    padding: '8px 12px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 14,
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    fontSize: 12,
-    color: '#808080',
-    marginBottom: 8,
-    fontWeight: 600,
-  },
-  portRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  portInput: {
-    flex: 1,
-    padding: '6px 10px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 12,
-    outline: 'none',
-  },
-  portType: {
-    fontSize: 10,
-    color: '#606060',
-    padding: '2px 6px',
-    background: '#2d2d2d',
-    borderRadius: 3,
-  },
-  removeBtn: {
-    width: 20,
-    height: 20,
-    padding: 0,
-    background: 'transparent',
-    border: '1px solid #4a4a4a',
-    borderRadius: 3,
-    color: '#808080',
-    fontSize: 12,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyPorts: {
-    fontSize: 12,
-    color: '#505050',
-    fontStyle: 'italic',
-    padding: '8px 0',
-  },
-  actions: {
-    display: 'flex',
-    gap: 8,
-    marginTop: 16,
-  },
-  actionBtn: {
-    flex: 1,
-    padding: '8px 12px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 12,
-    cursor: 'pointer',
-  },
-  deleteBtn: {
-    background: '#5c2d2d',
-    borderColor: '#7a3a3a',
-    color: '#e08080',
-  },
-  templateSection: {
-    marginTop: 12,
-  },
-  templateBtn: {
-    width: '100%',
-    background: '#2d4a3c',
-    borderColor: '#3a7a5a',
-    color: '#80e0a0',
-  },
-  saveMessage: {
-    marginTop: 8,
-    fontSize: 11,
-    color: '#80e0a0',
-    textAlign: 'center' as const,
-  },
-  info: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTop: '1px solid #3c3c3c',
-  },
-  infoRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: '#606060',
-  },
-  infoValue: {
-    fontSize: 12,
-    color: '#808080',
-    fontFamily: 'monospace',
-  },
-};

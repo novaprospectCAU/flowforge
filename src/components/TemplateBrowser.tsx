@@ -3,6 +3,7 @@ import type { SubflowTemplate, Position } from '@flowforge/types';
 import { loadTemplates, deleteTemplate } from '@flowforge/state';
 import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
+import { useTheme } from '../hooks/useTheme';
 
 interface TemplateBrowserProps {
   position: Position;
@@ -15,6 +16,7 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
   const [searchQuery, setSearchQuery] = useState('');
   const lang = useLanguage();
   const t = uiTranslations[lang];
+  const { colors } = useTheme();
 
   useEffect(() => {
     setTemplates(loadTemplates());
@@ -35,6 +37,113 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
     }
   };
 
+  const styles: Record<string, React.CSSProperties> = {
+    container: {
+      position: 'absolute',
+      width: 300,
+      maxHeight: 400,
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 8,
+      boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+      zIndex: 200,
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '10px 12px',
+      borderBottom: `1px solid ${colors.border}`,
+      background: colors.accent,
+    },
+    title: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: '#ffffff',
+    },
+    closeBtn: {
+      background: 'transparent',
+      border: 'none',
+      color: 'rgba(255,255,255,0.7)',
+      fontSize: 18,
+      cursor: 'pointer',
+      padding: '0 4px',
+    },
+    searchInput: {
+      margin: 8,
+      padding: '8px 12px',
+      background: colors.bgHover,
+      border: `1px solid ${colors.borderLight}`,
+      borderRadius: 4,
+      color: colors.textSecondary,
+      fontSize: 13,
+      outline: 'none',
+    },
+    list: {
+      flex: 1,
+      overflowY: 'auto',
+      padding: '0 8px 8px',
+    },
+    emptyMessage: {
+      padding: 16,
+      textAlign: 'center',
+      color: colors.textMuted,
+      fontSize: 12,
+      lineHeight: 1.5,
+    },
+    templateItem: {
+      padding: 10,
+      marginBottom: 4,
+      background: colors.bgTertiary,
+      borderRadius: 4,
+      cursor: 'pointer',
+      border: '1px solid transparent',
+    },
+    templateHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    templateName: {
+      fontSize: 13,
+      fontWeight: 500,
+      color: colors.textPrimary,
+    },
+    deleteBtn: {
+      background: 'transparent',
+      border: 'none',
+      color: colors.textMuted,
+      fontSize: 14,
+      cursor: 'pointer',
+      padding: '0 4px',
+      opacity: 0.6,
+    },
+    templateDesc: {
+      marginTop: 4,
+      fontSize: 11,
+      color: colors.textMuted,
+    },
+    templateMeta: {
+      marginTop: 6,
+      fontSize: 10,
+      color: colors.textMuted,
+      display: 'flex',
+      gap: 6,
+    },
+    footer: {
+      padding: '8px 12px',
+      borderTop: `1px solid ${colors.border}`,
+      background: colors.bgPrimary,
+    },
+    hint: {
+      fontSize: 11,
+      color: colors.textMuted,
+    },
+  };
+
   return (
     <div
       style={{
@@ -43,10 +152,12 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
         top: position.y,
       }}
       onClick={e => e.stopPropagation()}
+      role="dialog"
+      aria-label={t.templates}
     >
       <div style={styles.header}>
         <span style={styles.title}>{t.templates}</span>
-        <button onClick={onClose} style={styles.closeBtn}>×</button>
+        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">×</button>
       </div>
 
       <input
@@ -56,9 +167,10 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
         onChange={e => setSearchQuery(e.target.value)}
         style={styles.searchInput}
         autoFocus
+        aria-label={lang === 'en' ? 'Search templates' : '템플릿 검색'}
       />
 
-      <div style={styles.list}>
+      <div style={styles.list} role="listbox" aria-label="Template list">
         {filteredTemplates.length === 0 ? (
           <div style={styles.emptyMessage}>
             {templates.length === 0
@@ -75,6 +187,8 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
               key={template.id}
               style={styles.templateItem}
               onClick={() => onInsert(template)}
+              role="option"
+              aria-selected={false}
             >
               <div style={styles.templateHeader}>
                 <span style={styles.templateName}>{template.name}</span>
@@ -82,6 +196,7 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
                   onClick={e => handleDelete(template.id, e)}
                   style={styles.deleteBtn}
                   title={t.deleteTemplate}
+                  aria-label={`Delete ${template.name}`}
                 >
                   ×
                 </button>
@@ -109,110 +224,3 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'absolute',
-    width: 300,
-    maxHeight: 400,
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 8,
-    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-    zIndex: 200,
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '10px 12px',
-    borderBottom: '1px solid #3c3c3c',
-    background: '#1e3a5f',
-  },
-  title: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#ffffff',
-  },
-  closeBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: '#808080',
-    fontSize: 18,
-    cursor: 'pointer',
-    padding: '0 4px',
-  },
-  searchInput: {
-    margin: 8,
-    padding: '8px 12px',
-    background: '#3c3c3c',
-    border: '1px solid #4a4a4a',
-    borderRadius: 4,
-    color: '#cccccc',
-    fontSize: 13,
-    outline: 'none',
-  },
-  list: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '0 8px 8px',
-  },
-  emptyMessage: {
-    padding: 16,
-    textAlign: 'center',
-    color: '#606060',
-    fontSize: 12,
-    lineHeight: 1.5,
-  },
-  templateItem: {
-    padding: 10,
-    marginBottom: 4,
-    background: '#2d2d30',
-    borderRadius: 4,
-    cursor: 'pointer',
-    border: '1px solid transparent',
-  },
-  templateHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  templateName: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: '#e0e0e0',
-  },
-  deleteBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: '#606060',
-    fontSize: 14,
-    cursor: 'pointer',
-    padding: '0 4px',
-    opacity: 0.6,
-  },
-  templateDesc: {
-    marginTop: 4,
-    fontSize: 11,
-    color: '#808080',
-  },
-  templateMeta: {
-    marginTop: 6,
-    fontSize: 10,
-    color: '#505050',
-    display: 'flex',
-    gap: 6,
-  },
-  footer: {
-    padding: '8px 12px',
-    borderTop: '1px solid #3c3c3c',
-    background: '#1e1e1e',
-  },
-  hint: {
-    fontSize: 11,
-    color: '#505050',
-  },
-};

@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useTheme } from '../hooks/useTheme';
 
 export interface MenuItem {
   label: string;
@@ -16,6 +17,8 @@ interface ContextMenuProps {
 
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const { colors } = useTheme();
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -46,14 +49,16 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         position: 'fixed',
         left: x,
         top: y,
-        background: '#252526',
-        border: '1px solid #3c3c3c',
+        background: colors.bgSecondary,
+        border: `1px solid ${colors.border}`,
         borderRadius: 4,
         padding: '4px 0',
         minWidth: 160,
         boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
         zIndex: 1000,
       }}
+      role="menu"
+      aria-label="Context menu"
     >
       {items.map((item, index) =>
         item.divider ? (
@@ -61,9 +66,10 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
             key={index}
             style={{
               height: 1,
-              background: '#3c3c3c',
+              background: colors.border,
               margin: '4px 0',
             }}
+            role="separator"
           />
         ) : (
           <div
@@ -74,20 +80,16 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
                 onClose();
               }
             }}
+            onMouseEnter={() => setHoveredIndex(index)}
+            onMouseLeave={() => setHoveredIndex(null)}
             style={{
               padding: '6px 12px',
               cursor: item.disabled ? 'default' : 'pointer',
-              color: item.disabled ? '#6e6e6e' : '#cccccc',
-              background: 'transparent',
+              color: item.disabled ? colors.textMuted : colors.textSecondary,
+              background: !item.disabled && hoveredIndex === index ? colors.accent : 'transparent',
             }}
-            onMouseEnter={(e) => {
-              if (!item.disabled) {
-                e.currentTarget.style.background = '#094771';
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
+            role="menuitem"
+            aria-disabled={item.disabled}
           >
             {item.label}
           </div>
