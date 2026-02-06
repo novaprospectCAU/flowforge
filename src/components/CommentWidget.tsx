@@ -74,10 +74,14 @@ export function CommentWidget({
   // 편집 모드 진입 시 자동 포커스
   useEffect(() => {
     if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      // 커서를 끝으로 이동
-      const len = textareaRef.current.value.length;
-      textareaRef.current.setSelectionRange(len, len);
+      // iOS에서 키보드가 뜨도록 약간의 지연 후 포커스
+      const textarea = textareaRef.current;
+      requestAnimationFrame(() => {
+        textarea.focus();
+        // 커서를 끝으로 이동
+        const len = textarea.value.length;
+        textarea.setSelectionRange(len, len);
+      });
     }
   }, [isEditing]);
 
@@ -96,6 +100,19 @@ export function CommentWidget({
       if (isEditing) {
         e.stopPropagation();
         onInteraction?.(true);
+      }
+    },
+    [isEditing, onInteraction]
+  );
+
+  // 터치 기기에서 편집 모드일 때 터치하면 포커스
+  const handleTextareaTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (isEditing) {
+        e.stopPropagation();
+        onInteraction?.(true);
+        // iOS에서 키보드가 뜨도록 직접 포커스
+        textareaRef.current?.focus();
       }
     },
     [isEditing, onInteraction]
@@ -164,6 +181,7 @@ export function CommentWidget({
         onChange={handleChange}
         placeholder={placeholder}
         onMouseDown={handleTextareaMouseDown}
+        onTouchStart={handleTextareaTouchStart}
         onBlur={handleTextareaBlur}
         onKeyDown={handleKeyDown}
         readOnly={!isEditing}

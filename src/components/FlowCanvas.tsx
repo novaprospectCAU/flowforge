@@ -1701,15 +1701,23 @@ export function FlowCanvas() {
             state.expandSubflow(hitSubflow.subflow.id);
             selectedSubflowIdRef.current = hitSubflow.subflow.id;
           } else {
-            // 빈 공간 더블 탭 - 노드 팔레트
-            const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
-            const hitNode = hitTestNode(worldPos, visibleNodes);
-            if (!hitNode) {
-              setNodePalette({
-                x: touchStart.x - 140,
-                y: touchStart.y - 100,
-                worldPos,
-              });
+            // 코멘트 더블 탭 - 편집 모드
+            const hitComment = hitTestComment(worldPos, state.comments);
+            if (hitComment) {
+              setEditingCommentId(hitComment.id);
+              selectedCommentIdRef.current = hitComment.id;
+              forceRender(n => n + 1);
+            } else {
+              // 빈 공간 더블 탭 - 노드 팔레트
+              const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
+              const hitNode = hitTestNode(worldPos, visibleNodes);
+              if (!hitNode) {
+                setNodePalette({
+                  x: touchStart.x - 140,
+                  y: touchStart.y - 100,
+                  worldPos,
+                });
+              }
             }
           }
           lastTapTimeRef.current = 0;
