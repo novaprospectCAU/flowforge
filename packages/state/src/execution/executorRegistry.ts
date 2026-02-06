@@ -282,3 +282,324 @@ executorRegistry.register('Condition', async (ctx: ExecutionContext): Promise<Ex
 
   return { outputs: { out: condition ? trueValue : falseValue } };
 });
+
+// === 새로운 Logic 노드들 ===
+
+// Compare: 두 값 비교
+executorRegistry.register('Compare', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const a = ctx.inputs.a;
+  const b = ctx.inputs.b;
+  const operator = String(ctx.nodeData.operator ?? '==');
+
+  let result: boolean;
+  switch (operator) {
+    case '==':
+      result = a == b;
+      break;
+    case '===':
+      result = a === b;
+      break;
+    case '!=':
+      result = a != b;
+      break;
+    case '!==':
+      result = a !== b;
+      break;
+    case '<':
+      result = Number(a) < Number(b);
+      break;
+    case '>':
+      result = Number(a) > Number(b);
+      break;
+    case '<=':
+      result = Number(a) <= Number(b);
+      break;
+    case '>=':
+      result = Number(a) >= Number(b);
+      break;
+    default:
+      result = a == b;
+  }
+
+  return { outputs: { result } };
+});
+
+// Gate: 조건부 통과
+executorRegistry.register('Gate', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const input = ctx.inputs.input;
+  const enable = Boolean(ctx.inputs.enable);
+
+  return { outputs: { out: enable ? input : undefined } };
+});
+
+// Switch: 인덱스 기반 라우팅
+executorRegistry.register('Switch', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const input = ctx.inputs.input;
+  const index = Math.floor(Number(ctx.inputs.index ?? 0));
+
+  const outputs: Record<string, unknown> = {
+    out0: undefined,
+    out1: undefined,
+    out2: undefined,
+  };
+
+  if (index >= 0 && index <= 2) {
+    outputs[`out${index}`] = input;
+  }
+
+  return { outputs };
+});
+
+// === Text 노드들 ===
+
+// TextJoin: 텍스트 결합
+executorRegistry.register('TextJoin', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const texts = [ctx.inputs.text1, ctx.inputs.text2, ctx.inputs.text3]
+    .filter(t => t !== undefined && t !== null)
+    .map(String);
+  const separator = String(ctx.nodeData.separator ?? ctx.inputs.separator ?? '');
+
+  return { outputs: { out: texts.join(separator) } };
+});
+
+// TextSplit: 텍스트 분할
+executorRegistry.register('TextSplit', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const text = String(ctx.inputs.text ?? '');
+  const delimiter = String(ctx.nodeData.delimiter ?? ctx.inputs.delimiter ?? ',');
+
+  return { outputs: { out: text.split(delimiter) } };
+});
+
+// TextReplace: 텍스트 치환
+executorRegistry.register('TextReplace', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const text = String(ctx.inputs.text ?? '');
+  const find = String(ctx.inputs.find ?? '');
+  const replace = String(ctx.inputs.replace ?? '');
+  const useRegex = Boolean(ctx.nodeData.useRegex);
+
+  let result: string;
+  if (useRegex) {
+    try {
+      const regex = new RegExp(find, 'g');
+      result = text.replace(regex, replace);
+    } catch {
+      result = text.split(find).join(replace);
+    }
+  } else {
+    result = text.split(find).join(replace);
+  }
+
+  return { outputs: { out: result } };
+});
+
+// TextLength: 텍스트 길이
+executorRegistry.register('TextLength', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const text = String(ctx.inputs.text ?? '');
+  return { outputs: { out: text.length } };
+});
+
+// TextCase: 대소문자 변환
+executorRegistry.register('TextCase', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const text = String(ctx.inputs.text ?? '');
+  const caseType = String(ctx.nodeData.case ?? 'upper');
+
+  let result: string;
+  switch (caseType) {
+    case 'upper':
+      result = text.toUpperCase();
+      break;
+    case 'lower':
+      result = text.toLowerCase();
+      break;
+    case 'title':
+      result = text.replace(/\b\w/g, c => c.toUpperCase());
+      break;
+    case 'sentence':
+      result = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+      break;
+    default:
+      result = text;
+  }
+
+  return { outputs: { out: result } };
+});
+
+// === Data 노드들 ===
+
+// JSONParse: JSON 파싱
+executorRegistry.register('JSONParse', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const json = String(ctx.inputs.json ?? '{}');
+
+  try {
+    const parsed = JSON.parse(json);
+    return { outputs: { out: parsed } };
+  } catch (e) {
+    throw new Error(`Invalid JSON: ${e instanceof Error ? e.message : String(e)}`);
+  }
+});
+
+// JSONStringify: JSON 문자열화
+executorRegistry.register('JSONStringify', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const object = ctx.inputs.object;
+  const pretty = Boolean(ctx.nodeData.pretty);
+
+  const json = pretty ? JSON.stringify(object, null, 2) : JSON.stringify(object);
+  return { outputs: { out: json } };
+});
+
+// GetProperty: 객체 속성 접근
+executorRegistry.register('GetProperty', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const object = ctx.inputs.object as Record<string, unknown> | undefined;
+  const key = String(ctx.inputs.key ?? ctx.nodeData.key ?? '');
+
+  if (!object || typeof object !== 'object') {
+    return { outputs: { out: undefined } };
+  }
+
+  // 중첩 키 지원 (예: "user.name")
+  const keys = key.split('.');
+  let value: unknown = object;
+  for (const k of keys) {
+    if (value && typeof value === 'object' && k in value) {
+      value = (value as Record<string, unknown>)[k];
+    } else {
+      value = undefined;
+      break;
+    }
+  }
+
+  return { outputs: { out: value } };
+});
+
+// ArrayGet: 배열 인덱스 접근
+executorRegistry.register('ArrayGet', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const array = ctx.inputs.array;
+  const index = Math.floor(Number(ctx.inputs.index ?? 0));
+
+  if (!Array.isArray(array)) {
+    return { outputs: { out: undefined } };
+  }
+
+  // 음수 인덱스 지원
+  const actualIndex = index < 0 ? array.length + index : index;
+  return { outputs: { out: array[actualIndex] } };
+});
+
+// ArrayLength: 배열 길이
+executorRegistry.register('ArrayLength', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const array = ctx.inputs.array;
+
+  if (!Array.isArray(array)) {
+    return { outputs: { out: 0 } };
+  }
+
+  return { outputs: { out: array.length } };
+});
+
+// CreateArray: 배열 생성
+executorRegistry.register('CreateArray', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const items = [ctx.inputs.item0, ctx.inputs.item1, ctx.inputs.item2, ctx.inputs.item3]
+    .filter(item => item !== undefined);
+
+  return { outputs: { out: items } };
+});
+
+// === Utility 노드들 ===
+
+// Delay: 지연
+executorRegistry.register('Delay', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const input = ctx.inputs.input;
+  const ms = Math.max(0, Math.floor(Number(ctx.nodeData.ms ?? ctx.inputs.ms ?? 1000)));
+
+  await new Promise(resolve => setTimeout(resolve, ms));
+  return { outputs: { out: input } };
+});
+
+// Debug: 디버그 출력
+executorRegistry.register('Debug', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const input = ctx.inputs.input;
+  const label = String(ctx.nodeData.label ?? ctx.nodeId);
+
+  console.log(`[Debug ${label}]`, input);
+  return {
+    outputs: { out: input },
+    nodeDataUpdate: { lastValue: input },
+  };
+});
+
+// Comment: 주석 노드 (실행 안 함)
+executorRegistry.register('Comment', async (): Promise<ExecutionResult> => {
+  return { outputs: {} };
+});
+
+// Random: 난수 생성
+executorRegistry.register('Random', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const min = Number(ctx.nodeData.min ?? ctx.inputs.min ?? 0);
+  const max = Number(ctx.nodeData.max ?? ctx.inputs.max ?? 1);
+  const isInteger = Boolean(ctx.nodeData.integer);
+
+  let value = min + Math.random() * (max - min);
+  if (isInteger) {
+    value = Math.floor(value);
+  }
+
+  return { outputs: { out: value } };
+});
+
+// Timestamp: 현재 시간
+executorRegistry.register('Timestamp', async (): Promise<ExecutionResult> => {
+  const now = Date.now();
+  return {
+    outputs: {
+      ms: now,
+      iso: new Date(now).toISOString(),
+    },
+  };
+});
+
+// === Convert 노드들 ===
+
+// ToString: 문자열 변환
+executorRegistry.register('ToString', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const value = ctx.inputs.value;
+
+  let result: string;
+  if (value === null || value === undefined) {
+    result = '';
+  } else if (typeof value === 'object') {
+    result = JSON.stringify(value);
+  } else {
+    result = String(value);
+  }
+
+  return { outputs: { out: result } };
+});
+
+// ToNumber: 숫자 변환
+executorRegistry.register('ToNumber', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const value = ctx.inputs.value;
+
+  let result: number;
+  if (typeof value === 'number') {
+    result = value;
+  } else if (typeof value === 'string') {
+    result = parseFloat(value) || 0;
+  } else if (typeof value === 'boolean') {
+    result = value ? 1 : 0;
+  } else {
+    result = 0;
+  }
+
+  return { outputs: { out: result } };
+});
+
+// ToBoolean: 불리언 변환
+executorRegistry.register('ToBoolean', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const value = ctx.inputs.value;
+
+  // falsy 값들
+  const falsy = [false, 0, '', null, undefined, 'false', '0', 'no', 'off'];
+  const result = !falsy.includes(value as typeof falsy[number]);
+
+  return { outputs: { out: result } };
+});
