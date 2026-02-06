@@ -73,6 +73,23 @@ export {
   updateTemplate,
 } from './subflowTemplates';
 
+// 성능 최적화
+export {
+  getViewportBounds,
+  isNodeInViewport,
+  cullNodesByViewport,
+  isCommentInViewport,
+  cullCommentsByViewport,
+  isEdgeInViewport,
+  cullEdgesByViewport,
+  memoizeOne,
+  debounce,
+  throttle,
+  processInChunks,
+  RenderStats,
+  type ViewportBounds,
+} from './performance';
+
 // AI 모듈
 export {
   // 타입

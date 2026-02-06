@@ -45,6 +45,9 @@ import {
   instantiateTemplate,
   registerAINodeTypes,
   getAINodeDefaultData,
+  cullNodesByViewport,
+  cullEdgesByViewport,
+  cullCommentsByViewport,
   type FlowStore,
   type NodeTypeDefinition,
   type ExecutionState,
@@ -642,13 +645,18 @@ export function FlowCanvas() {
       : new Set<string>();
     // zoom >= 0.5면 위젯이 텍스트를 표시하므로 캔버스에서는 스킵
     const skipCommentText = state.viewport.zoom >= 0.5;
-    drawComments(renderer, state.comments, selectedCommentIds, skipCommentText);
+    // 뷰포트 컬링: 화면에 보이는 코멘트만 렌더링
+    const culledComments = cullCommentsByViewport(state.comments, state.viewport, canvasSize);
+    drawComments(renderer, culledComments, selectedCommentIds, skipCommentText);
 
     // 보이는 노드만 필터링 (접힌 서브플로우 내부 노드 제외)
-    const visibleNodes = getVisibleNodes(state.nodes, state.subflows);
+    const subflowVisibleNodes = getVisibleNodes(state.nodes, state.subflows);
+    // 뷰포트 컬링: 화면에 보이는 노드만 렌더링 (성능 최적화)
+    const visibleNodes = cullNodesByViewport(subflowVisibleNodes, state.viewport, canvasSize);
 
-    // 엣지 (노드 아래) - 보이는 노드만 사용
-    drawEdges(renderer, state.edges, visibleNodes, edgeStyleRef.current);
+    // 엣지 (노드 아래) - 뷰포트 컬링 적용
+    const culledEdges = cullEdgesByViewport(state.edges, subflowVisibleNodes, state.viewport, canvasSize);
+    drawEdges(renderer, culledEdges, subflowVisibleNodes, edgeStyleRef.current);
 
     // 드래그 중인 임시 엣지
     const edgeDrag = edgeDragRef.current;
