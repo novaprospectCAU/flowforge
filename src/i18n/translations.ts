@@ -200,6 +200,7 @@ export const shortcutsTranslations: Record<Language, {
         shortcuts: [
           { keys: 'Ctrl+Z', description: 'Undo' },
           { keys: 'Ctrl+Y', description: 'Redo' },
+          { keys: 'Ctrl+H', description: 'Show history panel' },
           { keys: 'Ctrl+A', description: 'Select all nodes' },
           { keys: 'Escape', description: 'Deselect / Close menus' },
           { keys: 'Delete', description: 'Delete selected' },
@@ -311,6 +312,7 @@ export const shortcutsTranslations: Record<Language, {
         shortcuts: [
           { keys: 'Ctrl+Z', description: '실행 취소' },
           { keys: 'Ctrl+Y', description: '다시 실행' },
+          { keys: 'Ctrl+H', description: '히스토리 패널 표시' },
           { keys: 'Ctrl+A', description: '모든 노드 선택' },
           { keys: 'Escape', description: '선택 해제 / 메뉴 닫기' },
           { keys: 'Delete', description: '선택 항목 삭제' },

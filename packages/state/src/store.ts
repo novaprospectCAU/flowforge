@@ -72,6 +72,10 @@ export interface FlowState {
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  getUndoStackLength: () => number;
+  getRedoStackLength: () => number;
+  undoToIndex: (index: number) => void;
+  redoToIndex: (index: number) => void;
 }
 
 export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
@@ -469,6 +473,25 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       canUndo: () => undoManager.undoStack.length > 0,
 
       canRedo: () => undoManager.redoStack.length > 0,
+
+      getUndoStackLength: () => undoManager.undoStack.length,
+
+      getRedoStackLength: () => undoManager.redoStack.length,
+
+      undoToIndex: (targetIndex: number) => {
+        const currentLength = undoManager.undoStack.length;
+        const steps = currentLength - targetIndex - 1;
+        for (let i = 0; i < steps; i++) {
+          undoManager.undo();
+        }
+      },
+
+      redoToIndex: (targetIndex: number) => {
+        const steps = targetIndex + 1;
+        for (let i = 0; i < steps; i++) {
+          undoManager.redo();
+        }
+      },
     };
   });
 };

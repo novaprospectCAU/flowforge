@@ -70,6 +70,7 @@ import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { MobileToolbar } from './MobileToolbar';
 import { APIKeyManager } from './ai';
+import { HistoryPanel } from './HistoryPanel';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 
@@ -159,6 +160,7 @@ export function FlowCanvas() {
   const [showSearch, setShowSearch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showAPIKeys, setShowAPIKeys] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const [cursorStyle, setCursorStyle] = useState<string>('grab');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
@@ -2676,6 +2678,13 @@ export function FlowCanvas() {
         return;
       }
 
+      // History: Ctrl+H / Cmd+H
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'h' || e.key === 'H') && !e.shiftKey) {
+        e.preventDefault();
+        setShowHistory(prev => !prev);
+        return;
+      }
+
       // Help: ? 키 또는 F1
       if (e.key === '?' || e.key === 'F1') {
         e.preventDefault();
@@ -3642,6 +3651,17 @@ export function FlowCanvas() {
       {showHelp && (
         <ShortcutsHelp onClose={() => setShowHelp(false)} />
       )}
+      {/* 히스토리 패널 */}
+      <HistoryPanel
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        undoStackLength={storeRef.current?.getState().getUndoStackLength() ?? 0}
+        redoStackLength={storeRef.current?.getState().getRedoStackLength() ?? 0}
+        onUndoToIndex={(index) => storeRef.current?.getState().undoToIndex(index)}
+        onRedoToIndex={(index) => storeRef.current?.getState().redoToIndex(index)}
+        onUndo={() => storeRef.current?.getState().undo()}
+        onRedo={() => storeRef.current?.getState().redo()}
+      />
       {/* API 키 관리 */}
       <APIKeyManager
         isOpen={showAPIKeys}
