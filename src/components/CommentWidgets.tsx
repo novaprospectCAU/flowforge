@@ -2,7 +2,7 @@
  * CommentWidgets - 모든 코멘트의 편집 위젯을 렌더링
  */
 
-import type { Comment, Viewport, CanvasSize } from '@flowforge/types';
+import { ZOOM_CONFIG, type Comment, type Viewport, type CanvasSize } from '@flowforge/types';
 import { CommentWidget } from './CommentWidget';
 
 interface CommentWidgetsProps {
@@ -24,8 +24,8 @@ export function CommentWidgets({
   onEditingEnd,
   onWidgetInteraction,
 }: CommentWidgetsProps) {
-  // 줌이 너무 작으면 위젯 숨김
-  if (viewport.zoom < 0.5) return null;
+  // 줌이 위젯 가시성 임계값 미만이면 위젯 숨김
+  if (viewport.zoom < ZOOM_CONFIG.WIDGET_VISIBILITY_THRESHOLD) return null;
 
   return (
     <div

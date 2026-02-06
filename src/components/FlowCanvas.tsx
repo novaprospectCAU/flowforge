@@ -56,7 +56,7 @@ import {
 
 // AI 노드 타입 등록
 registerAINodeTypes();
-import type { FlowNode, FlowEdge, CanvasSize, Position, ExecutionStatus, DataType, Comment, Subflow, NodeGroup, SubflowTemplate } from '@flowforge/types';
+import { ZOOM_CONFIG, type FlowNode, type FlowEdge, type CanvasSize, type Position, type ExecutionStatus, type DataType, type Comment, type Subflow, type NodeGroup, type SubflowTemplate } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
@@ -213,7 +213,7 @@ export function FlowCanvas() {
     const store = storeRef.current;
     if (!store) return;
     const state = store.getState();
-    const newZoom = Math.min(5, state.viewport.zoom * 1.2);
+    const newZoom = Math.min(ZOOM_CONFIG.MAX, state.viewport.zoom * ZOOM_CONFIG.STEP);
     state.setViewport({ ...state.viewport, zoom: newZoom });
     setCurrentZoom(newZoom);
   }, []);
@@ -222,7 +222,7 @@ export function FlowCanvas() {
     const store = storeRef.current;
     if (!store) return;
     const state = store.getState();
-    const newZoom = Math.max(0.1, state.viewport.zoom / 1.2);
+    const newZoom = Math.max(ZOOM_CONFIG.MIN, state.viewport.zoom / ZOOM_CONFIG.STEP);
     state.setViewport({ ...state.viewport, zoom: newZoom });
     setCurrentZoom(newZoom);
   }, []);
@@ -239,7 +239,7 @@ export function FlowCanvas() {
     const store = storeRef.current;
     if (!store) return;
     const state = store.getState();
-    const clampedZoom = Math.max(0.1, Math.min(5, targetZoom));
+    const clampedZoom = Math.max(ZOOM_CONFIG.MIN, Math.min(ZOOM_CONFIG.MAX, targetZoom));
     state.setViewport({ ...state.viewport, zoom: clampedZoom });
     setCurrentZoom(clampedZoom);
   }, []);
@@ -647,8 +647,8 @@ export function FlowCanvas() {
     const selectedCommentIds = selectedCommentIdRef.current
       ? new Set([selectedCommentIdRef.current])
       : new Set<string>();
-    // zoom >= 0.5면 위젯이 텍스트를 표시하므로 캔버스에서는 스킵
-    const skipCommentText = state.viewport.zoom >= 0.5;
+    // 줌이 위젯 가시성 임계값 이상이면 위젯이 텍스트를 표시하므로 캔버스에서는 스킵
+    const skipCommentText = state.viewport.zoom >= ZOOM_CONFIG.WIDGET_VISIBILITY_THRESHOLD;
     // 뷰포트 컬링: 화면에 보이는 코멘트만 렌더링
     const culledComments = cullCommentsByViewport(state.comments, state.viewport, canvasSize);
     drawComments(renderer, culledComments, selectedCommentIds, skipCommentText);
@@ -1606,7 +1606,7 @@ export function FlowCanvas() {
 
       // 새 줌 계산
       const scale = currentDistance / pinchStart.distance;
-      const newZoom = Math.max(0.1, Math.min(5, pinchStart.zoom * scale));
+      const newZoom = Math.max(ZOOM_CONFIG.MIN, Math.min(ZOOM_CONFIG.MAX, pinchStart.zoom * scale));
 
       // 현재 핀치 중심 (스크린 좌표)
       const currentCenterX = center.x - rect.left;
@@ -1876,8 +1876,8 @@ export function FlowCanvas() {
 
       const worldPos = screenToWorld({ x: mouseX, y: mouseY }, state.viewport, canvasSize);
 
-      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-      const newZoom = Math.max(0.1, Math.min(5, state.viewport.zoom * zoomFactor));
+      const zoomFactor = e.deltaY > 0 ? ZOOM_CONFIG.WHEEL_OUT : ZOOM_CONFIG.WHEEL_IN;
+      const newZoom = Math.max(ZOOM_CONFIG.MIN, Math.min(ZOOM_CONFIG.MAX, state.viewport.zoom * zoomFactor));
 
       const newX = worldPos.x - (mouseX - canvasSize.width / 2) / newZoom;
       const newY = worldPos.y - (mouseY - canvasSize.height / 2) / newZoom;

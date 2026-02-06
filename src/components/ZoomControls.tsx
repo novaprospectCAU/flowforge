@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { ZOOM_CONFIG } from '@flowforge/types';
 import { useTheme } from '../hooks/useTheme';
 
 interface ZoomControlsProps {
@@ -171,8 +172,8 @@ export function ZoomControls({
                 onClick={() => handleZoomPreset(preset.value)}
                 style={{
                   ...styles.dropdownItem,
-                  background: Math.abs(zoom - preset.value) < 0.01 ? colors.bgHover : 'transparent',
-                  fontWeight: Math.abs(zoom - preset.value) < 0.01 ? 600 : 400,
+                  background: Math.abs(zoom - preset.value) < ZOOM_CONFIG.COMPARISON_EPSILON ? colors.bgHover : 'transparent',
+                  fontWeight: Math.abs(zoom - preset.value) < ZOOM_CONFIG.COMPARISON_EPSILON ? 600 : 400,
                 }}
                 role="menuitem"
               >

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { FlowNode, Viewport, CanvasSize } from '@flowforge/types';
+import { ZOOM_CONFIG, type FlowNode, type Viewport, type CanvasSize } from '@flowforge/types';
 import { worldToScreen } from '@flowforge/canvas';
 import { LLMChatWidget, ImageGenerateWidget, PromptTemplateWidget } from './ai';
 import { NodeErrorBoundary } from './ErrorBoundary';
@@ -41,8 +41,8 @@ export function NodeWidgets({
     !(draggingNodeIds?.has(n.id))
   );
 
-  // 줌이 너무 작으면 위젯 숨김
-  if (viewport.zoom < 0.5) return null;
+  // 줌이 위젯 가시성 임계값 미만이면 위젯 숨김
+  if (viewport.zoom < ZOOM_CONFIG.WIDGET_VISIBILITY_THRESHOLD) return null;
 
   return (
     <div style={{
