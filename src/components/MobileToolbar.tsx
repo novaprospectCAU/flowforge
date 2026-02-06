@@ -10,6 +10,7 @@ interface MobileToolbarProps {
   onRun: () => void;
   isRunning: boolean;
   onHelp: () => void;
+  onAPIKeys: () => void;
   saveStatus: 'saved' | 'saving' | 'unsaved';
   snapToGrid: boolean;
   onToggleSnap: () => void;
@@ -23,6 +24,7 @@ export function MobileToolbar({
   onRun,
   isRunning,
   onHelp,
+  onAPIKeys,
   saveStatus,
   snapToGrid,
   onToggleSnap,
@@ -114,6 +116,14 @@ export function MobileToolbar({
             >
               <span>{t.language}</span>
               <span>{lang === 'en' ? '한국어' : 'English'}</span>
+            </button>
+            <div style={styles.menuDivider} />
+            <button
+              onClick={() => { onAPIKeys(); setMenuOpen(false); }}
+              style={styles.menuItem}
+            >
+              <span>API Keys</span>
+              <span>🔑</span>
             </button>
             <div style={styles.menuDivider} />
             <button

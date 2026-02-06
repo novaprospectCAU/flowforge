@@ -69,6 +69,7 @@ import { CommentWidgets } from './CommentWidgets';
 import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { MobileToolbar } from './MobileToolbar';
+import { APIKeyManager } from './ai';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 
@@ -155,6 +156,7 @@ export function FlowCanvas() {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAPIKeys, setShowAPIKeys] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const [cursorStyle, setCursorStyle] = useState<string>('grab');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
@@ -2798,6 +2800,7 @@ export function FlowCanvas() {
           onRun={handleRunFlow}
           isRunning={isRunning}
           onHelp={() => setShowHelp(true)}
+          onAPIKeys={() => setShowAPIKeys(true)}
           saveStatus={saveStatus}
           snapToGrid={snapToGrid}
           onToggleSnap={() => setSnapToGrid(prev => !prev)}
@@ -2961,6 +2964,25 @@ export function FlowCanvas() {
           </button>
           {/* 언어 선택 */}
           <LanguageSwitcher />
+          {/* API 키 관리 */}
+          <button
+            onClick={() => setShowAPIKeys(true)}
+            title="API Keys"
+            style={{
+              padding: '8px 12px',
+              background: '#2d3748',
+              color: '#a0aec0',
+              border: '1px solid #4a5568',
+              borderRadius: 4,
+              fontSize: 12,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            🔑 API Keys
+          </button>
           {executionState && (
             <div
               style={{
@@ -3257,6 +3279,11 @@ export function FlowCanvas() {
       {showHelp && (
         <ShortcutsHelp onClose={() => setShowHelp(false)} />
       )}
+      {/* API 키 관리 */}
+      <APIKeyManager
+        isOpen={showAPIKeys}
+        onClose={() => setShowAPIKeys(false)}
+      />
       {/* 온보딩 튜토리얼 */}
       {showOnboarding && (
         <OnboardingTutorial
