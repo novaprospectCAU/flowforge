@@ -2,7 +2,7 @@
  * AI 노드 타입 정의
  */
 
-import { nodeTypeRegistry, type NodeTypeDefinition } from '../nodeTypes';
+import { nodeTypeRegistry, NODE_SIZES, type NodeTypeDefinition } from '../nodeTypes';
 
 /**
  * AI 노드 타입 정의
@@ -21,7 +21,7 @@ export const AI_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'response', name: 'response', dataType: 'string' },
       { id: 'tokens', name: 'tokens', dataType: 'number' },
     ],
-    defaultSize: { width: 280, height: 200 },
+    defaultSize: NODE_SIZES.AI_CHAT,
     color: '#10a37f', // OpenAI green
   },
   {
@@ -34,7 +34,7 @@ export const AI_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'negative', name: 'negative', dataType: 'string' },
     ],
     outputs: [{ id: 'image', name: 'image', dataType: 'image' }],
-    defaultSize: { width: 240, height: 280 },
+    defaultSize: NODE_SIZES.AI_IMAGE,
     color: '#ff6b35', // Orange
   },
   {
@@ -48,7 +48,7 @@ export const AI_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'var3', name: 'var3', dataType: 'string' },
     ],
     outputs: [{ id: 'prompt', name: 'prompt', dataType: 'string' }],
-    defaultSize: { width: 240, height: 160 },
+    defaultSize: NODE_SIZES.AI_TEMPLATE,
     color: '#8b5cf6', // Purple
   },
 ];

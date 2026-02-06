@@ -1,6 +1,31 @@
 import type { PortDefinition } from '@flowforge/types';
 
 /**
+ * 노드 크기 프리셋
+ * 포트 수와 용도에 따라 적절한 크기 선택
+ */
+export const NODE_SIZES = {
+  // 컴팩트 너비 (160px) - 단순한 노드용
+  COMPACT_SMALL: { width: 160, height: 80 },   // 0-1 포트
+  COMPACT_MEDIUM: { width: 160, height: 100 }, // 2 포트
+  COMPACT_LARGE: { width: 160, height: 140 },  // 3-4 포트
+
+  // 표준 너비 (180px) - 일반 노드용
+  STANDARD_SMALL: { width: 180, height: 80 },   // 1 포트
+  STANDARD_MEDIUM: { width: 180, height: 100 }, // 2 포트
+  STANDARD_TALL: { width: 180, height: 120 },   // 2-3 포트 + 위젯
+  STANDARD_LARGE: { width: 180, height: 140 },  // 3-4 포트 + 위젯
+
+  // 와이드 너비 (200px) - 넓은 콘텐츠용
+  WIDE_MEDIUM: { width: 200, height: 100 },
+
+  // AI 노드용 (더 큰 위젯 공간 필요)
+  AI_TEMPLATE: { width: 240, height: 160 },  // Prompt Template
+  AI_CHAT: { width: 280, height: 200 },      // LLM Chat
+  AI_IMAGE: { width: 240, height: 280 },     // Image Generate
+} as const;
+
+/**
  * 노드 타입 정의
  */
 export interface NodeTypeDefinition {
@@ -26,7 +51,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Outputs a number value',
     inputs: [],
     outputs: [{ id: 'out', name: 'value', dataType: 'number' }],
-    defaultSize: { width: 160, height: 80 },
+    defaultSize: NODE_SIZES.COMPACT_SMALL,
   },
   {
     type: 'TextInput',
@@ -35,7 +60,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Outputs a text value',
     inputs: [],
     outputs: [{ id: 'out', name: 'text', dataType: 'string' }],
-    defaultSize: { width: 160, height: 80 },
+    defaultSize: NODE_SIZES.COMPACT_SMALL,
   },
   {
     type: 'ImageInput',
@@ -44,7 +69,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Load an image file',
     inputs: [],
     outputs: [{ id: 'out', name: 'image', dataType: 'image' }],
-    defaultSize: { width: 180, height: 140 },
+    defaultSize: NODE_SIZES.STANDARD_LARGE,
   },
 
   // Process 카테고리
@@ -58,7 +83,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'b', name: 'B', dataType: 'number', required: true },
     ],
     outputs: [{ id: 'out', name: 'result', dataType: 'number' }],
-    defaultSize: { width: 160, height: 100 },
+    defaultSize: NODE_SIZES.COMPACT_MEDIUM,
   },
   {
     type: 'Resize',
@@ -70,7 +95,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'scale', name: 'scale', dataType: 'number' },
     ],
     outputs: [{ id: 'out', name: 'image', dataType: 'image' }],
-    defaultSize: { width: 180, height: 120 },
+    defaultSize: NODE_SIZES.STANDARD_TALL,
   },
   {
     type: 'Filter',
@@ -79,7 +104,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Apply filter to image',
     inputs: [{ id: 'image', name: 'image', dataType: 'image', required: true }],
     outputs: [{ id: 'out', name: 'image', dataType: 'image' }],
-    defaultSize: { width: 180, height: 100 },
+    defaultSize: NODE_SIZES.STANDARD_MEDIUM,
   },
   {
     type: 'Merge',
@@ -91,7 +116,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'b', name: 'B', dataType: 'any' },
     ],
     outputs: [{ id: 'out', name: 'output', dataType: 'any' }],
-    defaultSize: { width: 160, height: 100 },
+    defaultSize: NODE_SIZES.COMPACT_MEDIUM,
   },
 
   // Output 카테고리
@@ -102,7 +127,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Display result',
     inputs: [{ id: 'in', name: 'input', dataType: 'any', required: true }],
     outputs: [],
-    defaultSize: { width: 180, height: 140 },
+    defaultSize: NODE_SIZES.STANDARD_LARGE,
   },
   {
     type: 'SaveImage',
@@ -114,7 +139,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'path', name: 'path', dataType: 'string' },
     ],
     outputs: [],
-    defaultSize: { width: 180, height: 120 },
+    defaultSize: NODE_SIZES.STANDARD_TALL,
   },
 
   // Logic 카테고리
@@ -129,7 +154,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'false', name: 'if false', dataType: 'any' },
     ],
     outputs: [{ id: 'out', name: 'output', dataType: 'any' }],
-    defaultSize: { width: 180, height: 140 },
+    defaultSize: NODE_SIZES.STANDARD_LARGE,
   },
   {
     type: 'Compare',
@@ -141,7 +166,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'b', name: 'B', dataType: 'any', required: true },
     ],
     outputs: [{ id: 'result', name: 'result', dataType: 'boolean' }],
-    defaultSize: { width: 160, height: 100 },
+    defaultSize: NODE_SIZES.COMPACT_MEDIUM,
   },
   {
     type: 'Gate',
@@ -153,7 +178,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'enable', name: 'enable', dataType: 'boolean', required: true },
     ],
     outputs: [{ id: 'out', name: 'output', dataType: 'any' }],
-    defaultSize: { width: 160, height: 100 },
+    defaultSize: NODE_SIZES.COMPACT_MEDIUM,
   },
   {
     type: 'Switch',
@@ -169,7 +194,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'out1', name: 'out 1', dataType: 'any' },
       { id: 'out2', name: 'out 2', dataType: 'any' },
     ],
-    defaultSize: { width: 160, height: 140 },
+    defaultSize: NODE_SIZES.COMPACT_LARGE,
   },
 
   // Text 카테고리
@@ -185,7 +210,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'separator', name: 'separator', dataType: 'string' },
     ],
     outputs: [{ id: 'out', name: 'result', dataType: 'string' }],
-    defaultSize: { width: 180, height: 140 },
+    defaultSize: NODE_SIZES.STANDARD_LARGE,
   },
   {
     type: 'TextSplit',
@@ -197,7 +222,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'delimiter', name: 'delimiter', dataType: 'string' },
     ],
     outputs: [{ id: 'out', name: 'array', dataType: 'array' }],
-    defaultSize: { width: 180, height: 100 },
+    defaultSize: NODE_SIZES.STANDARD_MEDIUM,
   },
   {
     type: 'TextReplace',
@@ -210,7 +235,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'replace', name: 'replace', dataType: 'string' },
     ],
     outputs: [{ id: 'out', name: 'result', dataType: 'string' }],
-    defaultSize: { width: 180, height: 120 },
+    defaultSize: NODE_SIZES.STANDARD_TALL,
   },
   {
     type: 'TextLength',
@@ -219,7 +244,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Get character count of text',
     inputs: [{ id: 'text', name: 'text', dataType: 'string', required: true }],
     outputs: [{ id: 'out', name: 'length', dataType: 'number' }],
-    defaultSize: { width: 160, height: 80 },
+    defaultSize: NODE_SIZES.COMPACT_SMALL,
   },
   {
     type: 'TextCase',
@@ -228,7 +253,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Convert to upper/lower/title case',
     inputs: [{ id: 'text', name: 'text', dataType: 'string', required: true }],
     outputs: [{ id: 'out', name: 'result', dataType: 'string' }],
-    defaultSize: { width: 180, height: 100 },
+    defaultSize: NODE_SIZES.STANDARD_MEDIUM,
   },
 
   // Data 카테고리
@@ -239,7 +264,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Parse JSON string to object',
     inputs: [{ id: 'json', name: 'json', dataType: 'string', required: true }],
     outputs: [{ id: 'out', name: 'object', dataType: 'object' }],
-    defaultSize: { width: 180, height: 80 },
+    defaultSize: NODE_SIZES.STANDARD_SMALL,
   },
   {
     type: 'JSONStringify',
@@ -248,7 +273,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Convert object to JSON string',
     inputs: [{ id: 'object', name: 'object', dataType: 'any', required: true }],
     outputs: [{ id: 'out', name: 'json', dataType: 'string' }],
-    defaultSize: { width: 180, height: 80 },
+    defaultSize: NODE_SIZES.STANDARD_SMALL,
   },
   {
     type: 'GetProperty',
@@ -260,7 +285,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'key', name: 'key', dataType: 'string', required: true },
     ],
     outputs: [{ id: 'out', name: 'value', dataType: 'any' }],
-    defaultSize: { width: 180, height: 100 },
+    defaultSize: NODE_SIZES.STANDARD_MEDIUM,
   },
   {
     type: 'ArrayGet',
@@ -272,7 +297,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'index', name: 'index', dataType: 'number', required: true },
     ],
     outputs: [{ id: 'out', name: 'item', dataType: 'any' }],
-    defaultSize: { width: 160, height: 100 },
+    defaultSize: NODE_SIZES.COMPACT_MEDIUM,
   },
   {
     type: 'ArrayLength',
@@ -281,7 +306,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Get length of array',
     inputs: [{ id: 'array', name: 'array', dataType: 'array', required: true }],
     outputs: [{ id: 'out', name: 'length', dataType: 'number' }],
-    defaultSize: { width: 160, height: 80 },
+    defaultSize: NODE_SIZES.COMPACT_SMALL,
   },
   {
     type: 'CreateArray',
@@ -295,7 +320,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'item3', name: 'item 3', dataType: 'any' },
     ],
     outputs: [{ id: 'out', name: 'array', dataType: 'array' }],
-    defaultSize: { width: 160, height: 140 },
+    defaultSize: NODE_SIZES.COMPACT_LARGE,
   },
 
   // Utility 카테고리
@@ -309,7 +334,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'ms', name: 'ms', dataType: 'number' },
     ],
     outputs: [{ id: 'out', name: 'output', dataType: 'any' }],
-    defaultSize: { width: 160, height: 100 },
+    defaultSize: NODE_SIZES.COMPACT_MEDIUM,
   },
   {
     type: 'Debug',
@@ -318,7 +343,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Log value to console',
     inputs: [{ id: 'input', name: 'input', dataType: 'any', required: true }],
     outputs: [{ id: 'out', name: 'pass', dataType: 'any' }],
-    defaultSize: { width: 160, height: 80 },
+    defaultSize: NODE_SIZES.COMPACT_SMALL,
   },
   {
     type: 'Comment',
@@ -327,7 +352,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Documentation note (no execution)',
     inputs: [],
     outputs: [],
-    defaultSize: { width: 200, height: 100 },
+    defaultSize: NODE_SIZES.WIDE_MEDIUM,
   },
   {
     type: 'Random',
@@ -339,7 +364,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'max', name: 'max', dataType: 'number' },
     ],
     outputs: [{ id: 'out', name: 'value', dataType: 'number' }],
-    defaultSize: { width: 160, height: 100 },
+    defaultSize: NODE_SIZES.COMPACT_MEDIUM,
   },
   {
     type: 'Timestamp',
@@ -351,7 +376,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'ms', name: 'milliseconds', dataType: 'number' },
       { id: 'iso', name: 'ISO string', dataType: 'string' },
     ],
-    defaultSize: { width: 180, height: 100 },
+    defaultSize: NODE_SIZES.STANDARD_MEDIUM,
   },
 
   // Convert 카테고리
@@ -362,7 +387,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Convert value to string',
     inputs: [{ id: 'value', name: 'value', dataType: 'any', required: true }],
     outputs: [{ id: 'out', name: 'string', dataType: 'string' }],
-    defaultSize: { width: 160, height: 80 },
+    defaultSize: NODE_SIZES.COMPACT_SMALL,
   },
   {
     type: 'ToNumber',
@@ -371,7 +396,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Convert value to number',
     inputs: [{ id: 'value', name: 'value', dataType: 'any', required: true }],
     outputs: [{ id: 'out', name: 'number', dataType: 'number' }],
-    defaultSize: { width: 160, height: 80 },
+    defaultSize: NODE_SIZES.COMPACT_SMALL,
   },
   {
     type: 'ToBoolean',
@@ -380,7 +405,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     description: 'Convert value to boolean',
     inputs: [{ id: 'value', name: 'value', dataType: 'any', required: true }],
     outputs: [{ id: 'out', name: 'boolean', dataType: 'boolean' }],
-    defaultSize: { width: 160, height: 80 },
+    defaultSize: NODE_SIZES.COMPACT_SMALL,
   },
 ];
 
