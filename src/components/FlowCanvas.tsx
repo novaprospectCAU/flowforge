@@ -2089,148 +2089,184 @@ export function FlowCanvas() {
           groups: selectedGroups,
           comments: selectedComments,
         };
+
+        // 시스템 클립보드에도 저장 (다른 창/앱과 공유 가능)
+        const clipboardData = {
+          type: 'flowforge-clipboard',
+          version: 1,
+          nodes: selectedNodes,
+          edges: selectedEdges,
+          groups: selectedGroups,
+          comments: selectedComments,
+        };
+        navigator.clipboard.writeText(JSON.stringify(clipboardData)).catch(() => {
+          // 시스템 클립보드 접근 실패 시 무시 (내부 클립보드는 이미 설정됨)
+        });
         return;
       }
 
       // Paste: Ctrl+V / Cmd+V
       if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
         e.preventDefault();
-        if (!clipboardRef.current) return;
 
-        const { nodes: copiedNodes, edges: copiedEdges, groups: copiedGroups, comments: copiedComments } = clipboardRef.current;
+        // 시스템 클립보드에서 먼저 읽기 시도
+        const handlePaste = async () => {
+          let clipboardContent = clipboardRef.current;
 
-        // 노드나 코멘트가 있어야 붙여넣기 가능
-        if (copiedNodes.length === 0 && copiedComments.length === 0) return;
+          try {
+            const text = await navigator.clipboard.readText();
+            const parsed = JSON.parse(text);
+            if (parsed.type === 'flowforge-clipboard' && parsed.version === 1) {
+              clipboardContent = {
+                nodes: parsed.nodes || [],
+                edges: parsed.edges || [],
+                groups: parsed.groups || [],
+                comments: parsed.comments || [],
+              };
+            }
+          } catch {
+            // 시스템 클립보드 읽기 실패 시 내부 클립보드 사용
+          }
 
-        const state = store.getState();
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+          if (!clipboardContent) return;
 
-        // 복사된 모든 요소의 바운딩 박스 중앙 계산
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (const node of copiedNodes) {
-          minX = Math.min(minX, node.position.x);
-          minY = Math.min(minY, node.position.y);
-          maxX = Math.max(maxX, node.position.x + node.size.width);
-          maxY = Math.max(maxY, node.position.y + node.size.height);
-        }
-        for (const comment of copiedComments) {
-          minX = Math.min(minX, comment.position.x);
-          minY = Math.min(minY, comment.position.y);
-          maxX = Math.max(maxX, comment.position.x + comment.size.width);
-          maxY = Math.max(maxY, comment.position.y + comment.size.height);
-        }
-        const copiedCenterX = (minX + maxX) / 2;
-        const copiedCenterY = (minY + maxY) / 2;
+          const { nodes: copiedNodes, edges: copiedEdges, groups: copiedGroups, comments: copiedComments } = clipboardContent;
 
-        // 뷰포트 중앙 (월드 좌표) - 이것이 붙여넣기 위치
-        const viewportCenterX = state.viewport.x;
-        const viewportCenterY = state.viewport.y;
+          // 노드나 코멘트가 있어야 붙여넣기 가능
+          if (copiedNodes.length === 0 && copiedComments.length === 0) return;
 
-        // 오프셋 계산: 뷰포트 중앙으로 이동
-        const offsetX = viewportCenterX - copiedCenterX;
-        const offsetY = viewportCenterY - copiedCenterY;
+          const state = store.getState();
+          const canvas = canvasRef.current;
+          if (!canvas) return;
 
-        // ID 매핑 (원본 ID -> 새 ID)
-        const idMap = new Map<string, string>();
-        const newNodes: FlowNode[] = [];
-        const newNodeIds: string[] = [];
+          // 복사된 모든 요소의 바운딩 박스 중앙 계산
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const node of copiedNodes) {
+            minX = Math.min(minX, node.position.x);
+            minY = Math.min(minY, node.position.y);
+            maxX = Math.max(maxX, node.position.x + node.size.width);
+            maxY = Math.max(maxY, node.position.y + node.size.height);
+          }
+          for (const comment of copiedComments) {
+            minX = Math.min(minX, comment.position.x);
+            minY = Math.min(minY, comment.position.y);
+            maxX = Math.max(maxX, comment.position.x + comment.size.width);
+            maxY = Math.max(maxY, comment.position.y + comment.size.height);
+          }
+          const copiedCenterX = (minX + maxX) / 2;
+          const copiedCenterY = (minY + maxY) / 2;
 
-        for (const node of copiedNodes) {
-          const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-          idMap.set(node.id, newId);
+          // 뷰포트 중앙 (월드 좌표) - 이것이 붙여넣기 위치
+          const viewportCenterX = state.viewport.x;
+          const viewportCenterY = state.viewport.y;
 
-          const newNode: FlowNode = {
-            ...node,
-            id: newId,
-            position: {
-              x: node.position.x + offsetX,
-              y: node.position.y + offsetY,
-            },
-          };
-          newNodes.push(newNode);
-          newNodeIds.push(newId);
-        }
+          // 오프셋 계산: 뷰포트 중앙으로 이동
+          const offsetX = viewportCenterX - copiedCenterX;
+          const offsetY = viewportCenterY - copiedCenterY;
 
-        // 노드 추가
-        for (const node of newNodes) {
-          state.addNode(node);
-        }
+          // ID 매핑 (원본 ID -> 새 ID)
+          const idMap = new Map<string, string>();
+          const newNodes: FlowNode[] = [];
+          const newNodeIds: string[] = [];
 
-        // 엣지 추가 (ID 매핑 적용)
-        for (const edge of copiedEdges) {
-          const newSourceId = idMap.get(edge.source);
-          const newTargetId = idMap.get(edge.target);
-          if (newSourceId && newTargetId) {
-            const newEdge: FlowEdge = {
-              id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-              source: newSourceId,
-              sourcePort: edge.sourcePort,
-              target: newTargetId,
-              targetPort: edge.targetPort,
+          for (const node of copiedNodes) {
+            const newId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            idMap.set(node.id, newId);
+
+            const newNode: FlowNode = {
+              ...node,
+              id: newId,
+              position: {
+                x: node.position.x + offsetX,
+                y: node.position.y + offsetY,
+              },
             };
-            state.addEdge(newEdge);
+            newNodes.push(newNode);
+            newNodeIds.push(newId);
           }
-        }
 
-        // 그룹 추가 (ID 매핑 적용)
-        const newGroups: NodeGroup[] = [];
-        for (const group of copiedGroups) {
-          const newNodeIdsForGroup = group.nodeIds
-            .map(id => idMap.get(id))
-            .filter((id): id is string => id !== undefined);
-          if (newNodeIdsForGroup.length > 0) {
-            state.createGroup(group.name, newNodeIdsForGroup, group.color);
-            newGroups.push({
-              ...group,
-              id: `group-${Date.now()}`,
-              nodeIds: newNodeIdsForGroup,
-            });
+          // 노드 추가
+          for (const node of newNodes) {
+            state.addNode(node);
           }
-        }
 
-        // 코멘트 추가
-        const newComments: Comment[] = [];
-        const commentIdMap = new Map<string, string>();
-        for (const comment of copiedComments) {
-          const newId = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-          commentIdMap.set(comment.id, newId);
-          const now = Date.now();
-          const newComment: Comment = {
-            ...comment,
-            id: newId,
-            position: {
-              x: comment.position.x + offsetX,
-              y: comment.position.y + offsetY,
-            },
-            createdAt: now,
-            updatedAt: now,
+          // 엣지 추가 (ID 매핑 적용)
+          for (const edge of copiedEdges) {
+            const newSourceId = idMap.get(edge.source);
+            const newTargetId = idMap.get(edge.target);
+            if (newSourceId && newTargetId) {
+              const newEdge: FlowEdge = {
+                id: `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                source: newSourceId,
+                sourcePort: edge.sourcePort,
+                target: newTargetId,
+                targetPort: edge.targetPort,
+              };
+              state.addEdge(newEdge);
+            }
+          }
+
+          // 그룹 추가 (ID 매핑 적용)
+          const newGroups: NodeGroup[] = [];
+          for (const group of copiedGroups) {
+            const newNodeIdsForGroup = group.nodeIds
+              .map(id => idMap.get(id))
+              .filter((id): id is string => id !== undefined);
+            if (newNodeIdsForGroup.length > 0) {
+              state.createGroup(group.name, newNodeIdsForGroup, group.color);
+              newGroups.push({
+                ...group,
+                id: `group-${Date.now()}`,
+                nodeIds: newNodeIdsForGroup,
+              });
+            }
+          }
+
+          // 코멘트 추가
+          const newComments: Comment[] = [];
+          const commentIdMap = new Map<string, string>();
+          for (const comment of copiedComments) {
+            const newId = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            commentIdMap.set(comment.id, newId);
+            const now = Date.now();
+            const newComment: Comment = {
+              ...comment,
+              id: newId,
+              position: {
+                x: comment.position.x + offsetX,
+                y: comment.position.y + offsetY,
+              },
+              createdAt: now,
+              updatedAt: now,
+            };
+            newComments.push(newComment);
+            state.addComment(newComment);
+          }
+
+          // 새로 붙여넣은 노드들 선택
+          setSelectedNodes(new Set(newNodeIds));
+          // 코멘트만 복사한 경우, 첫 번째 코멘트 선택
+          if (newNodeIds.length === 0 && newComments.length > 0) {
+            selectedCommentIdRef.current = newComments[0].id;
+          }
+
+          // 클립보드 위치 업데이트 (연속 붙여넣기 시 계속 오프셋)
+          clipboardRef.current = {
+            nodes: newNodes,
+            edges: copiedEdges.map(e => ({
+              ...e,
+              source: idMap.get(e.source) || e.source,
+              target: idMap.get(e.target) || e.target,
+            })),
+            groups: copiedGroups.map(g => ({
+              ...g,
+              nodeIds: g.nodeIds.map(id => idMap.get(id) || id),
+            })),
+            comments: newComments,
           };
-          newComments.push(newComment);
-          state.addComment(newComment);
-        }
-
-        // 새로 붙여넣은 노드들 선택
-        setSelectedNodes(new Set(newNodeIds));
-        // 코멘트만 복사한 경우, 첫 번째 코멘트 선택
-        if (newNodeIds.length === 0 && newComments.length > 0) {
-          selectedCommentIdRef.current = newComments[0].id;
-        }
-
-        // 클립보드 위치 업데이트 (연속 붙여넣기 시 계속 오프셋)
-        clipboardRef.current = {
-          nodes: newNodes,
-          edges: copiedEdges.map(e => ({
-            ...e,
-            source: idMap.get(e.source) || e.source,
-            target: idMap.get(e.target) || e.target,
-          })),
-          groups: copiedGroups.map(g => ({
-            ...g,
-            nodeIds: g.nodeIds.map(id => idMap.get(id) || id),
-          })),
-          comments: newComments,
         };
+
+        handlePaste();
         return;
       }
 
