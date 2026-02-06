@@ -127,6 +127,7 @@ export function LLMChatWidget({
         }}
         value={apiKeyId}
         onChange={e => handleChange('apiKeyId', e.target.value)}
+        onFocus={loadKeys}
       >
         <option value="">
           {isLoadingKeys ? 'Loading...' : 'Select API Key'}
