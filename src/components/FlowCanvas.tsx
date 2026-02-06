@@ -1400,6 +1400,13 @@ export function FlowCanvas() {
     // 코멘트 히트 테스트
     const hitComment = hitTestComment(worldPos, state.comments);
     if (hitComment) {
+      // 이미 선택된 코멘트를 다시 탭하면 편집 모드
+      if (selectedCommentIdRef.current === hitComment.id) {
+        setEditingCommentId(hitComment.id);
+        forceRender(n => n + 1);
+        return;
+      }
+      // 새로운 코멘트 선택 및 드래그 준비
       dragModeRef.current = 'comment';
       selectedCommentIdRef.current = hitComment.id;
       selectedSubflowIdRef.current = null;
