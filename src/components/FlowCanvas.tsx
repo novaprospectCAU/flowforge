@@ -72,10 +72,12 @@ import { CommentWidgets } from './CommentWidgets';
 import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { MobileToolbar } from './MobileToolbar';
+import { ThemeToggle } from './ThemeToggle';
 import { APIKeyManager } from './ai';
 import { HistoryPanel } from './HistoryPanel';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
+import { useTheme } from '../hooks/useTheme';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment' | 'subflow';
 
@@ -95,6 +97,7 @@ function isTypeCompatible(sourceType: DataType, targetType: DataType): boolean {
 export function FlowCanvas() {
   const isMobile = useIsMobile();
   const isTouchDevice = useIsTouchDevice();
+  const { toggleTheme } = useTheme();
   const isTouchDeviceRef = useRef(isTouchDevice);
   isTouchDeviceRef.current = isTouchDevice;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -2729,6 +2732,13 @@ export function FlowCanvas() {
         return;
       }
 
+      // Theme Toggle: Ctrl+Shift+T / Cmd+Shift+T
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault();
+        toggleTheme();
+        return;
+      }
+
       // Help: ? 키 또는 F1
       if (e.key === '?' || e.key === 'F1') {
         e.preventDefault();
@@ -3311,6 +3321,8 @@ export function FlowCanvas() {
           </button>
           {/* 언어 선택 */}
           <LanguageSwitcher />
+          {/* 테마 토글 */}
+          <ThemeToggle />
           {/* 내보내기/가져오기 */}
           <div style={{ display: 'flex', gap: 2 }}>
             <button
