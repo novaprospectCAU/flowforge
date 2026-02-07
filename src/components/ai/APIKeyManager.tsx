@@ -8,7 +8,6 @@ import type { AIProviderType, MaskedAPIKeyEntry } from '@flowforge/state';
 import { providerRegistry } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
 import { SHADOWS } from '../../theme/shadows';
-import { Z_INDEX } from '../../constants/zIndex';
 
 interface APIKeyManagerProps {
   isOpen: boolean;

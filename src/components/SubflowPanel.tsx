@@ -3,7 +3,6 @@ import type { Subflow, SubflowPortMapping, FlowNode, FlowEdge } from '@flowforge
 import { saveAsTemplate } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
-import { Z_INDEX } from '../constants/zIndex';
 
 interface SubflowPanelProps {
   subflow: Subflow;

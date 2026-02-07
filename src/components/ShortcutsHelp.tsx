@@ -2,7 +2,6 @@ import { useLanguage } from '../i18n';
 import { shortcutsTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
-import { Z_INDEX } from '../constants/zIndex';
 
 interface ShortcutsHelpProps {
   onClose: () => void;

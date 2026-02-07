@@ -3,7 +3,6 @@ import { useLanguage } from '../i18n';
 import { onboardingTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
-import { Z_INDEX } from '../constants/zIndex';
 
 interface OnboardingTutorialProps {
   onComplete: () => void;

@@ -6,7 +6,6 @@ import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { SHADOWS } from '../theme/shadows';
-import { Z_INDEX } from '../constants/zIndex';
 
 interface NodePaletteProps {
   x: number;
