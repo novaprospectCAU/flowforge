@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useClickOutside, useEscapeKey } from '../hooks/useClickOutside';
 import { SHADOWS } from '../theme/shadows';
+import { Z_INDEX } from '../constants/zIndex';
 
 export interface MenuItem {
   label: string;

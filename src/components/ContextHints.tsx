@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useLanguage } from '../i18n';
 import { contextHintsTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
+import { Z_INDEX } from '../constants/zIndex';
 
 interface ContextHintsProps {
   nodeCount: number;
@@ -73,7 +74,7 @@ export function ContextHints({
       background: mode === 'dark' ? 'rgba(30, 30, 32, 0.9)' : 'rgba(255, 255, 255, 0.95)',
       borderRadius: 8,
       border: `1px solid ${colors.border}`,
-      zIndex: 50,
+      zIndex: Z_INDEX.CONTEXT_HINT,
     },
     hint: {
       display: 'flex',

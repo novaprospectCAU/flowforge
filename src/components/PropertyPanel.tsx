@@ -3,6 +3,7 @@ import type { FlowNode } from '@flowforge/types';
 import { nodeTypeRegistry } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { Z_INDEX } from '../constants/zIndex';
 
 interface PropertyPanelProps {
   node: FlowNode;

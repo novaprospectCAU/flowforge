@@ -3,6 +3,7 @@ import type { FlowNode } from '@flowforge/types';
 import { useLanguage } from '../i18n';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { Z_INDEX } from '../constants/zIndex';
 
 interface SearchDialogProps {
   nodes: FlowNode[];
@@ -74,7 +75,7 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
       alignItems: 'flex-start',
       justifyContent: 'center',
       paddingTop: 100,
-      zIndex: 1000,
+      zIndex: Z_INDEX.MODAL,
     },
     dialog: {
       width: 400,

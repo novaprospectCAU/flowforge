@@ -80,6 +80,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { Z_INDEX } from '../constants/zIndex';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment' | 'subflow';
 

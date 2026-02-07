@@ -4,6 +4,7 @@
  */
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import { Z_INDEX } from '../constants/zIndex';
 
 interface ErrorBoundaryProps {
   children: ReactNode;

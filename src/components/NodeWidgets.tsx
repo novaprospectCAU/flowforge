@@ -4,6 +4,7 @@ import { worldToScreen } from '@flowforge/canvas';
 import { LLMChatWidget, ImageGenerateWidget, PromptTemplateWidget } from './ai';
 import { NodeErrorBoundary } from './ErrorBoundary';
 import { useTheme } from '../hooks/useTheme';
+import { Z_INDEX } from '../constants/zIndex';
 
 interface NodeWidgetsProps {
   nodes: FlowNode[];
@@ -52,7 +53,7 @@ export function NodeWidgets({
       width: '100%',
       height: '100%',
       pointerEvents: 'none',
-      zIndex: 10,
+      zIndex: Z_INDEX.NODE_WIDGET,
     }}>
       {widgetNodes.map(node => (
         <NodeWidget
@@ -87,6 +88,8 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCan
   // 위젯 영역 (헤더 아래)
   const widgetTop = screenPos.y + HEADER_HEIGHT * viewport.zoom;
   const widgetHeight = scaledHeight - HEADER_HEIGHT * viewport.zoom;
+  // 입력 포트가 있는 노드는 위젯을 하단 정렬하여 포트 라벨과 겹치지 않도록 함
+  const hasInputPorts = (node.inputs?.length || 0) > 0;
 
   // 화면 밖이면 렌더링 안 함
   if (
@@ -285,7 +288,7 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCan
         pointerEvents: isCanvasDragging ? 'none' : 'auto',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: hasInputPorts ? 'flex-end' : 'center',
         left: screenPos.x + WIDGET_PADDING * viewport.zoom,
         top: widgetTop + WIDGET_PADDING * viewport.zoom,
         width: scaledWidth - WIDGET_PADDING * 2 * viewport.zoom,

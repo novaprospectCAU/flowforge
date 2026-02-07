@@ -2,6 +2,7 @@ import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { Z_INDEX } from '../constants/zIndex';
 
 interface SelectionBarProps {
   selectedCount: number;
@@ -53,7 +54,7 @@ export function SelectionBar({
       border: `1px solid ${colors.border}`,
       borderRadius: 8,
       padding: '8px 12px',
-      zIndex: 100,
+      zIndex: Z_INDEX.TOOLBAR,
       boxShadow: SHADOWS.medium,
     },
     info: {

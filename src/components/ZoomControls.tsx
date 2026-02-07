@@ -2,6 +2,7 @@ import { ZOOM_CONFIG } from '@flowforge/types';
 import { useTheme } from '../hooks/useTheme';
 import { useDropdown } from '../hooks/useDropdown';
 import { SHADOWS } from '../theme/shadows';
+import { Z_INDEX } from '../constants/zIndex';
 
 interface ZoomControlsProps {
   zoom: number;
@@ -55,7 +56,7 @@ export function ZoomControls({
       border: `1px solid ${colors.border}`,
       borderRadius: 6,
       padding: 4,
-      zIndex: 100,
+      zIndex: Z_INDEX.TOOLBAR,
     },
     button: {
       width: 32,

@@ -4,6 +4,7 @@
 
 import { ZOOM_CONFIG, type Comment, type Viewport, type CanvasSize } from '@flowforge/types';
 import { CommentWidget } from './CommentWidget';
+import { Z_INDEX } from '../constants/zIndex';
 
 interface CommentWidgetsProps {
   comments: Comment[];
@@ -36,7 +37,7 @@ export function CommentWidgets({
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: 5, // 노드 위젯(10)보다 아래
+        zIndex: Z_INDEX.COMMENT_WIDGET, // 노드 위젯보다 아래
       }}
     >
       {comments.map(comment => (
