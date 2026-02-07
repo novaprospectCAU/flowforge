@@ -23,6 +23,10 @@
     "@flowforge/canvas": "workspace:*",
     "@flowforge/state": "workspace:*",
     "@flowforge/types": "workspace:*",
+    "@node-core/schema": "workspace:*",
+    "@node-core/registry": "workspace:*",
+    "@node-core/engine": "workspace:*",
+    "@node-core/render": "workspace:*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

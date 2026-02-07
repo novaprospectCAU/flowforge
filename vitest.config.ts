@@ -25,6 +25,10 @@ export default defineConfig({
       '@flowforge/types': path.resolve(__dirname, 'shared/types/src'),
       '@flowforge/canvas': path.resolve(__dirname, 'packages/canvas/src'),
       '@flowforge/state': path.resolve(__dirname, 'packages/state/src'),
+      '@node-core/schema': path.resolve(__dirname, '../node-core/packages/schema/src'),
+      '@node-core/registry': path.resolve(__dirname, '../node-core/packages/registry/src'),
+      '@node-core/engine': path.resolve(__dirname, '../node-core/packages/engine/src'),
+      '@node-core/render': path.resolve(__dirname, '../node-core/packages/render/src'),
     },
   },
 });

@@ -17,7 +17,11 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@flowforge/types": ["./shared/types/src/index.ts"],
-      "@flowforge/canvas/*": ["./packages/canvas/src/*"]
+      "@flowforge/canvas/*": ["./packages/canvas/src/*"],
+      "@node-core/schema": ["../node-core/packages/schema/src/index.ts"],
+      "@node-core/registry": ["../node-core/packages/registry/src/index.ts"],
+      "@node-core/engine": ["../node-core/packages/engine/src/index.ts"],
+      "@node-core/render": ["../node-core/packages/render/src/index.ts"]
     },
     "baseUrl": "."
   },

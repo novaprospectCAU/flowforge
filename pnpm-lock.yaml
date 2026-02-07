@@ -17,6 +17,18 @@ importers:
       '@flowforge/types':
         specifier: workspace:*
         version: link:shared/types
+      '@node-core/engine':
+        specifier: workspace:*
+        version: link:../node-core/packages/engine
+      '@node-core/registry':
+        specifier: workspace:*
+        version: link:../node-core/packages/registry
+      '@node-core/render':
+        specifier: workspace:*
+        version: link:../node-core/packages/render
+      '@node-core/schema':
+        specifier: workspace:*
+        version: link:../node-core/packages/schema
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -51,6 +63,29 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.2.1)(happy-dom@20.5.0)
+
+  ../node-core/packages/engine:
+    dependencies:
+      '@node-core/registry':
+        specifier: workspace:*
+        version: link:../registry
+      '@node-core/schema':
+        specifier: workspace:*
+        version: link:../schema
+
+  ../node-core/packages/registry:
+    dependencies:
+      '@node-core/schema':
+        specifier: workspace:*
+        version: link:../schema
+
+  ../node-core/packages/render:
+    dependencies:
+      '@node-core/schema':
+        specifier: workspace:*
+        version: link:../schema
+
+  ../node-core/packages/schema: {}
 
   packages/canvas:
     dependencies:
