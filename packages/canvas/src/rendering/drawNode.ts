@@ -86,6 +86,16 @@ export function drawNode(
 
   const theme = getCanvasTheme();
 
+  // 0.5. 기본 테두리 (상태 테두리가 없을 때)
+  if (!borderColor) {
+    renderer.drawRoundedRect(
+      x - 1, y - 1,
+      width + 2, height + 2,
+      NODE_STYLE.borderRadius + 1,
+      theme.nodeBorder
+    );
+  }
+
   // 1. 노드 배경 (rounded rect)
   renderer.drawRoundedRect(
     x, y, width, height,
