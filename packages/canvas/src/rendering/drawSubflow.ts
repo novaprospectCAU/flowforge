@@ -1,6 +1,7 @@
 import type { IRenderer } from '../renderer/types';
 import type { FlowNode, Subflow, Color, Position } from '@flowforge/types';
 import { getDataTypeColor, hexToColor } from '../theme/colors';
+import { calculateBoundsMinMax } from '../utils/bounds';
 
 // 서브플로우 스타일 상수
 export const SUBFLOW_STYLE = {
@@ -38,23 +39,14 @@ export function getSubflowBounds(
   nodes: FlowNode[]
 ): { x: number; y: number; width: number; height: number } | null {
   const subflowNodes = nodes.filter(n => subflow.nodeIds.includes(n.id));
-  if (subflowNodes.length === 0) return null;
-
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
-
-  for (const node of subflowNodes) {
-    minX = Math.min(minX, node.position.x);
-    minY = Math.min(minY, node.position.y);
-    maxX = Math.max(maxX, node.position.x + node.size.width);
-    maxY = Math.max(maxY, node.position.y + node.size.height);
-  }
+  const bounds = calculateBoundsMinMax(subflowNodes);
+  if (!bounds) return null;
 
   return {
-    x: minX - SUBFLOW_STYLE.padding,
-    y: minY - SUBFLOW_STYLE.padding - SUBFLOW_STYLE.headerHeight,
-    width: maxX - minX + SUBFLOW_STYLE.padding * 2,
-    height: maxY - minY + SUBFLOW_STYLE.padding * 2 + SUBFLOW_STYLE.headerHeight,
+    x: bounds.minX - SUBFLOW_STYLE.padding,
+    y: bounds.minY - SUBFLOW_STYLE.padding - SUBFLOW_STYLE.headerHeight,
+    width: bounds.maxX - bounds.minX + SUBFLOW_STYLE.padding * 2,
+    height: bounds.maxY - bounds.minY + SUBFLOW_STYLE.padding * 2 + SUBFLOW_STYLE.headerHeight,
   };
 }
 

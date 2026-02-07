@@ -1,6 +1,7 @@
 import type { IRenderer } from '../renderer/types';
 import type { FlowNode, NodeGroup, Color, Position } from '@flowforge/types';
 import { hexToColor } from '../theme/colors';
+import { calculateBoundsMinMax } from '../utils/bounds';
 
 const GROUP_STYLE = {
   padding: 20,
@@ -17,23 +18,14 @@ export function getGroupBounds(
   nodes: FlowNode[]
 ): { x: number; y: number; width: number; height: number } | null {
   const groupNodes = nodes.filter(n => group.nodeIds.includes(n.id));
-  if (groupNodes.length === 0) return null;
-
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
-
-  for (const node of groupNodes) {
-    minX = Math.min(minX, node.position.x);
-    minY = Math.min(minY, node.position.y);
-    maxX = Math.max(maxX, node.position.x + node.size.width);
-    maxY = Math.max(maxY, node.position.y + node.size.height);
-  }
+  const bounds = calculateBoundsMinMax(groupNodes);
+  if (!bounds) return null;
 
   return {
-    x: minX - GROUP_STYLE.padding,
-    y: minY - GROUP_STYLE.padding - GROUP_STYLE.headerHeight,
-    width: maxX - minX + GROUP_STYLE.padding * 2,
-    height: maxY - minY + GROUP_STYLE.padding * 2 + GROUP_STYLE.headerHeight,
+    x: bounds.minX - GROUP_STYLE.padding,
+    y: bounds.minY - GROUP_STYLE.padding - GROUP_STYLE.headerHeight,
+    width: bounds.maxX - bounds.minX + GROUP_STYLE.padding * 2,
+    height: bounds.maxY - bounds.minY + GROUP_STYLE.padding * 2 + GROUP_STYLE.headerHeight,
   };
 }
 

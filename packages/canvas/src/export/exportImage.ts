@@ -1,6 +1,7 @@
 import type { FlowNode, FlowEdge, NodeGroup } from '@flowforge/types';
 import type { EdgeStyle } from '../rendering/drawEdge';
 import { getDataTypeColorCSS } from '../theme/colors';
+import { calculateBoundsMinMax, expandBounds, mergeBounds, expandBoundsAsymmetric } from '../utils/bounds';
 
 export interface ExportImageOptions {
   padding?: number;
@@ -26,43 +27,27 @@ export async function exportFlowToImage(
     scale = 2,
   } = options;
 
-  if (nodes.length === 0) {
-    throw new Error('No nodes to export');
-  }
-
   // 노드들의 바운딩 박스 계산
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
-
-  for (const node of nodes) {
-    minX = Math.min(minX, node.position.x);
-    minY = Math.min(minY, node.position.y);
-    maxX = Math.max(maxX, node.position.x + node.size.width);
-    maxY = Math.max(maxY, node.position.y + node.size.height);
+  let bounds = calculateBoundsMinMax(nodes);
+  if (!bounds) {
+    throw new Error('No nodes to export');
   }
 
   // 그룹 바운딩도 포함
   for (const group of groups) {
     const groupNodes = nodes.filter(n => group.nodeIds.includes(n.id));
-    if (groupNodes.length > 0) {
-      let gMinX = Infinity, gMinY = Infinity;
-      let gMaxX = -Infinity, gMaxY = -Infinity;
-      for (const node of groupNodes) {
-        gMinX = Math.min(gMinX, node.position.x);
-        gMinY = Math.min(gMinY, node.position.y);
-        gMaxX = Math.max(gMaxX, node.position.x + node.size.width);
-        gMaxY = Math.max(gMaxY, node.position.y + node.size.height);
-      }
-      // 그룹 패딩 (헤더 포함)
-      minX = Math.min(minX, gMinX - 20);
-      minY = Math.min(minY, gMinY - 48);
-      maxX = Math.max(maxX, gMaxX + 20);
-      maxY = Math.max(maxY, gMaxY + 20);
+    const groupBounds = calculateBoundsMinMax(groupNodes);
+    if (groupBounds) {
+      // 그룹 패딩 (헤더 포함: top=48, sides=20)
+      const expandedGroupBounds = expandBoundsAsymmetric(groupBounds, 48, 20, 20, 20);
+      bounds = mergeBounds(bounds, expandedGroupBounds);
     }
   }
 
-  const contentWidth = maxX - minX + padding * 2;
-  const contentHeight = maxY - minY + padding * 2;
+  // 최종 패딩 적용
+  const finalBounds = expandBounds(bounds, padding);
+  const contentWidth = finalBounds.maxX - finalBounds.minX;
+  const contentHeight = finalBounds.maxY - finalBounds.minY;
 
   // 오프스크린 캔버스 생성
   const offscreen = document.createElement('canvas');
@@ -82,28 +67,21 @@ export async function exportFlowToImage(
   ctx.fillRect(0, 0, contentWidth, contentHeight);
 
   // 좌표 변환 (노드들이 패딩 위치에서 시작하도록)
-  ctx.translate(padding - minX, padding - minY);
+  ctx.translate(padding - bounds.minX, padding - bounds.minY);
 
   // 그룹 그리기
+  const GROUP_PADDING = 20;
+  const GROUP_HEADER_HEIGHT = 28;
+
   for (const group of groups) {
     const groupNodes = nodes.filter(n => group.nodeIds.includes(n.id));
-    if (groupNodes.length === 0) continue;
+    const groupBounds = calculateBoundsMinMax(groupNodes);
+    if (!groupBounds) continue;
 
-    let gMinX = Infinity, gMinY = Infinity;
-    let gMaxX = -Infinity, gMaxY = -Infinity;
-    for (const node of groupNodes) {
-      gMinX = Math.min(gMinX, node.position.x);
-      gMinY = Math.min(gMinY, node.position.y);
-      gMaxX = Math.max(gMaxX, node.position.x + node.size.width);
-      gMaxY = Math.max(gMaxY, node.position.y + node.size.height);
-    }
-
-    const groupPadding = 20;
-    const headerHeight = 28;
-    const gx = gMinX - groupPadding;
-    const gy = gMinY - groupPadding - headerHeight;
-    const gw = gMaxX - gMinX + groupPadding * 2;
-    const gh = gMaxY - gMinY + groupPadding * 2 + headerHeight;
+    const gx = groupBounds.minX - GROUP_PADDING;
+    const gy = groupBounds.minY - GROUP_PADDING - GROUP_HEADER_HEIGHT;
+    const gw = groupBounds.maxX - groupBounds.minX + GROUP_PADDING * 2;
+    const gh = groupBounds.maxY - groupBounds.minY + GROUP_PADDING * 2 + GROUP_HEADER_HEIGHT;
 
     // 그룹 배경
     ctx.fillStyle = 'rgba(74, 85, 104, 0.12)';
@@ -114,13 +92,13 @@ export async function exportFlowToImage(
     // 그룹 헤더
     ctx.fillStyle = 'rgba(74, 85, 104, 0.3)';
     ctx.beginPath();
-    ctx.roundRect(gx, gy, gw, headerHeight, [8, 8, 0, 0]);
+    ctx.roundRect(gx, gy, gw, GROUP_HEADER_HEIGHT, [8, 8, 0, 0]);
     ctx.fill();
 
     // 그룹 이름
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
     ctx.font = '12px system-ui, -apple-system, sans-serif';
-    ctx.fillText(group.name, gx + 12, gy + headerHeight / 2 + 4);
+    ctx.fillText(group.name, gx + 12, gy + GROUP_HEADER_HEIGHT / 2 + 4);
   }
 
   // 엣지 그리기
@@ -133,13 +111,13 @@ export async function exportFlowToImage(
     const sourcePortIndex = sourceNode.outputs?.findIndex(p => p.id === edge.sourcePort) ?? 0;
     const targetPortIndex = targetNode.inputs?.findIndex(p => p.id === edge.targetPort) ?? 0;
 
-    const headerHeight = 28;
+    const GROUP_HEADER_HEIGHT = 28;
     const portSpacing = 24;
 
     const x1 = sourceNode.position.x + sourceNode.size.width;
-    const y1 = sourceNode.position.y + headerHeight + portSpacing * (sourcePortIndex + 0.5);
+    const y1 = sourceNode.position.y + GROUP_HEADER_HEIGHT + portSpacing * (sourcePortIndex + 0.5);
     const x2 = targetNode.position.x;
-    const y2 = targetNode.position.y + headerHeight + portSpacing * (targetPortIndex + 0.5);
+    const y2 = targetNode.position.y + GROUP_HEADER_HEIGHT + portSpacing * (targetPortIndex + 0.5);
 
     // 소스 포트의 데이터 타입 색상 사용
     const edgeColor = getDataTypeColorCSS(sourcePort?.dataType || 'any');
@@ -171,7 +149,7 @@ export async function exportFlowToImage(
   for (const node of nodes) {
     const { x, y } = node.position;
     const { width, height } = node.size;
-    const headerHeight = 28;
+    const GROUP_HEADER_HEIGHT = 28;
 
     // 노드 배경
     ctx.fillStyle = '#2d2d30';
@@ -187,14 +165,14 @@ export async function exportFlowToImage(
     // 헤더 배경
     ctx.fillStyle = '#3c3c3c';
     ctx.beginPath();
-    ctx.roundRect(x, y, width, headerHeight, [8, 8, 0, 0]);
+    ctx.roundRect(x, y, width, GROUP_HEADER_HEIGHT, [8, 8, 0, 0]);
     ctx.fill();
 
     // 타이틀
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
     const title = (node.data?.title as string) || node.type;
-    ctx.fillText(title, x + 10, y + headerHeight / 2 + 4, width - 20);
+    ctx.fillText(title, x + 10, y + GROUP_HEADER_HEIGHT / 2 + 4, width - 20);
 
     // 포트 그리기
     const portRadius = 6;
@@ -203,7 +181,7 @@ export async function exportFlowToImage(
     const inputs = node.inputs || [];
     for (let i = 0; i < inputs.length; i++) {
       const port = inputs[i];
-      const py = y + headerHeight + 24 * (i + 0.5);
+      const py = y + GROUP_HEADER_HEIGHT + 24 * (i + 0.5);
       const portColor = getDataTypeColorCSS(port.dataType);
 
       ctx.fillStyle = portColor;
@@ -221,7 +199,7 @@ export async function exportFlowToImage(
     const outputs = node.outputs || [];
     for (let i = 0; i < outputs.length; i++) {
       const port = outputs[i];
-      const py = y + headerHeight + 24 * (i + 0.5);
+      const py = y + GROUP_HEADER_HEIGHT + 24 * (i + 0.5);
       const portColor = getDataTypeColorCSS(port.dataType);
 
       ctx.fillStyle = portColor;

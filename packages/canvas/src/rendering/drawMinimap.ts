@@ -1,5 +1,6 @@
 import type { IRenderer } from '../renderer/types';
 import type { FlowNode, Viewport, CanvasSize, Color, Position, Subflow } from '@flowforge/types';
+import { calculateBoundsMinMax, expandBounds, mergeBounds, getBoundsCenter } from '../utils/bounds';
 
 export const MINIMAP = {
   width: 180,
@@ -7,6 +8,9 @@ export const MINIMAP = {
   margin: 16,
   padding: 10,
 };
+
+// 미니맵 월드 영역 패딩
+const MINIMAP_WORLD_PADDING = 50;
 
 const COLORS = {
   bg: { r: 30, g: 30, b: 32, a: 230 } as Color,
@@ -46,33 +50,26 @@ export function drawMinimap(
     COLORS.bg
   );
 
-  if (nodes.length === 0) return;
-
   // 노드 바운딩 박스
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
-
-  for (const node of nodes) {
-    minX = Math.min(minX, node.position.x);
-    minY = Math.min(minY, node.position.y);
-    maxX = Math.max(maxX, node.position.x + node.size.width);
-    maxY = Math.max(maxY, node.position.y + node.size.height);
-  }
+  const nodeBounds = calculateBoundsMinMax(nodes);
+  if (!nodeBounds) return;
 
   // 현재 뷰포트 영역
   const vpHalfW = canvasSize.width / 2 / viewport.zoom;
   const vpHalfH = canvasSize.height / 2 / viewport.zoom;
+  const viewportBounds = {
+    minX: viewport.x - vpHalfW,
+    minY: viewport.y - vpHalfH,
+    maxX: viewport.x + vpHalfW,
+    maxY: viewport.y + vpHalfH,
+  };
 
-  // 전체 영역 (노드 + 뷰포트)
-  minX = Math.min(minX, viewport.x - vpHalfW) - 50;
-  minY = Math.min(minY, viewport.y - vpHalfH) - 50;
-  maxX = Math.max(maxX, viewport.x + vpHalfW) + 50;
-  maxY = Math.max(maxY, viewport.y + vpHalfH) + 50;
+  // 전체 영역 (노드 + 뷰포트) + 패딩
+  const worldBounds = expandBounds(mergeBounds(nodeBounds, viewportBounds), MINIMAP_WORLD_PADDING);
 
-  const worldW = maxX - minX;
-  const worldH = maxY - minY;
-  const worldCenterX = (minX + maxX) / 2;
-  const worldCenterY = (minY + maxY) / 2;
+  const worldW = worldBounds.maxX - worldBounds.minX;
+  const worldH = worldBounds.maxY - worldBounds.minY;
+  const worldCenter = getBoundsCenter(worldBounds);
 
   // 미니맵 내부 영역
   const innerX = mmX + MINIMAP.padding;
@@ -85,8 +82,8 @@ export function drawMinimap(
 
   // 월드 → 미니맵 좌표
   const toMinimap = (wx: number, wy: number) => ({
-    x: innerX + innerW / 2 + (wx - worldCenterX) * scale,
-    y: innerY + innerH / 2 + (wy - worldCenterY) * scale,
+    x: innerX + innerW / 2 + (wx - worldCenter.x) * scale,
+    y: innerY + innerH / 2 + (wy - worldCenter.y) * scale,
   });
 
   // 노드 렌더링 (선택되지 않은 노드 먼저, 선택된 노드 나중에 - 레이어링)
@@ -190,36 +187,29 @@ export function minimapToWorld(
   const innerW = MINIMAP.width - MINIMAP.padding * 2;
   const innerH = MINIMAP.height - MINIMAP.padding * 2;
 
-  if (nodes.length === 0) {
+  // 노드 바운딩 박스
+  const nodeBounds = calculateBoundsMinMax(nodes);
+  if (!nodeBounds) {
     // 노드가 없으면 현재 뷰포트 기준
     return { x: viewport.x, y: viewport.y };
-  }
-
-  // 노드 바운딩 박스
-  let minX = Infinity, minY = Infinity;
-  let maxX = -Infinity, maxY = -Infinity;
-
-  for (const node of nodes) {
-    minX = Math.min(minX, node.position.x);
-    minY = Math.min(minY, node.position.y);
-    maxX = Math.max(maxX, node.position.x + node.size.width);
-    maxY = Math.max(maxY, node.position.y + node.size.height);
   }
 
   // 현재 뷰포트 영역
   const vpHalfW = canvasSize.width / 2 / viewport.zoom;
   const vpHalfH = canvasSize.height / 2 / viewport.zoom;
+  const viewportBounds = {
+    minX: viewport.x - vpHalfW,
+    minY: viewport.y - vpHalfH,
+    maxX: viewport.x + vpHalfW,
+    maxY: viewport.y + vpHalfH,
+  };
 
-  // 전체 영역
-  minX = Math.min(minX, viewport.x - vpHalfW) - 50;
-  minY = Math.min(minY, viewport.y - vpHalfH) - 50;
-  maxX = Math.max(maxX, viewport.x + vpHalfW) + 50;
-  maxY = Math.max(maxY, viewport.y + vpHalfH) + 50;
+  // 전체 영역 (노드 + 뷰포트) + 패딩 50
+  const worldBounds = expandBounds(mergeBounds(nodeBounds, viewportBounds), MINIMAP_WORLD_PADDING);
 
-  const worldW = maxX - minX;
-  const worldH = maxY - minY;
-  const worldCenterX = (minX + maxX) / 2;
-  const worldCenterY = (minY + maxY) / 2;
+  const worldW = worldBounds.maxX - worldBounds.minX;
+  const worldH = worldBounds.maxY - worldBounds.minY;
+  const worldCenter = getBoundsCenter(worldBounds);
 
   // 스케일
   const scale = Math.min(innerW / worldW, innerH / worldH);
@@ -229,7 +219,7 @@ export function minimapToWorld(
   const relY = screenPos.y - (innerY + innerH / 2);
 
   return {
-    x: worldCenterX + relX / scale,
-    y: worldCenterY + relY / scale,
+    x: worldCenter.x + relX / scale,
+    y: worldCenter.y + relY / scale,
   };
 }

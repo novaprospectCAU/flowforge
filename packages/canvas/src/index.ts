@@ -40,6 +40,20 @@ export {
   hexToColor,
 } from './theme/colors';
 
+// Utils
+export {
+  calculateBoundsMinMax,
+  calculateBoundsRect,
+  expandBounds,
+  expandBoundsAsymmetric,
+  boundsToRect,
+  mergeBounds,
+  getBoundsCenter,
+  type BoundsMinMax,
+  type BoundsRect,
+  type Bounded,
+} from './utils/bounds';
+
 // Interaction
 export {
   hitTestNode,
