@@ -1,5 +1,6 @@
 import type { IRenderer } from '../renderer/types';
 import type { FlowNode, NodeGroup, Color, Position } from '@flowforge/types';
+import { hexToColor } from '../theme/colors';
 
 const GROUP_STYLE = {
   padding: 20,
@@ -36,22 +37,8 @@ export function getGroupBounds(
   };
 }
 
-/**
- * 색상 문자열을 Color 객체로 변환
- */
-function parseColor(colorStr: string, alpha: number = 255): Color {
-  // #RRGGBB 형식
-  if (colorStr.startsWith('#') && colorStr.length === 7) {
-    return {
-      r: parseInt(colorStr.slice(1, 3), 16),
-      g: parseInt(colorStr.slice(3, 5), 16),
-      b: parseInt(colorStr.slice(5, 7), 16),
-      a: alpha,
-    };
-  }
-  // 기본값
-  return { r: 74, g: 85, b: 104, a: alpha };
-}
+// 그룹 기본 색상
+const DEFAULT_GROUP_COLOR: Color = { r: 74, g: 85, b: 104, a: 255 };
 
 /**
  * 단일 그룹 렌더링
@@ -65,7 +52,7 @@ export function drawGroup(
   const bounds = getGroupBounds(group, nodes);
   if (!bounds) return;
 
-  const baseColor = parseColor(group.color ?? '#4a5568');
+  const baseColor = hexToColor(group.color ?? '#4a5568', 255, DEFAULT_GROUP_COLOR);
 
   // 그룹 배경 (반투명)
   const bgColor: Color = { ...baseColor, a: 30 };

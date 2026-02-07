@@ -1,5 +1,6 @@
 import type { IRenderer } from '../renderer/types';
-import type { FlowNode, Color, ExecutionStatus, DataType } from '@flowforge/types';
+import type { FlowNode, Color, ExecutionStatus } from '@flowforge/types';
+import { getDataTypeColor } from '../theme/colors';
 
 // 노드 스타일 상수
 const NODE_COLORS = {
@@ -21,24 +22,6 @@ const NODE_COLORS = {
   warning: { r: 255, g: 152, b: 0, a: 255 } as Color,   // 주황색
   warningPort: { r: 255, g: 100, b: 100, a: 255 } as Color,  // 미연결 필수 포트 (빨간 테두리)
 };
-
-// 데이터 타입별 포트 색상
-const PORT_TYPE_COLORS: Record<DataType, Color> = {
-  image: { r: 100, g: 149, b: 237, a: 255 },   // 파랑 (Cornflower Blue)
-  number: { r: 144, g: 238, b: 144, a: 255 },  // 연두 (Light Green)
-  string: { r: 255, g: 182, b: 108, a: 255 },  // 주황 (Peach)
-  boolean: { r: 255, g: 105, b: 180, a: 255 }, // 분홍 (Hot Pink)
-  array: { r: 186, g: 85, b: 211, a: 255 },    // 보라 (Medium Orchid)
-  object: { r: 64, g: 224, b: 208, a: 255 },   // 청록 (Turquoise)
-  any: { r: 160, g: 160, b: 165, a: 255 },     // 회색 (기본)
-};
-
-/**
- * 데이터 타입에 따른 포트 색상 반환
- */
-function getPortColorByType(dataType: DataType): Color {
-  return PORT_TYPE_COLORS[dataType] || PORT_TYPE_COLORS.any;
-}
 
 // 연결 가능한 포트 정보
 export interface CompatiblePorts {
@@ -149,7 +132,7 @@ export function drawNode(
     const portY = y + NODE_STYLE.headerHeight + NODE_STYLE.portSpacing * (i + 0.5);
 
     // 기본 색상: 데이터 타입 기반
-    let portColor = getPortColorByType(port.dataType);
+    let portColor = getDataTypeColor(port.dataType);
 
     if (isConnecting) {
       // 연결 중일 때: 출력 포트에서 드래그 중이면 입력 포트만 표시
@@ -181,7 +164,7 @@ export function drawNode(
     // 미연결 필수 포트는 경고 색상으로 표시
     const labelColor = unconnectedPorts.has(port.id)
       ? NODE_COLORS.warningPort
-      : getPortColorByType(port.dataType);
+      : getDataTypeColor(port.dataType);
     renderer.drawText(
       port.name + (port.required && unconnectedPorts.has(port.id) ? ' *' : ''),
       x + NODE_STYLE.portLabelOffset,
@@ -198,7 +181,7 @@ export function drawNode(
     const portY = y + NODE_STYLE.headerHeight + NODE_STYLE.portSpacing * (i + 0.5);
 
     // 기본 색상: 데이터 타입 기반
-    let portColor = getPortColorByType(port.dataType);
+    let portColor = getDataTypeColor(port.dataType);
 
     if (isConnecting) {
       // 연결 중일 때: 입력 포트에서 드래그 중이면 출력 포트만 표시
@@ -226,7 +209,7 @@ export function drawNode(
       port.name,
       x + width - NODE_STYLE.portLabelOffset,
       portY - NODE_STYLE.portLabelFontSize / 2,
-      getPortColorByType(port.dataType),
+      getDataTypeColor(port.dataType),
       NODE_STYLE.portLabelFontSize,
       'right'
     );

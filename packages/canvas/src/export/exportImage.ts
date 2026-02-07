@@ -1,20 +1,6 @@
-import type { FlowNode, FlowEdge, NodeGroup, DataType } from '@flowforge/types';
+import type { FlowNode, FlowEdge, NodeGroup } from '@flowforge/types';
 import type { EdgeStyle } from '../rendering/drawEdge';
-
-// 데이터 타입별 포트 색상 (CSS 문자열)
-const PORT_TYPE_COLORS: Record<DataType, string> = {
-  image: 'rgb(100, 149, 237)',   // 파랑 (Cornflower Blue)
-  number: 'rgb(144, 238, 144)',  // 연두 (Light Green)
-  string: 'rgb(255, 182, 108)',  // 주황 (Peach)
-  boolean: 'rgb(255, 105, 180)', // 분홍 (Hot Pink)
-  array: 'rgb(186, 85, 211)',    // 보라 (Medium Orchid)
-  object: 'rgb(64, 224, 208)',   // 청록 (Turquoise)
-  any: 'rgb(160, 160, 165)',     // 회색 (기본)
-};
-
-function getPortColor(dataType: DataType): string {
-  return PORT_TYPE_COLORS[dataType] || PORT_TYPE_COLORS.any;
-}
+import { getDataTypeColorCSS } from '../theme/colors';
 
 export interface ExportImageOptions {
   padding?: number;
@@ -156,7 +142,7 @@ export async function exportFlowToImage(
     const y2 = targetNode.position.y + headerHeight + portSpacing * (targetPortIndex + 0.5);
 
     // 소스 포트의 데이터 타입 색상 사용
-    const edgeColor = getPortColor(sourcePort?.dataType || 'any');
+    const edgeColor = getDataTypeColorCSS(sourcePort?.dataType || 'any');
     ctx.strokeStyle = edgeColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -218,7 +204,7 @@ export async function exportFlowToImage(
     for (let i = 0; i < inputs.length; i++) {
       const port = inputs[i];
       const py = y + headerHeight + 24 * (i + 0.5);
-      const portColor = getPortColor(port.dataType);
+      const portColor = getDataTypeColorCSS(port.dataType);
 
       ctx.fillStyle = portColor;
       ctx.beginPath();
@@ -236,7 +222,7 @@ export async function exportFlowToImage(
     for (let i = 0; i < outputs.length; i++) {
       const port = outputs[i];
       const py = y + headerHeight + 24 * (i + 0.5);
-      const portColor = getPortColor(port.dataType);
+      const portColor = getDataTypeColorCSS(port.dataType);
 
       ctx.fillStyle = portColor;
       ctx.beginPath();

@@ -1,31 +1,9 @@
 import type { IRenderer } from '../renderer/types';
 import type { FlowNode, FlowEdge, Color, Position, DataType } from '@flowforge/types';
 import { NODE_STYLE } from './drawNode';
+import { getDataTypeColor, EDGE_COLORS } from '../theme/colors';
 
 export type EdgeStyle = 'bezier' | 'straight' | 'step';
-
-const EDGE_COLORS = {
-  default: { r: 150, g: 150, b: 155, a: 255 } as Color,
-  active: { r: 100, g: 180, b: 255, a: 255 } as Color,
-};
-
-// 데이터 타입별 엣지 색상 (포트 색상과 동일)
-const EDGE_TYPE_COLORS: Record<DataType, Color> = {
-  image: { r: 100, g: 149, b: 237, a: 255 },   // 파랑 (Cornflower Blue)
-  number: { r: 144, g: 238, b: 144, a: 255 },  // 연두 (Light Green)
-  string: { r: 255, g: 182, b: 108, a: 255 },  // 주황 (Peach)
-  boolean: { r: 255, g: 105, b: 180, a: 255 }, // 분홍 (Hot Pink)
-  array: { r: 186, g: 85, b: 211, a: 255 },    // 보라 (Medium Orchid)
-  object: { r: 64, g: 224, b: 208, a: 255 },   // 청록 (Turquoise)
-  any: { r: 150, g: 150, b: 155, a: 255 },     // 회색 (기본)
-};
-
-/**
- * 데이터 타입에 따른 엣지 색상 반환
- */
-function getEdgeColorByType(dataType: DataType): Color {
-  return EDGE_TYPE_COLORS[dataType] || EDGE_TYPE_COLORS.any;
-}
 
 /**
  * 포트의 월드 좌표 계산
@@ -130,7 +108,7 @@ export function drawEdge(
   } else {
     const sourcePort = sourceNode.outputs?.find(p => p.id === edge.sourcePort);
     const dataType = sourcePort?.dataType || 'any';
-    color = getEdgeColorByType(dataType);
+    color = getDataTypeColor(dataType);
   }
 
   switch (style) {
@@ -176,7 +154,7 @@ export function drawTempEdge(
   const targetPos = isFromOutput ? endPos : startPos;
 
   // 드래그 중인 포트의 데이터 타입 색상 사용
-  const color = getEdgeColorByType(dataType);
+  const color = getDataTypeColor(dataType);
 
   switch (style) {
     case 'straight':

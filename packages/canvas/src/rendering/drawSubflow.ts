@@ -1,5 +1,6 @@
 import type { IRenderer } from '../renderer/types';
 import type { FlowNode, Subflow, Color, Position } from '@flowforge/types';
+import { getDataTypeColor, hexToColor } from '../theme/colors';
 
 // 서브플로우 스타일 상수
 export const SUBFLOW_STYLE = {
@@ -28,36 +29,6 @@ const SUBFLOW_COLORS = {
   portLabel: { r: 180, g: 180, b: 185, a: 255 } as Color,
 };
 
-// 데이터 타입별 포트 색상
-const PORT_TYPE_COLORS: Record<string, Color> = {
-  image: { r: 100, g: 149, b: 237, a: 255 },
-  number: { r: 144, g: 238, b: 144, a: 255 },
-  string: { r: 255, g: 182, b: 108, a: 255 },
-  boolean: { r: 255, g: 105, b: 180, a: 255 },
-  array: { r: 186, g: 85, b: 211, a: 255 },
-  object: { r: 64, g: 224, b: 208, a: 255 },
-  any: { r: 160, g: 160, b: 165, a: 255 },
-};
-
-function getPortColor(dataType: string): Color {
-  return PORT_TYPE_COLORS[dataType] || PORT_TYPE_COLORS.any;
-}
-
-/**
- * 색상 문자열을 Color 객체로 변환
- */
-function parseColor(colorStr: string | undefined, alpha: number = 255): Color {
-  if (!colorStr) return SUBFLOW_COLORS.header;
-  if (colorStr.startsWith('#') && colorStr.length === 7) {
-    return {
-      r: parseInt(colorStr.slice(1, 3), 16),
-      g: parseInt(colorStr.slice(3, 5), 16),
-      b: parseInt(colorStr.slice(5, 7), 16),
-      a: alpha,
-    };
-  }
-  return SUBFLOW_COLORS.header;
-}
 
 /**
  * 서브플로우의 확장된 바운딩 박스 계산 (내부 노드 기반)
@@ -137,7 +108,7 @@ export function drawCollapsedSubflow(
   const { x, y } = subflow.collapsedPosition;
   const size = calculateCollapsedSize(subflow);
   const { width, height } = size;
-  const headerColor = parseColor(subflow.color);
+  const headerColor = hexToColor(subflow.color, 255, SUBFLOW_COLORS.header);
 
   // 선택 테두리
   if (isSelected) {
@@ -194,7 +165,7 @@ export function drawCollapsedSubflow(
   for (let i = 0; i < subflow.inputMappings.length; i++) {
     const mapping = subflow.inputMappings[i];
     const portY = y + SUBFLOW_STYLE.headerHeight + SUBFLOW_STYLE.portSpacing * (i + 0.5);
-    const portColor = getPortColor(mapping.dataType);
+    const portColor = getDataTypeColor(mapping.dataType);
 
     renderer.drawCircle(x, portY, SUBFLOW_STYLE.portRadius, portColor);
     renderer.drawText(
@@ -210,7 +181,7 @@ export function drawCollapsedSubflow(
   for (let i = 0; i < subflow.outputMappings.length; i++) {
     const mapping = subflow.outputMappings[i];
     const portY = y + SUBFLOW_STYLE.headerHeight + SUBFLOW_STYLE.portSpacing * (i + 0.5);
-    const portColor = getPortColor(mapping.dataType);
+    const portColor = getDataTypeColor(mapping.dataType);
 
     renderer.drawCircle(x + width, portY, SUBFLOW_STYLE.portRadius, portColor);
     renderer.drawText(
@@ -238,8 +209,8 @@ export function drawExpandedSubflow(
   const bounds = getSubflowBounds(subflow, nodes);
   if (!bounds) return;
 
-  const headerColor = parseColor(subflow.color, 80);
-  const bgColor: Color = { ...parseColor(subflow.color), a: 20 };
+  const headerColor = hexToColor(subflow.color, 80, SUBFLOW_COLORS.header);
+  const bgColor: Color = { ...hexToColor(subflow.color, 255, SUBFLOW_COLORS.header), a: 20 };
 
   // 배경 (반투명)
   renderer.drawRoundedRect(
@@ -252,7 +223,7 @@ export function drawExpandedSubflow(
   // 테두리 (점선 대신 실선으로 - 점선은 복잡하므로)
   const borderColor = isSelected
     ? SUBFLOW_COLORS.borderSelected
-    : { ...parseColor(subflow.color), a: 150 };
+    : { ...hexToColor(subflow.color, 255, SUBFLOW_COLORS.header), a: 150 };
   const borderWidth = isSelected ? 2 : 1;
 
   // 상/하/좌/우 테두리

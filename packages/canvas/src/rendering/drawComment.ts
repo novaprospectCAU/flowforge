@@ -1,5 +1,6 @@
 import type { IRenderer } from '../renderer/types';
 import type { Comment, Color } from '@flowforge/types';
+import { hexToColor } from '../theme/colors';
 
 // 코멘트 스타일 상수
 const COMMENT_STYLE = {
@@ -16,20 +17,6 @@ const COMMENT_COLORS = {
   selected: { r: 66, g: 135, b: 245, a: 255 } as Color,
   text: { r: 60, g: 60, b: 60, a: 255 } as Color,
 };
-
-// 색상 문자열을 Color 객체로 변환
-function hexToColor(hex: string, alpha = 230): Color {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (result) {
-    return {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16),
-      a: alpha,
-    };
-  }
-  return COMMENT_COLORS.background;
-}
 
 /**
  * 단일 코멘트 렌더링
@@ -56,7 +43,7 @@ export function drawComment(
   }
 
   // 배경
-  const bgColor = comment.color ? hexToColor(comment.color) : COMMENT_COLORS.background;
+  const bgColor = hexToColor(comment.color, 230, COMMENT_COLORS.background);
   renderer.drawRoundedRect(
     x, y, width, height,
     COMMENT_STYLE.borderRadius,
@@ -64,7 +51,7 @@ export function drawComment(
   );
 
   // 테두리
-  const borderColor = comment.color ? hexToColor(comment.color, 255) : COMMENT_COLORS.border;
+  const borderColor = hexToColor(comment.color, 255, COMMENT_COLORS.border);
   // 상단 라인
   renderer.drawLine(
     x + COMMENT_STYLE.borderRadius, y,

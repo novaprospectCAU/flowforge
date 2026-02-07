@@ -29,6 +29,17 @@ export {
 // Export
 export { exportFlowToImage, downloadImage, type ExportImageOptions } from './export/exportImage';
 
+// Theme
+export {
+  DATA_TYPE_COLORS,
+  DATA_TYPE_COLORS_CSS,
+  EDGE_COLORS,
+  DEFAULT_COLOR,
+  getDataTypeColor,
+  getDataTypeColorCSS,
+  hexToColor,
+} from './theme/colors';
+
 // Interaction
 export {
   hitTestNode,
