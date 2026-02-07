@@ -31,6 +31,7 @@ import {
   type CompatiblePorts,
   exportFlowToImage,
   downloadImage,
+  setCanvasTheme,
 } from '@flowforge/canvas';
 import {
   createFlowStore,
@@ -99,7 +100,7 @@ function isTypeCompatible(sourceType: DataType, targetType: DataType): boolean {
 export function FlowCanvas() {
   const isMobile = useIsMobile();
   const isTouchDevice = useIsTouchDevice();
-  const { toggleTheme } = useTheme();
+  const { mode, colors, toggleTheme } = useTheme();
   const isTouchDeviceRef = useRef(isTouchDevice);
   isTouchDeviceRef.current = isTouchDevice;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -208,6 +209,11 @@ export function FlowCanvas() {
   useEffect(() => {
     edgeStyleRef.current = edgeStyle;
   }, [edgeStyle]);
+
+  // 캔버스 테마 동기화
+  useEffect(() => {
+    setCanvasTheme(mode);
+  }, [mode]);
 
   // 줌 컨트롤 핸들러
   const handleZoomIn = useCallback(() => {
@@ -3485,7 +3491,7 @@ export function FlowCanvas() {
           width: '100%',
           height: '100%',
           display: 'block',
-          background: '#1e1e1e',
+          background: colors.canvasBg,
           cursor: dragModeRef.current !== 'none' ? 'grabbing' : (spacePressed ? 'grab' : cursorStyle),
           touchAction: 'none', // 브라우저 기본 터치 동작 비활성화
         }}

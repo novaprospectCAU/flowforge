@@ -1,15 +1,11 @@
 import type { IRenderer } from '../renderer/types';
 import type { FlowNode, Color, ExecutionStatus } from '@flowforge/types';
 import { getDataTypeColor } from '../theme/colors';
+import { getCanvasTheme } from '../theme/canvasTheme';
 
-// 노드 스타일 상수
+// 모드 무관 상태/인터랙션 색상
 const NODE_COLORS = {
-  background: { r: 45, g: 45, b: 48, a: 255 } as Color,
-  header: { r: 80, g: 80, b: 85, a: 255 } as Color,
-  border: { r: 100, g: 100, b: 105, a: 255 } as Color,
   selected: { r: 66, g: 135, b: 245, a: 255 } as Color,
-  text: { r: 255, g: 255, b: 255, a: 255 } as Color,
-  portLabel: { r: 180, g: 180, b: 185, a: 255 } as Color,  // 포트 라벨 (회색)
   port: { r: 160, g: 160, b: 165, a: 255 } as Color,
   portHover: { r: 100, g: 180, b: 255, a: 255 } as Color,
   portCompatible: { r: 72, g: 199, b: 142, a: 255 } as Color,  // 연결 가능 (초록)
@@ -88,25 +84,27 @@ export function drawNode(
     );
   }
 
+  const theme = getCanvasTheme();
+
   // 1. 노드 배경 (rounded rect)
   renderer.drawRoundedRect(
     x, y, width, height,
     NODE_STYLE.borderRadius,
-    NODE_COLORS.background
+    theme.nodeBg
   );
 
   // 2. 헤더 영역
   renderer.drawRoundedRect(
     x, y, width, NODE_STYLE.headerHeight,
     NODE_STYLE.borderRadius,
-    NODE_COLORS.header
+    theme.nodeHeader
   );
 
   // 3. 헤더 아래 부분 채우기 (모서리 겹침 방지)
   renderer.drawRect(
     x, y + NODE_STYLE.headerHeight - NODE_STYLE.borderRadius,
     width, NODE_STYLE.borderRadius,
-    NODE_COLORS.header
+    theme.nodeHeader
   );
 
   // 4. 타이틀 텍스트
@@ -114,7 +112,7 @@ export function drawNode(
     title,
     x + NODE_STYLE.padding,
     y + (NODE_STYLE.headerHeight - NODE_STYLE.fontSize) / 2,
-    NODE_COLORS.text,
+    theme.nodeText,
     NODE_STYLE.fontSize
   );
 

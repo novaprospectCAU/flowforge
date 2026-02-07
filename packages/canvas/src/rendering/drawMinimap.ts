@@ -12,11 +12,11 @@ export const MINIMAP = {
 // 미니맵 월드 영역 패딩
 const MINIMAP_WORLD_PADDING = 50;
 
+import { getCanvasTheme } from '../theme/canvasTheme';
+
+// 모드 무관 accent 색상
 const COLORS = {
-  bg: { r: 30, g: 30, b: 32, a: 230 } as Color,
-  node: { r: 100, g: 100, b: 105, a: 255 } as Color,
   nodeSelected: { r: 66, g: 135, b: 245, a: 255 } as Color,  // 선택된 노드
-  nodeHasOutput: { r: 80, g: 80, b: 85, a: 255 } as Color,   // 연결 있는 노드
   subflow: { r: 66, g: 165, b: 245, a: 255 } as Color,       // 접힌 서브플로우
   viewport: { r: 0, g: 122, b: 204, a: 255 } as Color,
 };
@@ -42,12 +42,14 @@ export function drawMinimap(
   const mmX = canvasSize.width - MINIMAP.width - MINIMAP.margin;
   const mmY = canvasSize.height - MINIMAP.height - MINIMAP.margin;
 
+  const theme = getCanvasTheme();
+
   // 미니맵 배경
   renderer.drawRoundedRect(
     mmX, mmY,
     MINIMAP.width, MINIMAP.height,
     4,
-    COLORS.bg
+    theme.minimapBg
   );
 
   // 노드 바운딩 박스
@@ -97,7 +99,7 @@ export function drawMinimap(
       pos.x, pos.y,
       Math.max(2, node.size.width * scale),
       Math.max(2, node.size.height * scale),
-      COLORS.node
+      theme.minimapNode
     );
   }
 

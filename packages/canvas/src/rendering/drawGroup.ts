@@ -1,6 +1,7 @@
 import type { IRenderer } from '../renderer/types';
 import type { FlowNode, NodeGroup, Color, Position } from '@flowforge/types';
 import { hexToColor } from '../theme/colors';
+import { getCanvasTheme } from '../theme/canvasTheme';
 import { calculateBoundsMinMax } from '../utils/bounds';
 
 const GROUP_STYLE = {
@@ -79,12 +80,11 @@ export function drawGroup(
   );
 
   // 그룹 이름
-  const textColor: Color = { r: 255, g: 255, b: 255, a: 230 };
   renderer.drawText(
     group.name,
     bounds.x + 12,
     bounds.y + GROUP_STYLE.headerHeight / 2 + 4,
-    textColor,
+    getCanvasTheme().groupText,
     GROUP_STYLE.titleFontSize
   );
 }

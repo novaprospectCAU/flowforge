@@ -39,6 +39,7 @@ export {
   getDataTypeColorCSS,
   hexToColor,
 } from './theme/colors';
+export { getCanvasTheme, setCanvasTheme, type CanvasThemeColors } from './theme/canvasTheme';
 
 // Utils
 export {

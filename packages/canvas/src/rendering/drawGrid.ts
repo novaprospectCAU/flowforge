@@ -1,10 +1,6 @@
 import type { IRenderer } from '../renderer/types';
-import type { Viewport, CanvasSize, Color } from '@flowforge/types';
-
-const GRID_COLORS = {
-  minor: { r: 40, g: 40, b: 45, a: 255 } as Color,
-  major: { r: 55, g: 55, b: 60, a: 255 } as Color,
-};
+import type { Viewport, CanvasSize } from '@flowforge/types';
+import { getCanvasTheme } from '../theme/canvasTheme';
 
 const GRID_SIZE = 20; // 기본 그리드 간격
 const MAJOR_EVERY = 5; // 5칸마다 major 라인
@@ -42,7 +38,7 @@ export function drawGrid(
     const isMajor = Math.round(x / gridSize) % MAJOR_EVERY === 0;
     renderer.drawLine(
       x, top, x, bottom,
-      isMajor ? GRID_COLORS.major : GRID_COLORS.minor,
+      isMajor ? getCanvasTheme().gridMajor : getCanvasTheme().gridMinor,
       1
     );
   }
@@ -52,7 +48,7 @@ export function drawGrid(
     const isMajor = Math.round(y / gridSize) % MAJOR_EVERY === 0;
     renderer.drawLine(
       left, y, right, y,
-      isMajor ? GRID_COLORS.major : GRID_COLORS.minor,
+      isMajor ? getCanvasTheme().gridMajor : getCanvasTheme().gridMinor,
       1
     );
   }
