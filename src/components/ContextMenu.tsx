@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { useClickOutside, useEscapeKey } from '../hooks/useClickOutside';
+import { SHADOWS } from '../theme/shadows';
 
 export interface MenuItem {
   label: string;
@@ -36,7 +37,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         borderRadius: 4,
         padding: '4px 0',
         minWidth: 160,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+        boxShadow: SHADOWS.mediumDark,
         zIndex: 1000,
       }}
       role="menu"

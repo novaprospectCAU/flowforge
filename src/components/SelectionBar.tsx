@@ -1,6 +1,7 @@
 import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface SelectionBarProps {
   selectedCount: number;
@@ -53,7 +54,7 @@ export function SelectionBar({
       borderRadius: 8,
       padding: '8px 12px',
       zIndex: 100,
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+      boxShadow: SHADOWS.medium,
     },
     info: {
       display: 'flex',

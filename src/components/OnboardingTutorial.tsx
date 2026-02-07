@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '../i18n';
 import { onboardingTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface OnboardingTutorialProps {
   onComplete: () => void;
@@ -69,7 +70,7 @@ export function OnboardingTutorial({ onComplete, onSkip }: OnboardingTutorialPro
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 16,
-      boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+      boxShadow: SHADOWS.xxlarge,
       overflow: 'hidden',
     },
     progress: {

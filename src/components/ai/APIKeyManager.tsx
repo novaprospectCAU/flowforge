@@ -7,6 +7,7 @@ import { keyManager } from '@flowforge/state';
 import type { AIProviderType, MaskedAPIKeyEntry } from '@flowforge/state';
 import { providerRegistry } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
+import { SHADOWS } from '../../theme/shadows';
 
 interface APIKeyManagerProps {
   isOpen: boolean;
@@ -132,7 +133,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
       maxHeight: '80vh',
       display: 'flex',
       flexDirection: 'column',
-      boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)',
+      boxShadow: SHADOWS.mediumDark,
     },
     header: {
       display: 'flex',

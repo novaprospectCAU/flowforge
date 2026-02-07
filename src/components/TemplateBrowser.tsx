@@ -4,6 +4,7 @@ import { loadTemplates, deleteTemplate } from '@flowforge/state';
 import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface TemplateBrowserProps {
   position: Position;
@@ -45,7 +46,7 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 8,
-      boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+      boxShadow: SHADOWS.largeDark,
       zIndex: 200,
       overflow: 'hidden',
       display: 'flex',

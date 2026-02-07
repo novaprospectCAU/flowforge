@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Subflow, SubflowPortMapping, FlowNode, FlowEdge } from '@flowforge/types';
 import { saveAsTemplate } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface SubflowPanelProps {
   subflow: Subflow;
@@ -77,7 +78,7 @@ export function SubflowPanel({
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 8,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+      boxShadow: SHADOWS.mediumDark,
       zIndex: 100,
       overflow: 'hidden',
       maxHeight: 'calc(100vh - 100px)',

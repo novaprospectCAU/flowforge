@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FlowNode } from '@flowforge/types';
 import { nodeTypeRegistry } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface PropertyPanelProps {
   node: FlowNode;
@@ -34,7 +35,7 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 8,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+      boxShadow: SHADOWS.mediumDark,
       zIndex: 100,
       overflow: 'hidden',
     },

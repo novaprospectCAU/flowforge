@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { ZOOM_CONFIG } from '@flowforge/types';
 import { useTheme } from '../hooks/useTheme';
 import { useClickOutside } from '../hooks/useClickOutside';
+import { SHADOWS } from '../theme/shadows';
 
 interface ZoomControlsProps {
   zoom: number;
@@ -107,7 +108,7 @@ export function ZoomControls({
       borderRadius: 6,
       padding: 4,
       minWidth: 100,
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+      boxShadow: SHADOWS.medium,
     },
     dropdownItem: {
       width: '100%',

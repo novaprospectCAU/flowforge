@@ -79,6 +79,7 @@ import { HistoryPanel } from './HistoryPanel';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment' | 'subflow';
 
@@ -3215,7 +3216,7 @@ export function FlowCanvas() {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 100,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            boxShadow: SHADOWS.small,
           }}
           title="Center View"
         >

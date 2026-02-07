@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLanguage, setLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface MobileToolbarProps {
   onUndo: () => void;
@@ -100,7 +101,7 @@ export function MobileToolbar({
       color: '#fff',
       fontSize: 24,
       cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+      boxShadow: SHADOWS.medium,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -123,7 +124,7 @@ export function MobileToolbar({
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 8,
-      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+      boxShadow: SHADOWS.large,
       zIndex: 200,
       overflow: 'hidden',
     },

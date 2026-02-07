@@ -1,6 +1,7 @@
 import { useLanguage } from '../i18n';
 import { shortcutsTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface ShortcutsHelpProps {
   onClose: () => void;
@@ -30,7 +31,7 @@ export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 12,
-      boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+      boxShadow: SHADOWS.xlarge,
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',

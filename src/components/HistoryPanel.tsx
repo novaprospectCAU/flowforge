@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../i18n';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface HistoryPanelProps {
   isOpen: boolean;
@@ -89,7 +90,7 @@ export function HistoryPanel({
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 12,
-      boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+      boxShadow: SHADOWS.xlarge,
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',

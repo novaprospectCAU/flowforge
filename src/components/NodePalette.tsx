@@ -5,6 +5,7 @@ import { uiTranslations } from '../i18n/translations';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
 import { useClickOutside } from '../hooks/useClickOutside';
+import { SHADOWS } from '../theme/shadows';
 
 interface NodePaletteProps {
   x: number;
@@ -86,7 +87,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
         background: colors.bgSecondary,
         border: `1px solid ${colors.border}`,
         borderRadius: 6,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+        boxShadow: SHADOWS.largeDark,
         zIndex: 1000,
         overflow: 'hidden',
       }}

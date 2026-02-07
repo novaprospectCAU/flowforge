@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { FlowNode } from '@flowforge/types';
 import { useLanguage } from '../i18n';
 import { useTheme } from '../hooks/useTheme';
+import { SHADOWS } from '../theme/shadows';
 
 interface SearchDialogProps {
   nodes: FlowNode[];
@@ -81,7 +82,7 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 8,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      boxShadow: SHADOWS.largeDark,
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
