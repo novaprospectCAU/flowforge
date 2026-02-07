@@ -913,6 +913,7 @@ export function FlowCanvas() {
           startSize: { ...resizeHit.node.size },
           startNodePos: { ...resizeHit.node.position },
         };
+        setIsCanvasDragging(true); // 위젯 pointerEvents 비활성화 (mouseleave 방지)
         return;
       }
     }

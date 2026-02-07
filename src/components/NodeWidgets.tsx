@@ -16,9 +16,11 @@ interface NodeWidgetsProps {
   isCanvasDragging?: boolean;  // 캔버스 드래그 중 (box select, pan 등) - 위젯 이벤트 비활성화
 }
 
-// 노드 헤더 높이 (drawNode.ts의 NODE_STYLE.headerHeight와 동일)
+// drawNode.ts의 NODE_STYLE과 동일한 레이아웃 상수
 const HEADER_HEIGHT = 28;
+const PORT_SPACING = 24;
 const WIDGET_PADDING = 8;
+const MIN_WIDGET_HEIGHT = 20; // 위젯 렌더링 최소 높이
 
 // 위젯이 지원되는 노드 타입
 const WIDGET_SUPPORTED_TYPES = [
@@ -85,11 +87,23 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCan
   const scaledWidth = node.size.width * viewport.zoom;
   const scaledHeight = node.size.height * viewport.zoom;
 
-  // 위젯 영역 (헤더 아래)
-  const widgetTop = screenPos.y + HEADER_HEIGHT * viewport.zoom;
-  const widgetHeight = scaledHeight - HEADER_HEIGHT * viewport.zoom;
-  // 입력 포트가 있는 노드는 위젯을 하단 정렬하여 포트 라벨과 겹치지 않도록 함
-  const hasInputPorts = (node.inputs?.length || 0) > 0;
+  // 포트 영역 높이 계산 (포트 라벨과 겹치지 않도록 위젯을 포트 아래에 배치)
+  // 입력 포트만 고려 (출력 포트 라벨은 오른쪽 정렬이라 위젯과 겹치지 않음)
+  const inputPortCount = node.inputs?.length || 0;
+  const idealPortOffset = PORT_SPACING * inputPortCount;
+  // 위젯이 최소 높이를 확보하도록 오프셋 제한
+  const maxPortOffset = Math.max(0, node.size.height - HEADER_HEIGHT - MIN_WIDGET_HEIGHT - WIDGET_PADDING * 2);
+  const portAreaHeight = Math.min(idealPortOffset, maxPortOffset);
+
+  // 위젯 영역 (헤더 + 포트 영역 아래)
+  const widgetTop = screenPos.y + (HEADER_HEIGHT + portAreaHeight) * viewport.zoom;
+  const widgetHeight = scaledHeight - (HEADER_HEIGHT + portAreaHeight) * viewport.zoom;
+
+  // 위젯 영역이 너무 작으면 렌더링 안 함 (노드를 작게 리사이즈한 경우)
+  const actualWidgetHeight = widgetHeight - WIDGET_PADDING * 2 * viewport.zoom;
+  if (actualWidgetHeight < MIN_WIDGET_HEIGHT * viewport.zoom) {
+    return null;
+  }
 
   // 화면 밖이면 렌더링 안 함
   if (
@@ -288,7 +302,7 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCan
         pointerEvents: isCanvasDragging ? 'none' : 'auto',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: hasInputPorts ? 'flex-end' : 'center',
+        justifyContent: 'center',
         left: screenPos.x + WIDGET_PADDING * viewport.zoom,
         top: widgetTop + WIDGET_PADDING * viewport.zoom,
         width: scaledWidth - WIDGET_PADDING * 2 * viewport.zoom,
