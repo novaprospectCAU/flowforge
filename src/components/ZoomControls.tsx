@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { ZOOM_CONFIG } from '@flowforge/types';
 import { useTheme } from '../hooks/useTheme';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 interface ZoomControlsProps {
   zoom: number;
@@ -35,21 +36,8 @@ export function ZoomControls({
   const zoomPercent = Math.round(zoom * 100);
 
   // 드롭다운 외부 클릭 시 닫기
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
-    if (showDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDropdown]);
+  const closeDropdown = useCallback(() => setShowDropdown(false), []);
+  useClickOutside(dropdownRef, closeDropdown, showDropdown);
 
   const handleZoomPreset = (value: number) => {
     if (onZoomTo) {

@@ -4,6 +4,7 @@ import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 interface NodePaletteProps {
   x: number;
@@ -15,12 +16,15 @@ interface NodePaletteProps {
 export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const lang = useLanguage();
   const t = uiTranslations[lang];
   const isTouchDevice = useIsTouchDevice();
   const { colors } = useTheme();
+
+  useClickOutside(containerRef, onClose);
 
   const allTypes = nodeTypeRegistry.getAll();
   const filteredTypes = search
@@ -52,18 +56,6 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
     setSelectedIndex(0);
   }, [search]);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.node-palette')) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
@@ -83,6 +75,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
 
   return (
     <div
+      ref={containerRef}
       className="node-palette"
       style={{
         position: 'fixed',
