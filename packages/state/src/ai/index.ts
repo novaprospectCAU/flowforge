@@ -29,6 +29,8 @@ export type {
   LLMChatNodeConfig,
   ImageGenerateNodeConfig,
   PromptTemplateNodeConfig,
+  ToolDefinition,
+  ToolCall,
 } from './types';
 
 // 에러 클래스
@@ -36,6 +38,9 @@ export { AIError } from './types';
 
 // 키 관리
 export { keyManager } from './keyManager';
+
+// Rate Limiting
+export { RequestQueue } from './rateLimiter';
 
 // 프로바이더
 export { providerRegistry, BaseProvider } from './providers';

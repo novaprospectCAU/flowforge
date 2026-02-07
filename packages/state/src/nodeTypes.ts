@@ -223,6 +223,35 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     defaultSize: NODE_SIZES.COMPACT_LARGE,
   },
 
+  {
+    type: 'ForEach',
+    title: 'For Each',
+    category: 'Logic',
+    description: 'Apply template to each array element',
+    inputs: [
+      { id: 'array', name: 'array', dataType: 'array', required: true },
+      { id: 'template', name: 'template', dataType: 'string' },
+    ],
+    outputs: [
+      { id: 'results', name: 'results', dataType: 'array' },
+      { id: 'count', name: 'count', dataType: 'number' },
+    ],
+    defaultSize: NODE_SIZES.STANDARD_TALL,
+  },
+  {
+    type: 'Range',
+    title: 'Range',
+    category: 'Logic',
+    description: 'Generate array [0, 1, ..., count-1]',
+    inputs: [
+      { id: 'count', name: 'count', dataType: 'number', required: true },
+    ],
+    outputs: [
+      { id: 'array', name: 'array', dataType: 'array' },
+    ],
+    defaultSize: NODE_SIZES.COMPACT_MEDIUM,
+  },
+
   // Text 카테고리
   {
     type: 'TextJoin',
@@ -283,6 +312,23 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
   },
 
   // Data 카테고리
+  {
+    type: 'HTTPRequest',
+    title: 'HTTP Request',
+    category: 'Data',
+    description: 'Make HTTP request to URL',
+    inputs: [
+      { id: 'url', name: 'url', dataType: 'string', required: true },
+      { id: 'body', name: 'body', dataType: 'any' },
+      { id: 'headers', name: 'headers', dataType: 'object' },
+    ],
+    outputs: [
+      { id: 'response', name: 'response', dataType: 'any' },
+      { id: 'status', name: 'status', dataType: 'number' },
+      { id: 'headers', name: 'headers', dataType: 'object' },
+    ],
+    defaultSize: NODE_SIZES.STANDARD_LARGE,
+  },
   {
     type: 'JSONParse',
     title: 'Parse JSON',

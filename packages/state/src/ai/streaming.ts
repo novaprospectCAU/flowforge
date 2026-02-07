@@ -2,7 +2,7 @@
  * SSE 스트리밍 응답 처리 유틸리티
  */
 
-import type { StreamChunkCallback, TokenUsage } from './types';
+import type { StreamChunkCallback, TokenUsage, ToolCall } from './types';
 
 /**
  * OpenAI SSE 스트리밍 청크
@@ -17,6 +17,15 @@ interface OpenAIStreamChunk {
     delta: {
       role?: string;
       content?: string;
+      tool_calls?: Array<{
+        index: number;
+        id?: string;
+        type?: 'function';
+        function?: {
+          name?: string;
+          arguments?: string;
+        };
+      }>;
     };
     finish_reason: string | null;
   }>;
@@ -51,11 +60,15 @@ interface AnthropicStreamEvent {
   index?: number;
   content_block?: {
     type: string;
-    text: string;
+    text?: string;
+    id?: string;
+    name?: string;
+    input?: string;
   };
   delta?: {
     type: string;
     text?: string;
+    partial_json?: string;
     stop_reason?: string;
     usage?: {
       output_tokens: number;
@@ -74,7 +87,8 @@ export interface StreamResult {
   content: string;
   model: string;
   usage?: TokenUsage;
-  finishReason?: 'stop' | 'length' | 'content_filter';
+  finishReason?: 'stop' | 'length' | 'content_filter' | 'tool_calls';
+  toolCalls?: ToolCall[];
 }
 
 /**
@@ -124,6 +138,9 @@ export async function processOpenAIStream(
   let usage: TokenUsage | undefined;
   let finishReason: StreamResult['finishReason'];
 
+  // 스트리밍 중 tool_calls 누적 (인덱스별)
+  const toolCallAccumulators = new Map<number, { id: string; name: string; arguments: string }>();
+
   try {
     for await (const line of parseSSELines(reader)) {
       if (line.startsWith('data: ')) {
@@ -143,10 +160,30 @@ export async function processOpenAIStream(
             onChunk(text);
           }
 
+          // tool_calls 스트리밍 누적
+          if (chunk.choices[0]?.delta?.tool_calls) {
+            for (const tc of chunk.choices[0].delta.tool_calls) {
+              const existing = toolCallAccumulators.get(tc.index);
+              if (existing) {
+                if (tc.function?.arguments) {
+                  existing.arguments += tc.function.arguments;
+                }
+              } else {
+                toolCallAccumulators.set(tc.index, {
+                  id: tc.id || '',
+                  name: tc.function?.name || '',
+                  arguments: tc.function?.arguments || '',
+                });
+              }
+            }
+          }
+
           if (chunk.choices[0]?.finish_reason) {
             const reason = chunk.choices[0].finish_reason;
             if (reason === 'stop' || reason === 'length' || reason === 'content_filter') {
               finishReason = reason;
+            } else if (reason === 'tool_calls') {
+              finishReason = 'tool_calls';
             }
           }
 
@@ -166,7 +203,15 @@ export async function processOpenAIStream(
     reader.releaseLock();
   }
 
-  return { content, model, usage, finishReason };
+  // tool_calls 결과 정리
+  let toolCalls: ToolCall[] | undefined;
+  if (toolCallAccumulators.size > 0) {
+    toolCalls = Array.from(toolCallAccumulators.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([, tc]) => tc);
+  }
+
+  return { content, model, usage, finishReason, toolCalls };
 }
 
 /**
@@ -187,6 +232,10 @@ export async function processAnthropicStream(
   let finishReason: StreamResult['finishReason'];
   let inputTokens = 0;
   let outputTokens = 0;
+
+  // Anthropic tool_use 스트리밍 누적
+  const toolCallAccumulators = new Map<number, { id: string; name: string; arguments: string }>();
+  let currentBlockIndex = -1;
 
   try {
     for await (const line of parseSSELines(reader)) {
@@ -211,17 +260,43 @@ export async function processAnthropicStream(
               }
               break;
 
+            case 'content_block_start':
+              if (event.index !== undefined && event.content_block) {
+                currentBlockIndex = event.index;
+
+                if (event.content_block.type === 'tool_use') {
+                  toolCallAccumulators.set(event.index, {
+                    id: event.content_block.id || '',
+                    name: event.content_block.name || '',
+                    arguments: '',
+                  });
+                }
+              }
+              break;
+
             case 'content_block_delta':
-              if (event.delta?.text) {
+              if (event.delta?.type === 'text_delta' && event.delta.text) {
                 content += event.delta.text;
                 onChunk(event.delta.text);
+              } else if (event.delta?.type === 'input_json_delta' && event.delta.partial_json) {
+                // tool_use arguments 점진적 누적
+                const idx = event.index ?? currentBlockIndex;
+                const existing = toolCallAccumulators.get(idx);
+                if (existing) {
+                  existing.arguments += event.delta.partial_json;
+                }
               }
+              break;
+
+            case 'content_block_stop':
               break;
 
             case 'message_delta':
               if (event.delta?.stop_reason) {
                 const reason = event.delta.stop_reason;
-                if (reason === 'end_turn' || reason === 'stop_sequence') {
+                if (reason === 'tool_use') {
+                  finishReason = 'tool_calls';
+                } else if (reason === 'end_turn' || reason === 'stop_sequence') {
                   finishReason = 'stop';
                 } else if (reason === 'max_tokens') {
                   finishReason = 'length';
@@ -257,5 +332,13 @@ export async function processAnthropicStream(
     };
   }
 
-  return { content, model, usage, finishReason };
+  // tool_calls 결과 정리
+  let toolCalls: ToolCall[] | undefined;
+  if (toolCallAccumulators.size > 0) {
+    toolCalls = Array.from(toolCallAccumulators.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([, tc]) => tc);
+  }
+
+  return { content, model, usage, finishReason, toolCalls };
 }

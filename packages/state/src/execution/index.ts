@@ -8,11 +8,14 @@ export type {
   ExecutionEvent,
   ExecutionEventHandler,
   ExecutionOptions,
+  NodeRetryConfig,
+  ErrorMode,
 } from './types';
 
 // 위상 정렬
 export {
   topologicalSort,
+  topologicalLevels,
   getDependencies,
   getDependents,
 } from './topologicalSort';

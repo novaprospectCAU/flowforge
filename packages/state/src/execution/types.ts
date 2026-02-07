@@ -55,6 +55,20 @@ export interface ExecutionState {
 }
 
 /**
+ * 노드 재시도 설정
+ */
+export interface NodeRetryConfig {
+  maxAttempts: number;       // 1 = 재시도 없음
+  baseDelayMs: number;
+  backoffMultiplier: number;
+}
+
+/**
+ * 에러 모드
+ */
+export type ErrorMode = 'stop-all' | 'skip-and-continue';
+
+/**
  * 실행 이벤트
  */
 export type ExecutionEvent =
@@ -63,6 +77,8 @@ export type ExecutionEvent =
   | { type: 'node-complete'; nodeId: string; outputs: Record<string, unknown> }
   | { type: 'node-error'; nodeId: string; error: string }
   | { type: 'node-data-update'; nodeId: string; data: Record<string, unknown> }
+  | { type: 'node-retry'; nodeId: string; attempt: number; maxAttempts: number; error: string }
+  | { type: 'node-skipped'; nodeId: string; reason: string }
   | { type: 'complete' }
   | { type: 'error'; error: string };
 
@@ -79,4 +95,16 @@ export interface ExecutionOptions {
   onEvent?: ExecutionEventHandler;
   /** 중단 시그널 */
   signal?: AbortSignal;
+  /** 노드별 기본 타임아웃 (ms, 0 = 무제한) */
+  defaultTimeoutMs?: number;
+  /** 노드 타입별 타임아웃 오버라이드 */
+  timeouts?: Record<string, number>;
+  /** 기본 재시도 설정 */
+  defaultRetry?: NodeRetryConfig;
+  /** 노드 타입별 재시도 오버라이드 */
+  retries?: Record<string, Partial<NodeRetryConfig>>;
+  /** 에러 모드 (기본: 'stop-all') */
+  errorMode?: ErrorMode;
+  /** 입력 검증 건너뛰기 */
+  skipValidation?: boolean;
 }

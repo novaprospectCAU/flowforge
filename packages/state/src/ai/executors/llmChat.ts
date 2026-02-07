@@ -6,7 +6,7 @@ import { executorRegistry } from '../../execution/executorRegistry';
 import type { ExecutionContext, ExecutionResult } from '../../execution/types';
 import { providerRegistry } from '../providers';
 import { keyManager } from '../keyManager';
-import type { AIProviderType, ChatMessage } from '../types';
+import type { AIProviderType, ChatMessage, ToolDefinition } from '../types';
 import { AIError } from '../types';
 
 /**
@@ -23,7 +23,7 @@ executorRegistry.register(
 
     if (!prompt) {
       return {
-        outputs: { response: '', tokens: 0 },
+        outputs: { response: '', tokens: 0, toolCalls: undefined },
         error: 'No prompt provided',
       };
     }
@@ -36,11 +36,15 @@ executorRegistry.register(
     const maxTokens = (nodeData.maxTokens as number) ?? 2048;
     const stream = (nodeData.stream as boolean) ?? true;
 
+    // tools 설정 (nodeData 또는 inputs에서)
+    const tools = (nodeData.tools ?? inputs.tools) as ToolDefinition[] | undefined;
+    const toolChoice = nodeData.toolChoice as 'auto' | 'none' | { name: string } | undefined;
+
     // 프로바이더 조회
     const provider = providerRegistry.get(providerType);
     if (!provider) {
       return {
-        outputs: { response: '', tokens: 0 },
+        outputs: { response: '', tokens: 0, toolCalls: undefined },
         error: `Unknown provider: ${providerType}`,
       };
     }
@@ -60,7 +64,7 @@ executorRegistry.register(
 
     if (!apiKey) {
       return {
-        outputs: { response: '', tokens: 0 },
+        outputs: { response: '', tokens: 0, toolCalls: undefined },
         error: 'No API key configured. Add a key in Settings > API Keys.',
       };
     }
@@ -85,6 +89,8 @@ executorRegistry.register(
             temperature,
             maxTokens,
             signal,
+            tools: tools?.length ? tools : undefined,
+            toolChoice: tools?.length ? toolChoice : undefined,
           },
           apiKey,
           chunk => {
@@ -98,12 +104,14 @@ executorRegistry.register(
           outputs: {
             response: response.content,
             tokens: response.usage?.totalTokens ?? 0,
+            toolCalls: response.toolCalls ?? undefined,
           },
           nodeDataUpdate: {
             streamingResponse: response.content,
             isComplete: true,
             lastModel: response.model,
             lastUsage: response.usage,
+            lastFinishReason: response.finishReason,
           },
         };
       } else {
@@ -115,6 +123,8 @@ executorRegistry.register(
             temperature,
             maxTokens,
             signal,
+            tools: tools?.length ? tools : undefined,
+            toolChoice: tools?.length ? toolChoice : undefined,
           },
           apiKey
         );
@@ -123,19 +133,21 @@ executorRegistry.register(
           outputs: {
             response: response.content,
             tokens: response.usage?.totalTokens ?? 0,
+            toolCalls: response.toolCalls ?? undefined,
           },
           nodeDataUpdate: {
             streamingResponse: response.content,
             isComplete: true,
             lastModel: response.model,
             lastUsage: response.usage,
+            lastFinishReason: response.finishReason,
           },
         };
       }
     } catch (error) {
       if (error instanceof AIError) {
         return {
-          outputs: { response: '', tokens: 0 },
+          outputs: { response: '', tokens: 0, toolCalls: undefined },
           error: `[${error.code}] ${error.message}`,
           nodeDataUpdate: {
             streamingResponse: '',
@@ -148,7 +160,7 @@ executorRegistry.register(
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           return {
-            outputs: { response: '', tokens: 0 },
+            outputs: { response: '', tokens: 0, toolCalls: undefined },
             error: 'Request cancelled',
             nodeDataUpdate: {
               isComplete: true,
@@ -157,7 +169,7 @@ executorRegistry.register(
         }
 
         return {
-          outputs: { response: '', tokens: 0 },
+          outputs: { response: '', tokens: 0, toolCalls: undefined },
           error: error.message,
           nodeDataUpdate: {
             streamingResponse: '',
@@ -168,7 +180,7 @@ executorRegistry.register(
       }
 
       return {
-        outputs: { response: '', tokens: 0 },
+        outputs: { response: '', tokens: 0, toolCalls: undefined },
         error: 'Unknown error',
       };
     }

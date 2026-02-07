@@ -3,7 +3,14 @@
  */
 
 import { BaseProvider, providerRegistry, API_TIMEOUTS } from './base';
-import type { LLMChatRequest, LLMChatResponse, StreamChunkCallback } from '../types';
+import type {
+  LLMChatRequest,
+  LLMChatResponse,
+  StreamChunkCallback,
+  ChatMessage,
+  ToolDefinition,
+  ToolCall,
+} from '../types';
 import { AIError } from '../types';
 import { processAnthropicStream } from '../streaming';
 
@@ -19,10 +26,13 @@ interface AnthropicChatResponse {
   role: string;
   content: Array<{
     type: string;
-    text: string;
+    text?: string;
+    id?: string;
+    name?: string;
+    input?: unknown;
   }>;
   model: string;
-  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence';
+  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use';
   usage: {
     input_tokens: number;
     output_tokens: number;
@@ -42,6 +52,10 @@ interface AnthropicErrorResponse {
  */
 class AnthropicProvider extends BaseProvider {
   name = 'anthropic' as const;
+
+  constructor() {
+    super(3); // Anthropic: maxConcurrent 3
+  }
 
   models = [
     'claude-opus-4-20250514',
@@ -68,17 +82,45 @@ class AnthropicProvider extends BaseProvider {
   }
 
   /**
-   * 메시지 형식 변환 (OpenAI -> Anthropic)
+   * 메시지 형식 변환 (내부 → Anthropic API)
+   * tool role 메시지는 user role + tool_result content block으로 변환
    */
   private convertMessages(
-    messages: LLMChatRequest['messages']
-  ): { system?: string; messages: Array<{ role: 'user' | 'assistant'; content: string }> } {
+    messages: ChatMessage[]
+  ): { system?: string; messages: unknown[] } {
     let system: string | undefined;
-    const converted: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    const converted: unknown[] = [];
 
     for (const msg of messages) {
       if (msg.role === 'system') {
         system = (system ? system + '\n' : '') + msg.content;
+      } else if (msg.role === 'tool') {
+        // tool 결과 → user role + tool_result content block
+        converted.push({
+          role: 'user',
+          content: [{
+            type: 'tool_result',
+            tool_use_id: msg.toolCallId,
+            content: msg.content,
+          }],
+        });
+      } else if (msg.role === 'assistant' && msg.toolCalls?.length) {
+        // assistant + tool_calls → content blocks
+        const content: unknown[] = [];
+        if (msg.content) {
+          content.push({ type: 'text', text: msg.content });
+        }
+        for (const tc of msg.toolCalls) {
+          let input: unknown;
+          try { input = JSON.parse(tc.arguments); } catch { input = {}; }
+          content.push({
+            type: 'tool_use',
+            id: tc.id,
+            name: tc.name,
+            input,
+          });
+        }
+        converted.push({ role: 'assistant', content });
       } else {
         converted.push({
           role: msg.role as 'user' | 'assistant',
@@ -88,6 +130,17 @@ class AnthropicProvider extends BaseProvider {
     }
 
     return { system, messages: converted };
+  }
+
+  /**
+   * ToolDefinition을 Anthropic API 형식으로 변환
+   */
+  private convertTools(tools: ToolDefinition[]): unknown[] {
+    return tools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      input_schema: tool.parameters,
+    }));
   }
 
   /**
@@ -110,6 +163,19 @@ class AnthropicProvider extends BaseProvider {
       body.temperature = request.temperature;
     }
 
+    if (request.tools?.length) {
+      body.tools = this.convertTools(request.tools);
+      if (request.toolChoice) {
+        if (request.toolChoice === 'auto') {
+          body.tool_choice = { type: 'auto' };
+        } else if (request.toolChoice === 'none') {
+          // Anthropic doesn't have 'none', skip tools
+        } else {
+          body.tool_choice = { type: 'tool', name: request.toolChoice.name };
+        }
+      }
+    }
+
     const response = await this.fetchWithTimeout(
       `${ANTHROPIC_API_URL}/messages`,
       {
@@ -130,13 +196,27 @@ class AnthropicProvider extends BaseProvider {
 
     const data: AnthropicChatResponse = await response.json();
 
+    // text content 추출
     const content = data.content
       .filter(c => c.type === 'text')
-      .map(c => c.text)
+      .map(c => c.text ?? '')
       .join('');
 
+    // tool_use content blocks → ToolCall[]
+    let toolCalls: ToolCall[] | undefined;
+    const toolUseBlocks = data.content.filter(c => c.type === 'tool_use');
+    if (toolUseBlocks.length > 0) {
+      toolCalls = toolUseBlocks.map(block => ({
+        id: block.id ?? '',
+        name: block.name ?? '',
+        arguments: JSON.stringify(block.input ?? {}),
+      }));
+    }
+
     let finishReason: LLMChatResponse['finishReason'];
-    if (data.stop_reason === 'end_turn' || data.stop_reason === 'stop_sequence') {
+    if (data.stop_reason === 'tool_use') {
+      finishReason = 'tool_calls';
+    } else if (data.stop_reason === 'end_turn' || data.stop_reason === 'stop_sequence') {
       finishReason = 'stop';
     } else if (data.stop_reason === 'max_tokens') {
       finishReason = 'length';
@@ -151,6 +231,7 @@ class AnthropicProvider extends BaseProvider {
         totalTokens: data.usage.input_tokens + data.usage.output_tokens,
       },
       finishReason,
+      toolCalls,
     };
   }
 
@@ -179,6 +260,17 @@ class AnthropicProvider extends BaseProvider {
       body.temperature = request.temperature;
     }
 
+    if (request.tools?.length) {
+      body.tools = this.convertTools(request.tools);
+      if (request.toolChoice) {
+        if (request.toolChoice === 'auto') {
+          body.tool_choice = { type: 'auto' };
+        } else if (request.toolChoice !== 'none') {
+          body.tool_choice = { type: 'tool', name: request.toolChoice.name };
+        }
+      }
+    }
+
     const response = await this.fetchWithTimeout(
       `${ANTHROPIC_API_URL}/messages`,
       {
@@ -204,6 +296,7 @@ class AnthropicProvider extends BaseProvider {
       model: result.model,
       usage: result.usage,
       finishReason: result.finishReason,
+      toolCalls: result.toolCalls,
     };
   }
 

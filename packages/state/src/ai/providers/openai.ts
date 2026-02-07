@@ -9,6 +9,9 @@ import type {
   ImageGenerateRequest,
   ImageGenerateResponse,
   StreamChunkCallback,
+  ChatMessage,
+  ToolDefinition,
+  ToolCall,
 } from '../types';
 import { AIError } from '../types';
 import { processOpenAIStream } from '../streaming';
@@ -27,9 +30,17 @@ interface OpenAIChatResponse {
     index: number;
     message: {
       role: string;
-      content: string;
+      content: string | null;
+      tool_calls?: Array<{
+        id: string;
+        type: 'function';
+        function: {
+          name: string;
+          arguments: string;
+        };
+      }>;
     };
-    finish_reason: 'stop' | 'length' | 'content_filter';
+    finish_reason: 'stop' | 'length' | 'content_filter' | 'tool_calls';
   }>;
   usage: {
     prompt_tokens: number;
@@ -57,6 +68,66 @@ interface OpenAIErrorResponse {
 }
 
 /**
+ * ChatMessage를 OpenAI API 형식으로 변환
+ */
+function convertMessages(messages: ChatMessage[]): unknown[] {
+  return messages.map(msg => {
+    if (msg.role === 'tool') {
+      return {
+        role: 'tool',
+        tool_call_id: msg.toolCallId,
+        content: msg.content,
+      };
+    }
+
+    if (msg.role === 'assistant' && msg.toolCalls?.length) {
+      return {
+        role: 'assistant',
+        content: msg.content || null,
+        tool_calls: msg.toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function',
+          function: {
+            name: tc.name,
+            arguments: tc.arguments,
+          },
+        })),
+      };
+    }
+
+    return {
+      role: msg.role,
+      content: msg.content,
+    };
+  });
+}
+
+/**
+ * ToolDefinition을 OpenAI API 형식으로 변환
+ */
+function convertTools(tools: ToolDefinition[]): unknown[] {
+  return tools.map(tool => ({
+    type: 'function',
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+    },
+  }));
+}
+
+/**
+ * toolChoice를 OpenAI API 형식으로 변환
+ */
+function convertToolChoice(
+  toolChoice: LLMChatRequest['toolChoice']
+): unknown {
+  if (!toolChoice) return undefined;
+  if (toolChoice === 'auto' || toolChoice === 'none') return toolChoice;
+  return { type: 'function', function: { name: toolChoice.name } };
+}
+
+/**
  * OpenAI 프로바이더
  */
 class OpenAIProvider extends BaseProvider {
@@ -74,6 +145,10 @@ class OpenAIProvider extends BaseProvider {
   ];
 
   imageModels = ['dall-e-3', 'dall-e-2'];
+
+  constructor() {
+    super(5); // OpenAI: maxConcurrent 5
+  }
 
   /**
    * 에러 응답 처리
@@ -93,6 +168,19 @@ class OpenAIProvider extends BaseProvider {
    * 채팅 API 호출
    */
   async chat(request: LLMChatRequest, apiKey: string): Promise<LLMChatResponse> {
+    const body: Record<string, unknown> = {
+      model: request.model,
+      messages: convertMessages(request.messages),
+      temperature: request.temperature,
+      max_tokens: request.maxTokens,
+    };
+
+    if (request.tools?.length) {
+      body.tools = convertTools(request.tools);
+      const tc = convertToolChoice(request.toolChoice);
+      if (tc !== undefined) body.tool_choice = tc;
+    }
+
     const response = await this.fetchWithTimeout(
       `${OPENAI_API_URL}/chat/completions`,
       {
@@ -101,12 +189,7 @@ class OpenAIProvider extends BaseProvider {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: request.model,
-          messages: request.messages,
-          temperature: request.temperature,
-          max_tokens: request.maxTokens,
-        }),
+        body: JSON.stringify(body),
         signal: request.signal,
       }
     );
@@ -116,16 +199,28 @@ class OpenAIProvider extends BaseProvider {
     }
 
     const data: OpenAIChatResponse = await response.json();
+    const choice = data.choices[0];
+
+    // tool_calls 파싱
+    let toolCalls: ToolCall[] | undefined;
+    if (choice?.message?.tool_calls?.length) {
+      toolCalls = choice.message.tool_calls.map(tc => ({
+        id: tc.id,
+        name: tc.function.name,
+        arguments: tc.function.arguments,
+      }));
+    }
 
     return {
-      content: data.choices[0]?.message?.content || '',
+      content: choice?.message?.content || '',
       model: data.model,
       usage: {
         promptTokens: data.usage.prompt_tokens,
         completionTokens: data.usage.completion_tokens,
         totalTokens: data.usage.total_tokens,
       },
-      finishReason: data.choices[0]?.finish_reason,
+      finishReason: choice?.finish_reason,
+      toolCalls,
     };
   }
 
@@ -137,6 +232,21 @@ class OpenAIProvider extends BaseProvider {
     apiKey: string,
     onChunk: StreamChunkCallback
   ): Promise<LLMChatResponse> {
+    const body: Record<string, unknown> = {
+      model: request.model,
+      messages: convertMessages(request.messages),
+      temperature: request.temperature,
+      max_tokens: request.maxTokens,
+      stream: true,
+      stream_options: { include_usage: true },
+    };
+
+    if (request.tools?.length) {
+      body.tools = convertTools(request.tools);
+      const tc = convertToolChoice(request.toolChoice);
+      if (tc !== undefined) body.tool_choice = tc;
+    }
+
     const response = await this.fetchWithTimeout(
       `${OPENAI_API_URL}/chat/completions`,
       {
@@ -145,14 +255,7 @@ class OpenAIProvider extends BaseProvider {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: request.model,
-          messages: request.messages,
-          temperature: request.temperature,
-          max_tokens: request.maxTokens,
-          stream: true,
-          stream_options: { include_usage: true },
-        }),
+        body: JSON.stringify(body),
         signal: request.signal,
       }
     );
@@ -168,6 +271,7 @@ class OpenAIProvider extends BaseProvider {
       model: result.model,
       usage: result.usage,
       finishReason: result.finishReason,
+      toolCalls: result.toolCalls,
     };
   }
 

@@ -20,6 +20,7 @@ export const AI_NODE_TYPES: NodeTypeDefinition[] = [
     outputs: [
       { id: 'response', name: 'response', dataType: 'string' },
       { id: 'tokens', name: 'tokens', dataType: 'number' },
+      { id: 'toolCalls', name: 'tool calls', dataType: 'array' },
     ],
     defaultSize: NODE_SIZES.AI_CHAT,
     color: DEFAULT_COLORS.AI_OPENAI,

@@ -592,3 +592,96 @@ executorRegistry.register('ToBoolean', async (ctx: ExecutionContext): Promise<Ex
 
   return { outputs: { out: result } };
 });
+
+// === Data 노드들 (추가) ===
+
+// HTTPRequest: HTTP 요청
+executorRegistry.register('HTTPRequest', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const url = String(ctx.inputs.url ?? '');
+  const method = String(ctx.nodeData.method ?? 'GET').toUpperCase();
+  const inputHeaders = ctx.inputs.headers as Record<string, string> | undefined;
+  const body = ctx.inputs.body;
+
+  if (!url) {
+    throw new Error('URL is required');
+  }
+
+  const fetchOptions: RequestInit = {
+    method,
+    signal: ctx.signal,
+  };
+
+  // 헤더 설정
+  const headers: Record<string, string> = { ...inputHeaders };
+  if (body !== undefined && body !== null && method !== 'GET' && method !== 'HEAD') {
+    if (!headers['Content-Type'] && !headers['content-type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+    fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
+  }
+  if (Object.keys(headers).length > 0) {
+    fetchOptions.headers = headers;
+  }
+
+  const response = await fetch(url, fetchOptions);
+
+  // 응답 본문 파싱 (JSON 또는 텍스트)
+  const contentType = response.headers.get('content-type') || '';
+  let responseData: unknown;
+  if (contentType.includes('application/json')) {
+    responseData = await response.json();
+  } else {
+    responseData = await response.text();
+  }
+
+  // 응답 헤더를 object로 변환
+  const responseHeaders: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    responseHeaders[key] = value;
+  });
+
+  return {
+    outputs: {
+      response: responseData,
+      status: response.status,
+      headers: responseHeaders,
+    },
+  };
+});
+
+// === Logic 노드들 (추가) ===
+
+// ForEach: 배열 반복 처리
+executorRegistry.register('ForEach', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const array = ctx.inputs.array;
+  const template = String(ctx.nodeData.template ?? ctx.inputs.template ?? '{{item}}');
+
+  if (!Array.isArray(array)) {
+    throw new Error('Input must be an array');
+  }
+
+  const results = array.map((item, index) => {
+    let result = template;
+    result = result.replace(/\{\{item\}\}/g, typeof item === 'object' ? JSON.stringify(item) : String(item));
+    result = result.replace(/\{\{index\}\}/g, String(index));
+    return result;
+  });
+
+  return {
+    outputs: {
+      results,
+      count: results.length,
+    },
+  };
+});
+
+// Range: 숫자 범위 배열 생성
+executorRegistry.register('Range', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const count = Math.max(0, Math.floor(Number(ctx.inputs.count ?? ctx.nodeData.count ?? 0)));
+
+  const array = Array.from({ length: count }, (_, i) => i);
+
+  return {
+    outputs: { array },
+  };
+});

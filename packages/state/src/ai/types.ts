@@ -30,13 +30,33 @@ export interface MaskedAPIKeyEntry {
 }
 
 // =============================================================================
+// Function Calling / Tool Use
+// =============================================================================
+
+/** Tool 정의 */
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>; // JSON Schema
+}
+
+/** Tool 호출 */
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: string; // JSON string
+}
+
+// =============================================================================
 // LLM Chat
 // =============================================================================
 
 /** 채팅 메시지 */
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  toolCalls?: ToolCall[];   // assistant가 tool 호출 시
+  toolCallId?: string;      // tool 결과 반환 시
 }
 
 /** LLM 채팅 요청 */
@@ -47,6 +67,8 @@ export interface LLMChatRequest {
   maxTokens?: number;
   stream?: boolean;
   signal?: AbortSignal;
+  tools?: ToolDefinition[];
+  toolChoice?: 'auto' | 'none' | { name: string };
 }
 
 /** 토큰 사용량 */
@@ -61,7 +83,8 @@ export interface LLMChatResponse {
   content: string;
   usage?: TokenUsage;
   model: string;
-  finishReason?: 'stop' | 'length' | 'content_filter';
+  finishReason?: 'stop' | 'length' | 'content_filter' | 'tool_calls';
+  toolCalls?: ToolCall[];
 }
 
 /** 스트리밍 청크 콜백 */

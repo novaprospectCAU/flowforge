@@ -21,6 +21,7 @@ export {
   executeFlow,
   executorRegistry,
   topologicalSort,
+  topologicalLevels,
   getDependencies,
   getDependents,
   type ExecutionContext,
@@ -31,6 +32,8 @@ export {
   type ExecutionEvent,
   type ExecutionEventHandler,
   type ExecutionOptions,
+  type NodeRetryConfig,
+  type ErrorMode,
 } from './execution';
 
 // 직렬화
@@ -104,8 +107,12 @@ export {
   type LLMChatNodeConfig,
   type ImageGenerateNodeConfig,
   type PromptTemplateNodeConfig,
+  type ToolDefinition,
+  type ToolCall,
   // 클래스
   AIError,
+  // Rate Limiting
+  RequestQueue,
   // 키 관리
   keyManager,
   // 프로바이더
