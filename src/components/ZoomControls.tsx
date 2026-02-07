@@ -1,7 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
 import { ZOOM_CONFIG } from '@flowforge/types';
 import { useTheme } from '../hooks/useTheme';
-import { useClickOutside } from '../hooks/useClickOutside';
+import { useDropdown } from '../hooks/useDropdown';
 import { SHADOWS } from '../theme/shadows';
 
 interface ZoomControlsProps {
@@ -32,13 +31,8 @@ export function ZoomControls({
   onZoomTo,
 }: ZoomControlsProps) {
   const { colors } = useTheme();
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdown = useDropdown<HTMLDivElement>();
   const zoomPercent = Math.round(zoom * 100);
-
-  // 드롭다운 외부 클릭 시 닫기
-  const closeDropdown = useCallback(() => setShowDropdown(false), []);
-  useClickOutside(dropdownRef, closeDropdown, showDropdown);
 
   const handleZoomPreset = (value: number) => {
     if (onZoomTo) {
@@ -46,7 +40,7 @@ export function ZoomControls({
     } else if (value === 1) {
       onZoomReset();
     }
-    setShowDropdown(false);
+    dropdown.close();
   };
 
   const styles: Record<string, React.CSSProperties> = {
@@ -139,21 +133,21 @@ export function ZoomControls({
       >
         −
       </button>
-      <div style={{ position: 'relative' }} ref={dropdownRef}>
+      <div style={{ position: 'relative' }} ref={dropdown.ref}>
         <button
-          onClick={() => setShowDropdown(!showDropdown)}
+          onClick={dropdown.toggle}
           style={{
             ...styles.zoomLevel,
-            background: showDropdown ? colors.bgHover : 'transparent',
+            background: dropdown.isOpen ? colors.bgHover : 'transparent',
           }}
           title="Click for zoom presets"
           aria-label={`Zoom level ${zoomPercent}%`}
-          aria-expanded={showDropdown}
+          aria-expanded={dropdown.isOpen}
         >
           {zoomPercent}%
           <span style={{ fontSize: 8, marginLeft: 4, opacity: 0.6 }}>▼</span>
         </button>
-        {showDropdown && (
+        {dropdown.isOpen && (
           <div style={styles.dropdown} role="menu">
             {ZOOM_PRESETS.map((preset) => (
               <button
@@ -173,7 +167,7 @@ export function ZoomControls({
             <button
               onClick={() => {
                 onFitView();
-                setShowDropdown(false);
+                dropdown.close();
               }}
               style={styles.dropdownItem}
               role="menuitem"
