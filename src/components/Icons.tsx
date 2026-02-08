@@ -177,16 +177,16 @@ export function IconWave(props: IconProps = {}) {
     strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
     style: { display: 'inline-block', verticalAlign: 'middle' },
   },
-    // 엄지
-    createElement('path', { d: 'M6 14v-3a1.5 1.5 0 0 1 3 0' }),
+    // 엄지 (손바닥 하단 → 위로 → 검지 베이스에 연결)
+    createElement('path', { d: 'M5.5 16.5V11a1.5 1.5 0 0 1 3 0' }),
     // 검지
-    createElement('path', { d: 'M9 8V4.5a1.5 1.5 0 0 1 3 0V11' }),
+    createElement('path', { d: 'M8.5 11V4.5a1.5 1.5 0 0 1 3 0V11' }),
     // 중지
-    createElement('path', { d: 'M12 5.5V3.5a1.5 1.5 0 0 1 3 0V11' }),
+    createElement('path', { d: 'M11.5 11V3a1.5 1.5 0 0 1 3 0V11' }),
     // 약지
-    createElement('path', { d: 'M15 5.5V5a1.5 1.5 0 0 1 3 0v6' }),
-    // 소지
-    createElement('path', { d: 'M18 8V7a1.5 1.5 0 0 1 3 0v6c0 4.5-3.5 8-8 8h-1c-3 0-5-1.5-7-4' }),
+    createElement('path', { d: 'M14.5 11V4.5a1.5 1.5 0 0 1 3 0V11' }),
+    // 소지 + 손바닥 (소지 → 아래로 둥글게 → 엄지 시작점에 연결)
+    createElement('path', { d: 'M17.5 11V7a1.5 1.5 0 0 1 3 0v5c0 4-3 7.5-7 7.5h-2c-2.5 0-4.5-1.5-6-3' }),
   );
 }
 
