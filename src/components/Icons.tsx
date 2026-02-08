@@ -59,11 +59,10 @@ export function IconUpload(props: IconProps = {}) {
 
 export function IconKey(props: IconProps = {}) {
   return svg(props,
-    createElement('circle', { cx: 8, cy: 15, r: 4 }),
-    createElement('path', { d: 'M11.3 11.7 21 2' }),
-    createElement('path', { d: 'M18 2h3v3' }),
-    createElement('path', { d: 'M16.5 7.5l-2 2' }),
-    createElement('path', { d: 'M14 10l-2 2' }),
+    createElement('circle', { cx: 8, cy: 12, r: 5 }),
+    createElement('path', { d: 'M12.5 10H21' }),
+    createElement('path', { d: 'M21 10v3' }),
+    createElement('path', { d: 'M17 10v2.5' }),
   );
 }
 
@@ -178,14 +177,16 @@ export function IconWave(props: IconProps = {}) {
     strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
     style: { display: 'inline-block', verticalAlign: 'middle' },
   },
-    // 손바닥 + 다섯 손가락
-    createElement('path', { d: 'M18 11V6a2 2 0 0 0-4 0' }),
-    createElement('path', { d: 'M14 6V4a2 2 0 0 0-4 0v7' }),
-    createElement('path', { d: 'M10 11V5a2 2 0 0 0-4 0v9' }),
-    createElement('path', { d: 'M18 11a2 2 0 0 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-1.5-5.5-3' }),
-    // 흔드는 모션 라인
-    createElement('path', { d: 'M2 10c1-1.5 1-3.5 0-5', strokeWidth: 1.5 }),
-    createElement('path', { d: 'M5 9c.6-1 .6-2.2 0-3.2', strokeWidth: 1.5 }),
+    // 엄지
+    createElement('path', { d: 'M6 14v-3a1.5 1.5 0 0 1 3 0' }),
+    // 검지
+    createElement('path', { d: 'M9 8V4.5a1.5 1.5 0 0 1 3 0V11' }),
+    // 중지
+    createElement('path', { d: 'M12 5.5V3.5a1.5 1.5 0 0 1 3 0V11' }),
+    // 약지
+    createElement('path', { d: 'M15 5.5V5a1.5 1.5 0 0 1 3 0v6' }),
+    // 소지
+    createElement('path', { d: 'M18 8V7a1.5 1.5 0 0 1 3 0v6c0 4.5-3.5 8-8 8h-1c-3 0-5-1.5-7-4' }),
   );
 }
 
@@ -227,8 +228,8 @@ export function IconSmile(props: IconProps = {}) {
   return svg(props,
     createElement('circle', { cx: 12, cy: 12, r: 10 }),
     createElement('path', { d: 'M8 14s1.5 2 4 2 4-2 4-2' }),
-    createElement('line', { x1: 9, y1: 9, x2: 9.01, y2: 9 }),
-    createElement('line', { x1: 15, y1: 9, x2: 15.01, y2: 9 }),
+    createElement('circle', { cx: 9, cy: 9.5, r: 1.2, fill: props.color ?? defaultProps.color, stroke: 'none' }),
+    createElement('circle', { cx: 15, cy: 9.5, r: 1.2, fill: props.color ?? defaultProps.color, stroke: 'none' }),
   );
 }
 
