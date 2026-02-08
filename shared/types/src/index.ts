@@ -20,9 +20,9 @@ export const ZOOM_CONFIG = {
   /** 버튼 클릭 시 줌 배율 */
   STEP: 1.2,
   /** 휠 줌인 배율 */
-  WHEEL_IN: 1.1,
+  WHEEL_IN: 1.05,
   /** 휠 줌아웃 배율 */
-  WHEEL_OUT: 0.9,
+  WHEEL_OUT: 0.95,
   /** 위젯이 보이는 최소 줌 (이 미만에서는 숨김) */
   WIDGET_VISIBILITY_THRESHOLD: 0.5,
   /** 줌 값 비교 시 허용 오차 */
