@@ -504,15 +504,52 @@ executorRegistry.register('Delay', async (ctx: ExecutionContext): Promise<Execut
   return { outputs: { out: input } };
 });
 
-// Debug: 디버그 출력
+// Debug: 값 검사 + 에러 캡처
 executorRegistry.register('Debug', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
   const input = ctx.inputs.input;
   const label = String(ctx.nodeData.label ?? ctx.nodeId);
+  const upstreamErrors = ctx.inputs.__upstreamErrors as
+    Array<{ nodeId: string; nodeType: string; error: string; timing?: { start?: number; end?: number } }> | undefined;
+
+  // 에러 모드: 업스트림에서 에러가 전파됨
+  if (upstreamErrors && upstreamErrors.length > 0) {
+    const primaryError = upstreamErrors[0];
+    console.warn(`[Debug ${label}] Upstream error:`, primaryError.error);
+    return {
+      outputs: { out: undefined },
+      nodeDataUpdate: {
+        debugMode: 'error',
+        debugError: primaryError,
+        debugAllErrors: upstreamErrors,
+      },
+    };
+  }
+
+  // 성공 모드: 값 메타데이터 수집
+  const type = input === null ? 'null'
+    : input === undefined ? 'undefined'
+    : Array.isArray(input) ? 'array'
+    : typeof input;
+
+  let size: string;
+  if (typeof input === 'string') {
+    size = `${input.length} chars`;
+  } else if (Array.isArray(input)) {
+    size = `${input.length} items`;
+  } else if (input && typeof input === 'object') {
+    size = `${Object.keys(input).length} keys`;
+  } else {
+    size = '-';
+  }
 
   console.log(`[Debug ${label}]`, input);
   return {
     outputs: { out: input },
-    nodeDataUpdate: { lastValue: input },
+    nodeDataUpdate: {
+      debugMode: 'success',
+      debugValue: input,
+      debugMeta: { type, size, timestamp: Date.now() },
+    },
   };
 });
 

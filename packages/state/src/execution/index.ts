@@ -25,3 +25,6 @@ export { executorRegistry } from './executorRegistry';
 
 // 실행 엔진
 export { ExecutionEngine, executeFlow } from './engine';
+
+// 디버그 에러 설명
+export { getErrorExplanation, parseAIErrorCode, type ErrorExplanation } from './debugErrorExplanations';

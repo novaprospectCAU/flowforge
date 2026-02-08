@@ -104,18 +104,24 @@ export class ExecutionEngine {
           const node = nodeMap.get(nodeId);
           if (!node) return;
 
-          // skip-and-continue 모드: 상위 노드가 실패한 경우 건너뛰기
+          // skip-and-continue 모드: 상위 노드가 실패한 경우
           if (errorMode === 'skip-and-continue' && this.hasFailedDependency(nodeId, edges, failedNodes)) {
-            failedNodes.add(nodeId);
-            const nodeState: NodeState = {
-              status: 'error',
-              outputs: {},
-              error: 'Skipped due to failed dependency',
-              startTime: Date.now(),
-              endTime: Date.now(),
-            };
-            this.state.nodeStates.set(nodeId, nodeState);
-            emit({ type: 'node-skipped', nodeId, reason: 'Dependency failed' });
+            const typeDef = nodeTypeRegistry.get(node.type);
+            if (typeDef?.errorResilient) {
+              // errorResilient 노드: 에러 정보를 주입하여 실행
+              await this.executeErrorResilientNode(node, edges, failedNodes, emit, options);
+            } else {
+              failedNodes.add(nodeId);
+              const nodeState: NodeState = {
+                status: 'error',
+                outputs: {},
+                error: 'Skipped due to failed dependency',
+                startTime: Date.now(),
+                endTime: Date.now(),
+              };
+              this.state.nodeStates.set(nodeId, nodeState);
+              emit({ type: 'node-skipped', nodeId, reason: 'Dependency failed' });
+            }
             return;
           }
 
@@ -148,6 +154,9 @@ export class ExecutionEngine {
       this.state.endTime = Date.now();
       const message = error instanceof Error ? error.message : String(error);
       emit({ type: 'error', error: message });
+
+      // stop-all 후 미실행 errorResilient 노드 처리
+      await this.runErrorResilientPostPass(nodes, edges, emit, options);
     }
 
     return this.state;
@@ -288,6 +297,117 @@ export class ExecutionEngine {
 
       // 에러 전파
       throw error;
+    }
+  }
+
+  /**
+   * errorResilient 노드를 업스트림 에러 정보와 함께 실행
+   */
+  private async executeErrorResilientNode(
+    node: FlowNode,
+    edges: FlowEdge[],
+    failedNodes: Set<string>,
+    emit: (event: ExecutionEvent) => void,
+    _options: ExecutionOptions
+  ): Promise<void> {
+    const nodeState: NodeState = {
+      status: 'running',
+      outputs: {},
+      startTime: Date.now(),
+    };
+    this.state.nodeStates.set(node.id, nodeState);
+    emit({ type: 'node-start', nodeId: node.id });
+
+    try {
+      const inputs = this.collectInputs(node.id, edges);
+      const upstreamErrors = this.collectUpstreamErrors(node.id, edges);
+      inputs.__upstreamErrors = upstreamErrors;
+
+      const executor = executorRegistry.get(node.type);
+      if (!executor) {
+        throw new Error(`No executor found for node type: ${node.type}`);
+      }
+
+      const ctx: ExecutionContext = {
+        nodeId: node.id,
+        nodeType: node.type,
+        nodeData: node.data,
+        inputs,
+        signal: this.abortController?.signal,
+      };
+
+      const result = await executor(ctx);
+
+      nodeState.status = 'success';
+      nodeState.outputs = result.outputs;
+      nodeState.endTime = Date.now();
+
+      if (result.nodeDataUpdate) {
+        emit({ type: 'node-data-update', nodeId: node.id, data: result.nodeDataUpdate });
+      }
+      emit({ type: 'node-complete', nodeId: node.id, outputs: result.outputs });
+    } catch (error) {
+      nodeState.status = 'error';
+      nodeState.error = error instanceof Error ? error.message : String(error);
+      nodeState.endTime = Date.now();
+      emit({ type: 'node-error', nodeId: node.id, error: nodeState.error });
+      failedNodes.add(node.id);
+    }
+  }
+
+  /**
+   * 실패한 업스트림 노드의 에러 정보 수집
+   */
+  private collectUpstreamErrors(
+    nodeId: string,
+    edges: FlowEdge[]
+  ): Array<{ nodeId: string; nodeType: string; error: string; timing?: { start?: number; end?: number } }> {
+    const errors: Array<{ nodeId: string; nodeType: string; error: string; timing?: { start?: number; end?: number } }> = [];
+    const dependencies = edges.filter(e => e.target === nodeId).map(e => e.source);
+
+    for (const depId of dependencies) {
+      const depState = this.state.nodeStates.get(depId);
+      if (depState?.status === 'error' && depState.error) {
+        // depState에서 nodeType을 알 수 없으므로 'unknown' 사용 가능하지만
+        // 이를 개선하기 위해 edges에서 소스 노드 타입 정보를 전달받는 것이 좋음
+        errors.push({
+          nodeId: depId,
+          nodeType: 'unknown',
+          error: depState.error,
+          timing: { start: depState.startTime, end: depState.endTime },
+        });
+      }
+    }
+
+    return errors;
+  }
+
+  /**
+   * stop-all 후 미실행 errorResilient 노드 찾아서 실행
+   */
+  private async runErrorResilientPostPass(
+    nodes: FlowNode[],
+    edges: FlowEdge[],
+    emit: (event: ExecutionEvent) => void,
+    options: ExecutionOptions
+  ): Promise<void> {
+    const failedNodes = new Set<string>();
+    for (const [nodeId, state] of this.state.nodeStates) {
+      if (state.status === 'error') {
+        failedNodes.add(nodeId);
+      }
+    }
+
+    for (const node of nodes) {
+      // 아직 실행되지 않은 errorResilient 노드
+      if (this.state.nodeStates.has(node.id)) continue;
+      const typeDef = nodeTypeRegistry.get(node.type);
+      if (!typeDef?.errorResilient) continue;
+
+      // 업스트림에 실패한 노드가 있는 경우에만
+      if (this.hasFailedDependency(node.id, edges, failedNodes)) {
+        await this.executeErrorResilientNode(node, edges, failedNodes, emit, options);
+      }
     }
   }
 

@@ -34,6 +34,9 @@ export {
   type ExecutionOptions,
   type NodeRetryConfig,
   type ErrorMode,
+  getErrorExplanation,
+  parseAIErrorCode,
+  type ErrorExplanation,
 } from './execution';
 
 // 직렬화

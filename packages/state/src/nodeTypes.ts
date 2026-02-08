@@ -63,6 +63,7 @@ export interface NodeTypeDefinition {
   outputs: PortDefinition[];
   defaultSize: { width: number; height: number };
   color?: string;
+  errorResilient?: boolean; // true면 업스트림 실패 시에도 실행
 }
 
 /**
@@ -412,10 +413,11 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
     type: 'Debug',
     title: 'Debug',
     category: 'Utility',
-    description: 'Log value to console',
-    inputs: [{ id: 'input', name: 'input', dataType: 'any', required: true }],
+    description: 'Inspect values and capture upstream errors',
+    inputs: [{ id: 'input', name: 'input', dataType: 'any' }],
     outputs: [{ id: 'out', name: 'pass', dataType: 'any' }],
-    defaultSize: NODE_SIZES.COMPACT_SMALL,
+    defaultSize: NODE_SIZES.STANDARD_LARGE,
+    errorResilient: true,
   },
   {
     type: 'Comment',

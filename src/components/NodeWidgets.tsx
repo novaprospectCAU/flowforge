@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { ZOOM_CONFIG, type FlowNode, type Viewport, type CanvasSize } from '@flowforge/types';
 import { worldToScreen } from '@flowforge/canvas';
 import { LLMChatWidget, ImageGenerateWidget, PromptTemplateWidget } from './ai';
+import { DebugWidget } from './DebugWidget';
 import { NodeErrorBoundary } from './ErrorBoundary';
 import { useTheme } from '../hooks/useTheme';
 import { Z_INDEX } from '../constants/zIndex';
@@ -27,6 +28,8 @@ const WIDGET_SUPPORTED_TYPES = [
   'NumberInput', 'TextInput', 'ImageInput', 'Math', 'Filter', 'Resize', 'Merge', 'Condition', 'Display', 'SaveImage',
   // AI 노드
   'LLMChat', 'ImageGenerate', 'PromptTemplate',
+  // Utility
+  'Debug',
 ];
 
 export function NodeWidgets({
@@ -287,6 +290,14 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCan
             zoom={viewport.zoom}
             onUpdate={(data) => onUpdate({ ...node.data, ...data })}
             onInteraction={onInteraction}
+          />
+        );
+
+      case 'Debug':
+        return (
+          <DebugWidget
+            node={node}
+            fontSize={fontSize}
           />
         );
 
