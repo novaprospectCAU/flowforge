@@ -20,7 +20,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: 'Welcome to FlowForge!',
         description: 'FlowForge is a visual node editor for building AI workflows. Let\'s learn the basics.',
-        icon: '👋',
+        icon: 'wave',
         tips: [
           'Create flows by connecting nodes',
           'Each node performs a specific operation',
@@ -30,7 +30,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: 'Adding Nodes',
         description: 'Press Tab or double-click on the canvas to open the node palette and add new nodes.',
-        icon: '➕',
+        icon: 'plus',
         tips: [
           'Tab → Opens node search palette',
           'Type to search for nodes',
@@ -40,7 +40,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: 'Connecting Nodes',
         description: 'Drag from an output port (right side) to an input port (left side) to connect nodes.',
-        icon: '🔗',
+        icon: 'link',
         tips: [
           'Ports show compatible connections in green',
           'Data types must match (or use "any")',
@@ -50,7 +50,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: 'Navigation',
         description: 'Navigate around your canvas easily with these controls.',
-        icon: '🧭',
+        icon: 'compass',
         tips: [
           'Space + Drag → Pan canvas',
           'Scroll → Zoom in/out',
@@ -60,7 +60,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: 'Organizing',
         description: 'Keep your flows organized with groups and subflows.',
-        icon: '📁',
+        icon: 'folder',
         tips: [
           'Ctrl+G → Group selected nodes',
           'Ctrl+Shift+G → Create subflow (2+ nodes)',
@@ -70,7 +70,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: 'Running Flows',
         description: 'Execute your flow to see the results. Node borders show execution status.',
-        icon: '▶️',
+        icon: 'play',
         tips: [
           'Click Run button to execute',
           'Yellow = Running',
@@ -80,7 +80,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: 'You\'re Ready!',
         description: 'That\'s the basics! Press ? anytime to see all keyboard shortcuts.',
-        icon: '🎉',
+        icon: 'party',
         tips: [
           'Ctrl+S → Save your flow',
           '? → Show all shortcuts',
@@ -98,7 +98,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: 'FlowForge에 오신 것을 환영합니다!',
         description: 'FlowForge는 AI 워크플로우를 만들기 위한 비주얼 노드 에디터입니다. 기본 사용법을 알아봅시다.',
-        icon: '👋',
+        icon: 'wave',
         tips: [
           '노드를 연결하여 플로우를 만듭니다',
           '각 노드는 특정 작업을 수행합니다',
@@ -108,7 +108,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: '노드 추가하기',
         description: 'Tab 키를 누르거나 캔버스를 더블클릭하여 노드 팔레트를 열고 새 노드를 추가하세요.',
-        icon: '➕',
+        icon: 'plus',
         tips: [
           'Tab → 노드 검색 팔레트 열기',
           '입력하여 노드 검색',
@@ -118,7 +118,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: '노드 연결하기',
         description: '출력 포트(오른쪽)에서 입력 포트(왼쪽)로 드래그하여 노드를 연결하세요.',
-        icon: '🔗',
+        icon: 'link',
         tips: [
           '호환 가능한 포트는 초록색으로 표시됩니다',
           '데이터 타입이 일치해야 합니다 (또는 "any" 사용)',
@@ -128,7 +128,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: '화면 이동',
         description: '이 컨트롤로 캔버스를 쉽게 탐색할 수 있습니다.',
-        icon: '🧭',
+        icon: 'compass',
         tips: [
           'Space + 드래그 → 캔버스 이동',
           '스크롤 → 확대/축소',
@@ -138,7 +138,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: '정리하기',
         description: '그룹과 서브플로우로 플로우를 깔끔하게 정리하세요.',
-        icon: '📁',
+        icon: 'folder',
         tips: [
           'Ctrl+G → 선택한 노드 그룹화',
           'Ctrl+Shift+G → 서브플로우 생성 (2개 이상 노드)',
@@ -148,7 +148,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: '플로우 실행하기',
         description: '플로우를 실행하여 결과를 확인하세요. 노드 테두리가 실행 상태를 보여줍니다.',
-        icon: '▶️',
+        icon: 'play',
         tips: [
           'Run 버튼 클릭으로 실행',
           '노란색 = 실행 중',
@@ -158,7 +158,7 @@ export const onboardingTranslations: Record<Language, {
       {
         title: '준비 완료!',
         description: '기본 사용법을 모두 배웠습니다! ? 키를 누르면 언제든 모든 단축키를 볼 수 있습니다.',
-        icon: '🎉',
+        icon: 'party',
         tips: [
           'Ctrl+S → 플로우 저장',
           '? → 모든 단축키 보기',

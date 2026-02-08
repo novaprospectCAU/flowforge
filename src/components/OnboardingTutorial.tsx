@@ -3,6 +3,7 @@ import { useLanguage } from '../i18n';
 import { onboardingTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { OnboardingIcon } from './Icons';
 
 interface OnboardingTutorialProps {
   onComplete: () => void;
@@ -198,7 +199,9 @@ export function OnboardingTutorial({ onComplete, onSkip }: OnboardingTutorialPro
 
         {/* Content */}
         <div style={styles.content}>
-          <div style={styles.icon} aria-hidden="true">{step.icon}</div>
+          <div style={styles.icon} aria-hidden="true">
+            <OnboardingIcon name={step.icon} size={48} color={colors.accent} />
+          </div>
           <h2 id="onboarding-title" style={styles.title}>{step.title}</h2>
           <p style={styles.description}>{step.description}</p>
 

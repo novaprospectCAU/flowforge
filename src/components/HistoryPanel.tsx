@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../i18n';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { IconClose, IconUndo, IconRedo } from './Icons';
 
 interface HistoryPanelProps {
   isOpen: boolean;
@@ -232,7 +233,7 @@ export function HistoryPanel({
         {/* 헤더 */}
         <div style={styles.header}>
           <h3 id="history-title" style={styles.title}>{t.title}</h3>
-          <button onClick={onClose} style={styles.closeBtn} aria-label="Close">×</button>
+          <button onClick={onClose} style={styles.closeBtn} aria-label="Close">{IconClose({ size: 16 })}</button>
         </div>
 
         {/* Undo/Redo 버튼 */}
@@ -247,7 +248,7 @@ export function HistoryPanel({
             }}
             aria-label={t.undo}
           >
-            ↶ {t.undo}
+            {IconUndo({ size: 14 })} {t.undo}
           </button>
           <button
             onClick={onRedo}
@@ -259,7 +260,7 @@ export function HistoryPanel({
             }}
             aria-label={t.redo}
           >
-            ↷ {t.redo}
+            {IconRedo({ size: 14 })} {t.redo}
           </button>
         </div>
 

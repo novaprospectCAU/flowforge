@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createRenderer, screenToWorld, worldToScreen } from '@flowforge/canvas';
 import type { IRenderer } from '@flowforge/canvas';
 import type { Viewport, CanvasSize, Color } from '@flowforge/types';
+import { IconParty, IconWarning, IconClipboard, IconCheck, IconClose } from '../components/Icons';
 
 interface TestResult {
   name: string;
@@ -213,7 +214,7 @@ export function CanvasContractTest() {
   
   return (
     <div style={{ padding: 20, maxWidth: 900, margin: '0 auto' }}>
-      <h1 style={{ marginBottom: 8 }}>🔧 FlowForge Week 0.5</h1>
+      <h1 style={{ marginBottom: 8 }}>FlowForge Week 0.5</h1>
       <h2 style={{ fontWeight: 'normal', color: '#666', marginBottom: 24 }}>
         Canvas Contract Test
       </h2>
@@ -270,7 +271,7 @@ export function CanvasContractTest() {
                   </td>
                   <td style={{ padding: '10px 16px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
                     <span style={{ fontSize: 20 }}>
-                      {result.passed ? '✅' : '❌'}
+                      {result.passed ? IconCheck({ size: 20, color: '#68d391' }) : IconClose({ size: 20, color: '#fc8181' })}
                     </span>
                   </td>
                   <td style={{ 
@@ -297,7 +298,7 @@ export function CanvasContractTest() {
             textAlign: 'center',
           }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>
-              {allPassed ? '🎉' : '⚠️'}
+              {allPassed ? IconParty({ size: 32 }) : IconWarning({ size: 32 })}
             </div>
             <div style={{ fontSize: 18, fontWeight: 'bold', color: allPassed ? '#155724' : '#721c24' }}>
               {allPassed 
@@ -337,9 +338,9 @@ export function CanvasContractTest() {
         border: '1px solid #b3d9ff',
         borderRadius: 8,
       }}>
-        <h4 style={{ margin: '0 0 8px 0' }}>📋 Week 0.5 체크리스트</h4>
+        <h4 style={{ margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: 6 }}>{IconClipboard({ size: 16 })} Week 0.5 체크리스트</h4>
         <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8 }}>
-          <li>모든 테스트 통과 ✓</li>
+          <li style={{ display: 'flex', alignItems: 'center', gap: 4 }}>모든 테스트 통과 {IconCheck({ size: 14, color: '#68d391' })}</li>
           <li>창 리사이즈 연타 → 깨짐/깜빡임 없는지 확인</li>
           <li>다른 모니터로 이동 → DPR 변경 대응 확인</li>
           <li>통과하면 → Week 1 모노레포 셋업 시작</li>

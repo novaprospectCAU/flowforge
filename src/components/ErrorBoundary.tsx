@@ -4,6 +4,7 @@
  */
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
+import { IconWarning } from './Icons';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -65,7 +66,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div style={styles.container}>
           <div style={styles.card}>
-            <div style={styles.icon}>⚠️</div>
+            <div style={styles.icon}>{IconWarning({ size: 32, color: '#f6e05e' })}</div>
             <h2 style={styles.title}>Something went wrong</h2>
             <p style={styles.message}>
               An unexpected error occurred. You can try to recover or reload the page.
@@ -148,7 +149,7 @@ export class NodeErrorBoundary extends Component<NodeErrorBoundaryProps, NodeErr
     if (this.state.hasError) {
       return (
         <div style={nodeStyles.container}>
-          <div style={nodeStyles.icon}>⚠️</div>
+          <div style={nodeStyles.icon}>{IconWarning({ size: 32, color: '#f6e05e' })}</div>
           <div style={nodeStyles.message}>Widget Error</div>
           <button onClick={this.handleRetry} style={nodeStyles.retryBtn} aria-label="Retry loading widget">
             Retry

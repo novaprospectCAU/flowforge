@@ -5,6 +5,7 @@ import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { IconClose, IconTrash } from './Icons';
 
 interface TemplateBrowserProps {
   position: Position;
@@ -158,7 +159,7 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
     >
       <div style={styles.header}>
         <span style={styles.title}>{t.templates}</span>
-        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">×</button>
+        <button onClick={onClose} style={styles.closeBtn} aria-label="Close">{IconClose({ size: 16 })}</button>
       </div>
 
       <input
@@ -199,7 +200,7 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
                   title={t.deleteTemplate}
                   aria-label={`Delete ${template.name}`}
                 >
-                  ×
+                  {IconTrash({ size: 14 })}
                 </button>
               </div>
               {template.description && (

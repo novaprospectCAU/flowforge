@@ -3,6 +3,7 @@ import { useLanguage, setLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { IconMenu, IconUndo, IconRedo, IconPlay, IconSearch, IconClipboard, IconSun, IconMoon, IconKey, IconDownload, IconUpload } from './Icons';
 
 interface MobileToolbarProps {
   onUndo: () => void;
@@ -170,7 +171,7 @@ export function MobileToolbar({
           aria-label="Open menu"
           aria-expanded={menuOpen}
         >
-          ☰
+          {IconMenu({ size: 20 })}
         </button>
 
         {/* 중앙: 저장 상태 */}
@@ -194,7 +195,7 @@ export function MobileToolbar({
             }}
             aria-label="Undo"
           >
-            ↶
+            {IconUndo({ size: 18 })}
           </button>
           <button
             onClick={onRedo}
@@ -205,7 +206,7 @@ export function MobileToolbar({
             }}
             aria-label="Redo"
           >
-            ↷
+            {IconRedo({ size: 18 })}
           </button>
         </div>
       </div>
@@ -220,7 +221,7 @@ export function MobileToolbar({
         }}
         aria-label={isRunning ? 'Running...' : 'Run flow'}
       >
-        {isRunning ? '...' : '▶'}
+        {isRunning ? '...' : IconPlay({ size: 24, color: '#fff' })}
       </button>
 
       {/* 드롭다운 메뉴 */}
@@ -248,7 +249,7 @@ export function MobileToolbar({
                     role="menuitem"
                   >
                     <span>{lang === 'en' ? 'Search Nodes' : '노드 검색'}</span>
-                    <span>🔍</span>
+                    <span>{IconSearch({ size: 16 })}</span>
                   </button>
                 )}
                 {onTemplates && (
@@ -258,7 +259,7 @@ export function MobileToolbar({
                     role="menuitem"
                   >
                     <span>{lang === 'en' ? 'Templates' : '템플릿'}</span>
-                    <span>📋</span>
+                    <span>{IconClipboard({ size: 16 })}</span>
                   </button>
                 )}
                 <div style={styles.menuDivider} />
@@ -285,7 +286,7 @@ export function MobileToolbar({
               role="menuitem"
             >
               <span>{lang === 'en' ? 'Theme' : '테마'}</span>
-              <span>{mode === 'dark' ? '☀️' : '🌙'}</span>
+              <span>{mode === 'dark' ? IconSun({ size: 16 }) : IconMoon({ size: 16 })}</span>
             </button>
             <button
               onClick={() => { setLanguage(lang === 'en' ? 'ko' : 'en'); setMenuOpen(false); }}
@@ -307,7 +308,7 @@ export function MobileToolbar({
               role="menuitem"
             >
               <span>API Keys</span>
-              <span>🔑</span>
+              <span>{IconKey({ size: 16 })}</span>
             </button>
             <button
               onClick={() => { onExport(); setMenuOpen(false); }}
@@ -315,7 +316,7 @@ export function MobileToolbar({
               role="menuitem"
             >
               <span>{lang === 'en' ? 'Export Flow' : '플로우 내보내기'}</span>
-              <span>↓</span>
+              <span>{IconDownload({ size: 14 })}</span>
             </button>
             <button
               onClick={() => { onImport(); setMenuOpen(false); }}
@@ -323,7 +324,7 @@ export function MobileToolbar({
               role="menuitem"
             >
               <span>{lang === 'en' ? 'Import Flow' : '플로우 가져오기'}</span>
-              <span>↑</span>
+              <span>{IconUpload({ size: 14 })}</span>
             </button>
             <div style={styles.menuDivider} />
 

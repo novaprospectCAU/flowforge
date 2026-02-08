@@ -3,6 +3,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useDropdown } from '../hooks/useDropdown';
 import { SHADOWS } from '../theme/shadows';
 import { Z_INDEX } from '../constants/zIndex';
+import { IconZoomOut, IconZoomIn, IconFitView } from './Icons';
 
 interface ZoomControlsProps {
   zoom: number;
@@ -132,7 +133,7 @@ export function ZoomControls({
         title="Zoom Out (Scroll Down)"
         aria-label="Zoom out"
       >
-        −
+        {IconZoomOut({ size: 16 })}
       </button>
       <div style={{ position: 'relative' }} ref={dropdown.ref}>
         <button
@@ -184,7 +185,7 @@ export function ZoomControls({
         title="Zoom In (Scroll Up)"
         aria-label="Zoom in"
       >
-        +
+        {IconZoomIn({ size: 16 })}
       </button>
       <div style={styles.divider} />
       <button
@@ -193,7 +194,7 @@ export function ZoomControls({
         title="Fit View (F)"
         aria-label="Fit view"
       >
-        ⊡
+        {IconFitView({ size: 16 })}
       </button>
     </div>
   );

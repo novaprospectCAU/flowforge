@@ -75,6 +75,7 @@ import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { MobileToolbar } from './MobileToolbar';
 import { ThemeToggle } from './ThemeToggle';
+import { IconUndo, IconRedo, IconDownload, IconUpload, IconKey, IconCenterView } from './Icons';
 import { APIKeyManager } from './ai';
 import { HistoryPanel } from './HistoryPanel';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -3227,7 +3228,7 @@ export function FlowCanvas() {
           }}
           title="Center View"
         >
-          ⊙
+          {IconCenterView({ size: 18 })}
         </button>
       )}
       {/* 데스크톱 툴바 */}
@@ -3263,7 +3264,7 @@ export function FlowCanvas() {
                 opacity: storeRef.current?.getState().canUndo() ? 1 : 0.5,
               }}
             >
-              ↶
+              {IconUndo({ size: 14 })}
             </button>
             <button
               onClick={() => {
@@ -3284,7 +3285,7 @@ export function FlowCanvas() {
                 opacity: storeRef.current?.getState().canRedo() ? 1 : 0.5,
               }}
             >
-              ↷
+              {IconRedo({ size: 14 })}
             </button>
           </div>
           {/* 자동 저장 상태 */}
@@ -3378,7 +3379,7 @@ export function FlowCanvas() {
                 cursor: 'pointer',
               }}
             >
-              ↓ Export
+              {IconDownload({ size: 12 })} Export
             </button>
             <button
               onClick={async () => {
@@ -3416,7 +3417,7 @@ export function FlowCanvas() {
                 cursor: 'pointer',
               }}
             >
-              ↑ Import
+              {IconUpload({ size: 12 })} Import
             </button>
           </div>
           {/* API 키 관리 */}
@@ -3436,7 +3437,7 @@ export function FlowCanvas() {
               gap: 4,
             }}
           >
-            🔑 API Keys
+            {IconKey({ size: 14 })} API Keys
           </button>
           {executionState && (
             <div

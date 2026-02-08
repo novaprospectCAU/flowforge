@@ -2,6 +2,7 @@ import { useLanguage } from '../i18n';
 import { shortcutsTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { IconClose } from './Icons';
 
 interface ShortcutsHelpProps {
   onClose: () => void;
@@ -131,7 +132,7 @@ export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
       <div style={styles.dialog} onClick={e => e.stopPropagation()}>
         <div style={styles.header}>
           <h2 id="shortcuts-title" style={styles.title}>{t.title}</h2>
-          <button onClick={onClose} style={styles.closeBtn} aria-label="Close">×</button>
+          <button onClick={onClose} style={styles.closeBtn} aria-label="Close">{IconClose({ size: 16 })}</button>
         </div>
         <div style={styles.content}>
           {t.groups.map(group => (

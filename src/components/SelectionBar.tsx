@@ -3,6 +3,7 @@ import { uiTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
 import { Z_INDEX } from '../constants/zIndex';
+import { IconClose } from './Icons';
 
 interface SelectionBarProps {
   selectedCount: number;
@@ -211,7 +212,7 @@ export function SelectionBar({
       <div style={styles.spacer} />
 
       <button onClick={onDeselect} style={styles.closeButton} title={lang === 'en' ? 'Deselect (Esc)' : '선택 해제 (Esc)'} aria-label={lang === 'en' ? 'Deselect all' : '선택 해제'}>
-        ×
+        {IconClose({ size: 16 })}
       </button>
     </div>
   );
