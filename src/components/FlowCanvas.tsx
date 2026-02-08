@@ -29,13 +29,10 @@ import {
   type ResizeHandle,
   type SnapLine,
   type CompatiblePorts,
-  exportFlowToImage,
-  downloadImage,
   setCanvasTheme,
 } from '@flowforge/canvas';
 import {
   createFlowStore,
-  nodeTypeRegistry,
   executeFlow,
   downloadFlow,
   loadFlowFromFile,
@@ -72,16 +69,18 @@ import { SelectionBar } from './SelectionBar';
 import { NodeWidgets } from './NodeWidgets';
 import { CommentWidgets } from './CommentWidgets';
 import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial';
-import { LanguageSwitcher } from './LanguageSwitcher';
 import { MobileToolbar } from './MobileToolbar';
-import { ThemeToggle } from './ThemeToggle';
-import { IconUndo, IconRedo, IconDownload, IconUpload, IconKey, IconCenterView } from './Icons';
+import { IconCenterView } from './Icons';
+import { DesktopToolbar } from './DesktopToolbar';
 import { APIKeyManager } from './ai';
 import { HistoryPanel } from './HistoryPanel';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
+import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard';
 import { SHADOWS } from '../theme/shadows';
+import { alignNodes, distributeNodes, autoArrangeNodes } from '../utils/canvasLayout';
+import { getMenuItems as getMenuItemsFromContext } from '../utils/canvasMenuItems';
 
 type DragMode = 'none' | 'pan' | 'node' | 'edge' | 'box' | 'minimap' | 'resize' | 'group' | 'comment' | 'subflow';
 
@@ -201,6 +200,7 @@ export function FlowCanvas() {
   // Refs for use in callbacks (to avoid stale closures)
   const snapToGridRef = useRef(snapToGrid);
   const edgeStyleRef = useRef(edgeStyle);
+  const toggleThemeRef = useRef(toggleTheme);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -210,6 +210,10 @@ export function FlowCanvas() {
   useEffect(() => {
     edgeStyleRef.current = edgeStyle;
   }, [edgeStyle]);
+
+  useEffect(() => {
+    toggleThemeRef.current = toggleTheme;
+  }, [toggleTheme]);
 
   // 캔버스 테마 동기화
   useEffect(() => {
@@ -345,249 +349,23 @@ export function FlowCanvas() {
     }
   };
 
-  // 노드 정렬 함수들
-  type AlignType = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom';
-  type DistributeType = 'horizontal' | 'vertical';
-
-  const alignNodes = (type: AlignType) => {
+  // 레이아웃 래퍼 함수들 (extracted to canvasLayout.ts)
+  const doAlignNodes = (direction: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
     const store = storeRef.current;
     if (!store) return;
-
-    const selectedIds = selectedNodeIdsRef.current;
-    if (selectedIds.size < 2) return;
-
-    const state = store.getState();
-    const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
-
-    let targetValue: number;
-
-    switch (type) {
-      case 'left':
-        targetValue = Math.min(...selectedNodes.map(n => n.position.x));
-        for (const node of selectedNodes) {
-          state.updateNode(node.id, { position: { ...node.position, x: targetValue } });
-        }
-        break;
-      case 'center':
-        const centers = selectedNodes.map(n => n.position.x + n.size.width / 2);
-        targetValue = (Math.min(...centers) + Math.max(...centers)) / 2;
-        for (const node of selectedNodes) {
-          state.updateNode(node.id, { position: { ...node.position, x: targetValue - node.size.width / 2 } });
-        }
-        break;
-      case 'right':
-        targetValue = Math.max(...selectedNodes.map(n => n.position.x + n.size.width));
-        for (const node of selectedNodes) {
-          state.updateNode(node.id, { position: { ...node.position, x: targetValue - node.size.width } });
-        }
-        break;
-      case 'top':
-        targetValue = Math.min(...selectedNodes.map(n => n.position.y));
-        for (const node of selectedNodes) {
-          state.updateNode(node.id, { position: { ...node.position, y: targetValue } });
-        }
-        break;
-      case 'middle':
-        const middles = selectedNodes.map(n => n.position.y + n.size.height / 2);
-        targetValue = (Math.min(...middles) + Math.max(...middles)) / 2;
-        for (const node of selectedNodes) {
-          state.updateNode(node.id, { position: { ...node.position, y: targetValue - node.size.height / 2 } });
-        }
-        break;
-      case 'bottom':
-        targetValue = Math.max(...selectedNodes.map(n => n.position.y + n.size.height));
-        for (const node of selectedNodes) {
-          state.updateNode(node.id, { position: { ...node.position, y: targetValue - node.size.height } });
-        }
-        break;
-    }
+    alignNodes(store, selectedNodeIdsRef.current, direction);
   };
 
-  const distributeNodes = (type: DistributeType) => {
+  const doDistributeNodes = (axis: 'horizontal' | 'vertical') => {
     const store = storeRef.current;
     if (!store) return;
-
-    const selectedIds = selectedNodeIdsRef.current;
-    if (selectedIds.size < 3) return; // 최소 3개 필요
-
-    const state = store.getState();
-    const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
-
-    if (type === 'horizontal') {
-      // X 위치로 정렬
-      const sorted = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
-      const first = sorted[0];
-      const last = sorted[sorted.length - 1];
-      const totalWidth = last.position.x + last.size.width - first.position.x;
-      const nodesWidth = sorted.reduce((sum, n) => sum + n.size.width, 0);
-      const gap = (totalWidth - nodesWidth) / (sorted.length - 1);
-
-      let currentX = first.position.x;
-      for (const node of sorted) {
-        state.updateNode(node.id, { position: { ...node.position, x: currentX } });
-        currentX += node.size.width + gap;
-      }
-    } else {
-      // Y 위치로 정렬
-      const sorted = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
-      const first = sorted[0];
-      const last = sorted[sorted.length - 1];
-      const totalHeight = last.position.y + last.size.height - first.position.y;
-      const nodesHeight = sorted.reduce((sum, n) => sum + n.size.height, 0);
-      const gap = (totalHeight - nodesHeight) / (sorted.length - 1);
-
-      let currentY = first.position.y;
-      for (const node of sorted) {
-        state.updateNode(node.id, { position: { ...node.position, y: currentY } });
-        currentY += node.size.height + gap;
-      }
-    }
+    distributeNodes(store, selectedNodeIdsRef.current, axis);
   };
 
-  // 자동 배치 - 플로우 방향(왼쪽→오른쪽) 기반 계층적 정렬
-  const autoArrangeNodes = (arrangeAll = false) => {
+  const doAutoArrangeNodes = (arrangeAll = false) => {
     const store = storeRef.current;
     if (!store) return;
-
-    const state = store.getState();
-    const selectedIds = selectedNodeIdsRef.current;
-
-    // 대상 노드 결정: arrangeAll이면 모든 노드, 아니면 선택된 노드
-    const targetNodes = arrangeAll
-      ? state.nodes
-      : state.nodes.filter(n => selectedIds.has(n.id));
-
-    if (targetNodes.length < 2) return;
-
-    const targetNodeIds = new Set(targetNodes.map(n => n.id));
-
-    // 대상 노드들 사이의 엣지만 고려
-    const relevantEdges = state.edges.filter(
-      e => targetNodeIds.has(e.source) && targetNodeIds.has(e.target)
-    );
-
-    // 인접 리스트 및 진입 차수 계산
-    const adjacency = new Map<string, string[]>();
-    const inDegree = new Map<string, number>();
-
-    for (const node of targetNodes) {
-      adjacency.set(node.id, []);
-      inDegree.set(node.id, 0);
-    }
-
-    for (const edge of relevantEdges) {
-      adjacency.get(edge.source)?.push(edge.target);
-      inDegree.set(edge.target, (inDegree.get(edge.target) || 0) + 1);
-    }
-
-    // BFS로 레이어 할당 (가장 긴 경로 기준)
-    const layers = new Map<string, number>();
-    const queue: string[] = [];
-
-    // 진입 차수가 0인 노드들이 첫 레이어
-    for (const node of targetNodes) {
-      if ((inDegree.get(node.id) || 0) === 0) {
-        queue.push(node.id);
-        layers.set(node.id, 0);
-      }
-    }
-
-    // BFS로 레이어 전파
-    while (queue.length > 0) {
-      const nodeId = queue.shift()!;
-      const currentLayer = layers.get(nodeId) || 0;
-
-      for (const targetId of adjacency.get(nodeId) || []) {
-        const existingLayer = layers.get(targetId);
-        const newLayer = currentLayer + 1;
-
-        if (existingLayer === undefined || newLayer > existingLayer) {
-          layers.set(targetId, newLayer);
-        }
-
-        // 모든 선행 노드 처리 후 큐에 추가
-        const targetInDegree = inDegree.get(targetId) || 0;
-        inDegree.set(targetId, targetInDegree - 1);
-        if (targetInDegree - 1 === 0) {
-          queue.push(targetId);
-        }
-      }
-    }
-
-    // 레이어가 할당되지 않은 노드 처리 (연결 안 된 노드들)
-    let maxLayer = 0;
-    for (const layer of layers.values()) {
-      maxLayer = Math.max(maxLayer, layer);
-    }
-    for (const node of targetNodes) {
-      if (!layers.has(node.id)) {
-        layers.set(node.id, maxLayer + 1);
-      }
-    }
-
-    // 레이어별로 노드 그룹화
-    const layerGroups = new Map<number, FlowNode[]>();
-    for (const node of targetNodes) {
-      const layer = layers.get(node.id) || 0;
-      if (!layerGroups.has(layer)) {
-        layerGroups.set(layer, []);
-      }
-      layerGroups.get(layer)!.push(node);
-    }
-
-    // 각 레이어 내에서 Y 위치 기준 정렬 (기존 순서 유지)
-    for (const nodes of layerGroups.values()) {
-      nodes.sort((a, b) => a.position.y - b.position.y);
-    }
-
-    // 간격 설정
-    const HORIZONTAL_GAP = 80;
-    const VERTICAL_GAP = 30;
-
-    // 기존 중심점 계산
-    const centerX = targetNodes.reduce((sum, n) => sum + n.position.x + n.size.width / 2, 0) / targetNodes.length;
-    const centerY = targetNodes.reduce((sum, n) => sum + n.position.y + n.size.height / 2, 0) / targetNodes.length;
-
-    // 각 레이어의 최대 너비 계산
-    const layerWidths: number[] = [];
-    const sortedLayers = [...layerGroups.keys()].sort((a, b) => a - b);
-
-    for (const layer of sortedLayers) {
-      const nodes = layerGroups.get(layer) || [];
-      const maxWidth = Math.max(...nodes.map(n => n.size.width));
-      layerWidths.push(maxWidth);
-    }
-
-    // 전체 너비 계산
-    const totalWidth = layerWidths.reduce((sum, w) => sum + w + HORIZONTAL_GAP, -HORIZONTAL_GAP);
-
-    // 각 레이어의 X 시작 위치 계산
-    const layerXPositions: number[] = [];
-    let currentX = centerX - totalWidth / 2;
-    for (let i = 0; i < sortedLayers.length; i++) {
-      layerXPositions.push(currentX);
-      currentX += layerWidths[i] + HORIZONTAL_GAP;
-    }
-
-    // 노드 배치
-    for (let i = 0; i < sortedLayers.length; i++) {
-      const layer = sortedLayers[i];
-      const nodes = layerGroups.get(layer) || [];
-      const layerX = layerXPositions[i];
-      const layerWidth = layerWidths[i];
-
-      // 레이어의 총 높이 계산
-      const totalHeight = nodes.reduce((sum, n) => sum + n.size.height, 0) + VERTICAL_GAP * (nodes.length - 1);
-      let y = centerY - totalHeight / 2;
-
-      for (const node of nodes) {
-        // X: 레이어 내 중앙 정렬
-        const x = layerX + (layerWidth - node.size.width) / 2;
-
-        state.updateNode(node.id, { position: { x, y } });
-        y += node.size.height + VERTICAL_GAP;
-      }
-    }
+    autoArrangeNodes(store, selectedNodeIdsRef.current, arrangeAll);
   };
 
   // 선택된 노드들의 그룹 해제
@@ -1899,878 +1677,36 @@ export function FlowCanvas() {
     return () => canvas.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // 키보드 이벤트
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const store = storeRef.current;
-      if (!store) return;
-
-      // 입력 필드에서는 일부 단축키 무시 (Delete, Backspace, 일반 문자 등)
-      const target = e.target as HTMLElement;
-      const isInputFocused = (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      );
-
-      // 입력 중일 때는 Ctrl/Cmd 조합 외의 단축키 무시
-      if (isInputFocused && !e.ctrlKey && !e.metaKey) {
-        return;
-      }
-
-      // Space = Pan 모드 (Figma 스타일)
-      if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        setSpacePressed(true);
-        return;
-      }
-
-      // Undo: Ctrl+Z / Cmd+Z
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        store.getState().undo();
-        return;
-      }
-
-      // Redo: Ctrl+Y / Cmd+Shift+Z
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault();
-        store.getState().redo();
-        return;
-      }
-
-      // Save: Ctrl+S / Cmd+S
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        const state = store.getState();
-        downloadFlow(state.nodes, state.edges, state.groups, state.viewport, 'flow.json', state.comments);
-        return;
-      }
-
-      // Open: Ctrl+O / Cmd+O
-      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-        e.preventDefault();
-        loadFlowFromFile()
-          .then((flow) => {
-            const state = store.getState();
-            state.loadFlow(flow.nodes, flow.edges, flow.groups, flow.viewport, flow.comments);
-            setSelectedNodes(new Set());
-            forceRender(n => n + 1);
-          })
-          .catch((err) => {
-            console.error('Failed to load flow:', err);
-          });
-        return;
-      }
-
-      // New: Ctrl+N / Cmd+N (새 플로우)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-        e.preventDefault();
-        const state = store.getState();
-        state.clearFlow();
-        setSelectedNodes(new Set());
-        forceRender(n => n + 1);
-        return;
-      }
-
-      // Export Image: Ctrl+Shift+E / Cmd+Shift+E
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'e' || e.key === 'E')) {
-        e.preventDefault();
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const state = store.getState();
-        if (state.nodes.length === 0) return;
-
-        exportFlowToImage(
-          canvas,
-          state.nodes,
-          state.edges,
-          state.groups,
-          state.viewport,
-          edgeStyleRef.current
-        )
-          .then((blob) => {
-            downloadImage(blob, 'flow.png');
-          })
-          .catch((err) => {
-            console.error('Failed to export image:', err);
-          });
-        return;
-      }
-
-      // Search: Ctrl+F / Cmd+F
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault();
-        setShowSearch(true);
-        return;
-      }
-
-      // Tab: 노드 팔레트 열기
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const state = store.getState();
-        const worldPos = screenToWorld(
-          { x: rect.width / 2, y: rect.height / 2 },
-          state.viewport,
-          { width: rect.width, height: rect.height }
-        );
-
-        setNodePalette({
-          x: rect.left + rect.width / 2 - 140,
-          y: rect.top + rect.height / 2 - 200,
-          worldPos,
-        });
-        return;
-      }
-
-      // T: 템플릿 브라우저 열기
-      if (e.key === 't' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const state = store.getState();
-        const worldPos = screenToWorld(
-          { x: rect.width / 2, y: rect.height / 2 },
-          state.viewport,
-          { width: rect.width, height: rect.height }
-        );
-
-        setTemplateBrowser({
-          x: rect.left + rect.width / 2 - 150,
-          y: rect.top + rect.height / 2 - 200,
-          worldPos,
-        });
-        return;
-      }
-
-      // Copy: Ctrl+C / Cmd+C
-      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-        e.preventDefault();
-        const selectedIds = selectedNodeIdsRef.current;
-        const selectedCommentId = selectedCommentIdRef.current;
-
-        // 노드나 코멘트가 선택되어야 복사 가능
-        if (selectedIds.size === 0 && !selectedCommentId) return;
-
-        const state = store.getState();
-        const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
-        const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
-
-        // 선택된 노드들 사이의 엣지만 복사
-        const selectedEdges = state.edges.filter(
-          e => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
-        );
-
-        // 모든 노드가 선택된 그룹만 복사
-        const selectedGroups = state.groups.filter(
-          g => g.nodeIds.length > 0 && g.nodeIds.every(id => selectedNodeIds.has(id))
-        );
-
-        // 코멘트 복사: 선택된 코멘트 또는 선택된 노드들의 바운딩 박스 내 코멘트
-        let selectedComments: Comment[] = [];
-        if (selectedCommentId) {
-          const comment = state.comments.find(c => c.id === selectedCommentId);
-          if (comment) {
-            selectedComments = [comment];
-          }
-        } else if (selectedNodes.length > 0) {
-          // 선택된 노드들의 바운딩 박스 계산
-          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-          for (const node of selectedNodes) {
-            minX = Math.min(minX, node.position.x);
-            minY = Math.min(minY, node.position.y);
-            maxX = Math.max(maxX, node.position.x + node.size.width);
-            maxY = Math.max(maxY, node.position.y + node.size.height);
-          }
-          // 바운딩 박스 내 코멘트 찾기
-          selectedComments = state.comments.filter(c => {
-            const cx = c.position.x + c.size.width / 2;
-            const cy = c.position.y + c.size.height / 2;
-            return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
-          });
-        }
-
-        clipboardRef.current = {
-          nodes: selectedNodes,
-          edges: selectedEdges,
-          groups: selectedGroups,
-          comments: selectedComments,
-        };
-
-        // 시스템 클립보드에도 저장 (다른 창/앱과 공유 가능)
-        const clipboardData = {
-          type: 'flowforge-clipboard',
-          version: 1,
-          nodes: selectedNodes,
-          edges: selectedEdges,
-          groups: selectedGroups,
-          comments: selectedComments,
-        };
-        navigator.clipboard.writeText(JSON.stringify(clipboardData)).catch(() => {
-          // 시스템 클립보드 접근 실패 시 무시 (내부 클립보드는 이미 설정됨)
-        });
-        return;
-      }
-
-      // Paste: Ctrl+V / Cmd+V
-      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-        e.preventDefault();
-
-        // 시스템 클립보드에서 먼저 읽기 시도
-        const handlePaste = async () => {
-          let clipboardContent = clipboardRef.current;
-
-          try {
-            const text = await navigator.clipboard.readText();
-            const parsed = JSON.parse(text);
-            if (parsed.type === 'flowforge-clipboard' && parsed.version === 1) {
-              clipboardContent = {
-                nodes: parsed.nodes || [],
-                edges: parsed.edges || [],
-                groups: parsed.groups || [],
-                comments: parsed.comments || [],
-              };
-            }
-          } catch {
-            // 시스템 클립보드 읽기 실패 시 내부 클립보드 사용
-          }
-
-          if (!clipboardContent) return;
-
-          const { nodes: copiedNodes, edges: copiedEdges, groups: copiedGroups, comments: copiedComments } = clipboardContent;
-
-          // 노드나 코멘트가 있어야 붙여넣기 가능
-          if (copiedNodes.length === 0 && copiedComments.length === 0) return;
-
-          const state = store.getState();
-          const canvas = canvasRef.current;
-          if (!canvas) return;
-
-          // 복사된 모든 요소의 바운딩 박스 중앙 계산
-          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-          for (const node of copiedNodes) {
-            minX = Math.min(minX, node.position.x);
-            minY = Math.min(minY, node.position.y);
-            maxX = Math.max(maxX, node.position.x + node.size.width);
-            maxY = Math.max(maxY, node.position.y + node.size.height);
-          }
-          for (const comment of copiedComments) {
-            minX = Math.min(minX, comment.position.x);
-            minY = Math.min(minY, comment.position.y);
-            maxX = Math.max(maxX, comment.position.x + comment.size.width);
-            maxY = Math.max(maxY, comment.position.y + comment.size.height);
-          }
-          const copiedCenterX = (minX + maxX) / 2;
-          const copiedCenterY = (minY + maxY) / 2;
-
-          // 뷰포트 중앙 (월드 좌표) - 이것이 붙여넣기 위치
-          const viewportCenterX = state.viewport.x;
-          const viewportCenterY = state.viewport.y;
-
-          // 오프셋 계산: 뷰포트 중앙으로 이동
-          const offsetX = viewportCenterX - copiedCenterX;
-          const offsetY = viewportCenterY - copiedCenterY;
-
-          // ID 매핑 (원본 ID -> 새 ID)
-          const idMap = new Map<string, string>();
-          const newNodes: FlowNode[] = [];
-          const newNodeIds: string[] = [];
-
-          for (const node of copiedNodes) {
-            const newId = generateId('node');
-            idMap.set(node.id, newId);
-
-            const newNode: FlowNode = {
-              ...node,
-              id: newId,
-              position: {
-                x: node.position.x + offsetX,
-                y: node.position.y + offsetY,
-              },
-            };
-            newNodes.push(newNode);
-            newNodeIds.push(newId);
-          }
-
-          // 노드 추가
-          for (const node of newNodes) {
-            state.addNode(node);
-          }
-
-          // 엣지 추가 (ID 매핑 적용)
-          for (const edge of copiedEdges) {
-            const newSourceId = idMap.get(edge.source);
-            const newTargetId = idMap.get(edge.target);
-            if (newSourceId && newTargetId) {
-              const newEdge: FlowEdge = {
-                id: generateId('edge'),
-                source: newSourceId,
-                sourcePort: edge.sourcePort,
-                target: newTargetId,
-                targetPort: edge.targetPort,
-              };
-              state.addEdge(newEdge);
-            }
-          }
-
-          // 그룹 추가 (ID 매핑 적용)
-          const newGroups: NodeGroup[] = [];
-          for (const group of copiedGroups) {
-            const newNodeIdsForGroup = group.nodeIds
-              .map(id => idMap.get(id))
-              .filter((id): id is string => id !== undefined);
-            if (newNodeIdsForGroup.length > 0) {
-              state.createGroup(group.name, newNodeIdsForGroup, group.color);
-              newGroups.push({
-                ...group,
-                id: generateId('group'),
-                nodeIds: newNodeIdsForGroup,
-              });
-            }
-          }
-
-          // 코멘트 추가
-          const newComments: Comment[] = [];
-          const commentIdMap = new Map<string, string>();
-          for (const comment of copiedComments) {
-            const newId = generateId('comment');
-            commentIdMap.set(comment.id, newId);
-            const now = Date.now();
-            const newComment: Comment = {
-              ...comment,
-              id: newId,
-              position: {
-                x: comment.position.x + offsetX,
-                y: comment.position.y + offsetY,
-              },
-              createdAt: now,
-              updatedAt: now,
-            };
-            newComments.push(newComment);
-            state.addComment(newComment);
-          }
-
-          // 새로 붙여넣은 노드들 선택
-          setSelectedNodes(new Set(newNodeIds));
-          // 코멘트만 복사한 경우, 첫 번째 코멘트 선택
-          if (newNodeIds.length === 0 && newComments.length > 0) {
-            selectedCommentIdRef.current = newComments[0].id;
-          }
-
-          // 클립보드 위치 업데이트 (연속 붙여넣기 시 계속 오프셋)
-          clipboardRef.current = {
-            nodes: newNodes,
-            edges: copiedEdges.map(e => ({
-              ...e,
-              source: idMap.get(e.source) || e.source,
-              target: idMap.get(e.target) || e.target,
-            })),
-            groups: copiedGroups.map(g => ({
-              ...g,
-              nodeIds: g.nodeIds.map(id => idMap.get(id) || id),
-            })),
-            comments: newComments,
-          };
-        };
-
-        handlePaste();
-        return;
-      }
-
-      // Duplicate: Ctrl+D / Cmd+D (복사 + 붙여넣기)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-        e.preventDefault();
-        const selectedIds = selectedNodeIdsRef.current;
-        const selectedCommentId = selectedCommentIdRef.current;
-
-        // 노드나 코멘트가 선택되어야 복제 가능
-        if (selectedIds.size === 0 && !selectedCommentId) return;
-
-        const state = store.getState();
-        const selectedNodes = state.nodes.filter(n => selectedIds.has(n.id));
-        const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
-        const selectedEdges = state.edges.filter(
-          e => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
-        );
-
-        // 코멘트 선택: 선택된 코멘트 또는 선택된 노드들의 바운딩 박스 내 코멘트
-        let commentsToDuplicate: Comment[] = [];
-        if (selectedCommentId) {
-          const comment = state.comments.find(c => c.id === selectedCommentId);
-          if (comment) {
-            commentsToDuplicate = [comment];
-          }
-        } else if (selectedNodes.length > 0) {
-          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-          for (const node of selectedNodes) {
-            minX = Math.min(minX, node.position.x);
-            minY = Math.min(minY, node.position.y);
-            maxX = Math.max(maxX, node.position.x + node.size.width);
-            maxY = Math.max(maxY, node.position.y + node.size.height);
-          }
-          commentsToDuplicate = state.comments.filter(c => {
-            const cx = c.position.x + c.size.width / 2;
-            const cy = c.position.y + c.size.height / 2;
-            return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY;
-          });
-        }
-
-        const offset = 30;
-        const idMap = new Map<string, string>();
-        const newNodeIds: string[] = [];
-
-        for (const node of selectedNodes) {
-          const newId = generateId('node');
-          idMap.set(node.id, newId);
-
-          const newNode: FlowNode = {
-            ...node,
-            id: newId,
-            position: {
-              x: node.position.x + offset,
-              y: node.position.y + offset,
-            },
-          };
-          state.addNode(newNode);
-          newNodeIds.push(newId);
-        }
-
-        for (const edge of selectedEdges) {
-          const newSourceId = idMap.get(edge.source);
-          const newTargetId = idMap.get(edge.target);
-          if (newSourceId && newTargetId) {
-            state.addEdge({
-              id: generateId('edge'),
-              source: newSourceId,
-              sourcePort: edge.sourcePort,
-              target: newTargetId,
-              targetPort: edge.targetPort,
-            });
-          }
-        }
-
-        // 코멘트 복제
-        let newCommentId: string | null = null;
-        for (const comment of commentsToDuplicate) {
-          const newId = generateId('comment');
-          if (!newCommentId) newCommentId = newId;
-          const now = Date.now();
-          state.addComment({
-            ...comment,
-            id: newId,
-            position: {
-              x: comment.position.x + offset,
-              y: comment.position.y + offset,
-            },
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-
-        // 선택 업데이트
-        if (newNodeIds.length > 0) {
-          setSelectedNodes(new Set(newNodeIds));
-        } else if (newCommentId) {
-          selectedCommentIdRef.current = newCommentId;
-          forceRender(n => n + 1);
-        }
-        return;
-      }
-
-      // Delete: 선택된 노드 또는 코멘트 삭제
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        const state = store.getState();
-
-        // 코멘트가 선택되어 있으면 코멘트 삭제
-        if (selectedCommentIdRef.current) {
-          state.deleteComment(selectedCommentIdRef.current);
-          selectedCommentIdRef.current = null;
-          return;
-        }
-
-        // 노드 삭제
-        const selectedIds = selectedNodeIdsRef.current;
-        if (selectedIds.size === 0) return;
-
-        for (const nodeId of selectedIds) {
-          state.deleteNode(nodeId);
-        }
-        setSelectedNodes(new Set());
-        return;
-      }
-
-      // Select All: Ctrl+A / Cmd+A
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        e.preventDefault();
-        const state = store.getState();
-        setSelectedNodes(new Set(state.nodes.map(n => n.id)));
-        return;
-      }
-
-      // Escape: 선택 해제 및 메뉴 닫기
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setSelectedNodes(new Set());
-        setContextMenu(null);
-        setNodePalette(null);
-        setTemplateBrowser(null);
-        return;
-      }
-
-      // Fit View: F 키 - 선택된 노드 또는 모든 노드가 보이도록 뷰 조정
-      if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        const state = store.getState();
-        const canvas = canvasRef.current;
-        if (state.nodes.length === 0 || !canvas) return;
-
-        // 선택된 노드가 있으면 선택된 노드만, 없으면 모든 노드
-        const selectedIds = selectedNodeIdsRef.current;
-        const targetNodes = selectedIds.size > 0
-          ? state.nodes.filter(n => selectedIds.has(n.id))
-          : state.nodes;
-
-        if (targetNodes.length === 0) return;
-
-        // 바운딩 박스 계산
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
-
-        for (const node of targetNodes) {
-          minX = Math.min(minX, node.position.x);
-          minY = Math.min(minY, node.position.y);
-          maxX = Math.max(maxX, node.position.x + node.size.width);
-          maxY = Math.max(maxY, node.position.y + node.size.height);
-        }
-
-        const padding = 50;
-        const contentWidth = maxX - minX + padding * 2;
-        const contentHeight = maxY - minY + padding * 2;
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = rect.width / contentWidth;
-        const scaleY = rect.height / contentHeight;
-        const zoom = Math.min(scaleX, scaleY, 2); // 최대 200%
-
-        state.setViewport({ x: centerX, y: centerY, zoom });
-        setCurrentZoom(zoom);
-        return;
-      }
-
-      // Reset Zoom: Ctrl+0 / Cmd+0
-      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
-        e.preventDefault();
-        const state = store.getState();
-        state.setViewport({ ...state.viewport, zoom: 1 });
-        return;
-      }
-
-      // Alt + Arrow: 노드 정렬
-      if (e.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        e.preventDefault();
-        if (e.key === 'ArrowLeft') alignNodes('left');
-        if (e.key === 'ArrowRight') alignNodes('right');
-        if (e.key === 'ArrowUp') alignNodes('top');
-        if (e.key === 'ArrowDown') alignNodes('bottom');
-        return;
-      }
-
-      // Alt + Shift + Arrow: 중앙 정렬
-      if (e.altKey && e.shiftKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        e.preventDefault();
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') alignNodes('center');
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') alignNodes('middle');
-        return;
-      }
-
-      // Ctrl + Shift + H/V: 균등 분배
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-        if (e.key === 'h' || e.key === 'H') {
-          e.preventDefault();
-          distributeNodes('horizontal');
-          return;
-        }
-        if (e.key === 'v' || e.key === 'V') {
-          e.preventDefault();
-          distributeNodes('vertical');
-          return;
-        }
-      }
-
-      // Arrow Keys: 선택된 노드 이동 또는 노드 탐색
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && !e.altKey) {
-        const selectedIds = selectedNodeIdsRef.current;
-        const state = store.getState();
-
-        // 노드가 선택되지 않았으면 해당 방향의 가장 가까운 노드 선택
-        if (selectedIds.size === 0) {
-          e.preventDefault();
-          if (state.nodes.length === 0) return;
-
-          const viewCenter = { x: state.viewport.x, y: state.viewport.y };
-
-          // 방향 벡터
-          let dirX = 0, dirY = 0;
-          if (e.key === 'ArrowUp') dirY = -1;
-          if (e.key === 'ArrowDown') dirY = 1;
-          if (e.key === 'ArrowLeft') dirX = -1;
-          if (e.key === 'ArrowRight') dirX = 1;
-
-          // 해당 방향에 있는 노드 중 가장 가까운 노드 찾기
-          let bestNode: FlowNode | null = null;
-          let bestScore = Infinity;
-
-          for (const node of state.nodes) {
-            const nodeCenter = {
-              x: node.position.x + node.size.width / 2,
-              y: node.position.y + node.size.height / 2,
-            };
-            const dx = nodeCenter.x - viewCenter.x;
-            const dy = nodeCenter.y - viewCenter.y;
-
-            // 방향 체크 (내적이 양수면 해당 방향)
-            const dotProduct = dx * dirX + dy * dirY;
-            if (dotProduct <= 0) continue;
-
-            // 거리 계산
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < bestScore) {
-              bestScore = distance;
-              bestNode = node;
-            }
-          }
-
-          // 해당 방향에 노드가 없으면 가장 가까운 노드 선택
-          if (!bestNode) {
-            let minDist = Infinity;
-            for (const node of state.nodes) {
-              const nodeCenter = {
-                x: node.position.x + node.size.width / 2,
-                y: node.position.y + node.size.height / 2,
-              };
-              const dist = Math.sqrt(
-                Math.pow(nodeCenter.x - viewCenter.x, 2) +
-                Math.pow(nodeCenter.y - viewCenter.y, 2)
-              );
-              if (dist < minDist) {
-                minDist = dist;
-                bestNode = node;
-              }
-            }
-          }
-
-          if (bestNode) {
-            setSelectedNodes(new Set([bestNode.id]));
-          }
-          return;
-        }
-
-        // 노드가 선택되어 있으면 이동
-        e.preventDefault();
-        const step = e.shiftKey ? 1 : (snapToGridRef.current ? GRID_SIZE : 10);
-
-        let dx = 0, dy = 0;
-        if (e.key === 'ArrowUp') dy = -step;
-        if (e.key === 'ArrowDown') dy = step;
-        if (e.key === 'ArrowLeft') dx = -step;
-        if (e.key === 'ArrowRight') dx = step;
-
-        for (const nodeId of selectedIds) {
-          const node = state.nodes.find(n => n.id === nodeId);
-          if (node) {
-            state.updateNode(nodeId, {
-              position: {
-                x: node.position.x + dx,
-                y: node.position.y + dy,
-              },
-            });
-          }
-        }
-        return;
-      }
-
-      // [ / ]: 이전/다음 노드 선택 (순환)
-      if (e.key === '[' || e.key === ']') {
-        e.preventDefault();
-        const state = store.getState();
-        if (state.nodes.length === 0) return;
-
-        const selectedIds = selectedNodeIdsRef.current;
-        const currentIndex = selectedIds.size === 1
-          ? state.nodes.findIndex(n => selectedIds.has(n.id))
-          : -1;
-
-        let nextIndex: number;
-        if (e.key === ']') {
-          // 다음 노드
-          nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % state.nodes.length;
-        } else {
-          // 이전 노드
-          nextIndex = currentIndex < 0
-            ? state.nodes.length - 1
-            : (currentIndex - 1 + state.nodes.length) % state.nodes.length;
-        }
-
-        const nextNode = state.nodes[nextIndex];
-        setSelectedNodes(new Set([nextNode.id]));
-
-        // 선택된 노드로 뷰포트 이동
-        const nodeCenter = {
-          x: nextNode.position.x + nextNode.size.width / 2,
-          y: nextNode.position.y + nextNode.size.height / 2,
-        };
-        state.setViewport({ ...state.viewport, x: nodeCenter.x, y: nodeCenter.y });
-        return;
-      }
-
-      // Enter: 선택된 노드로 뷰 이동 (단일 노드 선택 시)
-      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
-        const selectedIds = selectedNodeIdsRef.current;
-        if (selectedIds.size !== 1) return;
-
-        e.preventDefault();
-        const state = store.getState();
-        const nodeId = Array.from(selectedIds)[0];
-        const node = state.nodes.find(n => n.id === nodeId);
-        if (!node) return;
-
-        const nodeCenter = {
-          x: node.position.x + node.size.width / 2,
-          y: node.position.y + node.size.height / 2,
-        };
-        state.setViewport({ ...state.viewport, x: nodeCenter.x, y: nodeCenter.y });
-        return;
-      }
-
-      // Create Group: Ctrl+G / Cmd+G
-      if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
-        e.preventDefault();
-        const selectedIds = selectedNodeIdsRef.current;
-        if (selectedIds.size >= 2) {
-          const state = store.getState();
-          state.createGroup('New Group', Array.from(selectedIds));
-          forceRender(n => n + 1);
-        }
-        return;
-      }
-
-      // Create Subflow: Ctrl+Shift+G / Cmd+Shift+G
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'g' || e.key === 'G')) {
-        e.preventDefault();
-        const selectedIds = selectedNodeIdsRef.current;
-        if (selectedIds.size >= 2) {
-          const state = store.getState();
-          const subflowId = state.createSubflow('New Subflow', Array.from(selectedIds));
-          if (subflowId) {
-            selectedSubflowIdRef.current = subflowId;
-            setSelectedNodes(new Set());
-            forceRender(n => n + 1);
-          }
-        }
-        return;
-      }
-
-      // Ungroup: Ctrl+Shift+U / Cmd+Shift+U
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'u' || e.key === 'U')) {
-        e.preventDefault();
-        const selectedIds = selectedNodeIdsRef.current;
-        if (selectedIds.size > 0) {
-          const state = store.getState();
-          const nodeId = Array.from(selectedIds)[0];
-          const group = state.getGroupForNode(nodeId);
-          if (group) {
-            state.deleteGroup(group.id);
-            forceRender(n => n + 1);
-          }
-        }
-        return;
-      }
-
-      // Auto-arrange selected: Ctrl+Shift+A / Cmd+Shift+A
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
-        e.preventDefault();
-        autoArrangeNodes(false);
-        return;
-      }
-
-      // Auto-arrange all: Alt+A
-      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'a' || e.key === 'A')) {
-        e.preventDefault();
-        autoArrangeNodes(true);
-        return;
-      }
-
-      // Toggle Snap: G 키 (단독)
-      if (e.key === 'g' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        e.preventDefault();
-        setSnapToGrid(prev => !prev);
-        return;
-      }
-
-      // Add Comment: C 키 (단독)
-      if (e.key === 'c' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        e.preventDefault();
-        const state = store.getState();
-        const commentId = generateId('comment');
-        const newComment: Comment = {
-          id: commentId,
-          text: '',
-          position: { x: state.viewport.x - 100, y: state.viewport.y - 40 },
-          size: { width: 200, height: 80 },
-          color: '#fff8dc',
-          createdAt: Date.now(),
-        };
-        state.addComment(newComment);
-        selectedCommentIdRef.current = commentId;
-        setSelectedNodes(new Set());
-        forceRender(n => n + 1);
-        return;
-      }
-
-      // History: Ctrl+H / Cmd+H
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'h' || e.key === 'H') && !e.shiftKey) {
-        e.preventDefault();
-        setShowHistory(prev => !prev);
-        return;
-      }
-
-      // Theme Toggle: Ctrl+Shift+T / Cmd+Shift+T
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 't' || e.key === 'T')) {
-        e.preventDefault();
-        toggleTheme();
-        return;
-      }
-
-      // Help: ? 키 또는 F1
-      if (e.key === '?' || e.key === 'F1') {
-        e.preventDefault();
-        setShowHelp(prev => !prev);
-        return;
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      // Space 해제
-      if (e.code === 'Space') {
-        setSpacePressed(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
+  // 키보드 이벤트 (extracted to useCanvasKeyboard hook)
+  useCanvasKeyboard({
+    refs: {
+      storeRef,
+      selectedNodeIdsRef,
+      selectedCommentIdRef,
+      selectedSubflowIdRef,
+      clipboardRef,
+      canvasRef,
+      snapToGridRef,
+      edgeStyleRef,
+    },
+    setters: {
+      setSpacePressed,
+      setShowSearch,
+      setShowHelp,
+      setShowHistory,
+      setNodePalette,
+      setTemplateBrowser,
+      setContextMenu,
+      setSnapToGrid,
+      setCurrentZoom,
+    },
+    callbacks: {
+      setSelectedNodes,
+      forceRender,
+      toggleThemeRef,
+    },
+    gridSize: GRID_SIZE,
+  });
 
   // 우클릭 컨텍스트 메뉴
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
@@ -2920,197 +1856,25 @@ export function FlowCanvas() {
     setSelectedNodes(new Set([newNode.id]));
   }, []);
 
-  // 컨텍스트 메뉴 아이템 생성
+  // 컨텍스트 메뉴 아이템 생성 (extracted to canvasMenuItems.ts)
   const getMenuItems = (): MenuItem[] => {
     const store = storeRef.current;
     if (!store || !contextMenu) return [];
 
-    const { worldPos, targetNode, targetCommentId } = contextMenu;
-
-    // 코멘트 메뉴
-    if (targetCommentId) {
-      return [
-        {
-          label: 'Edit Comment',
-          action: () => {
-            setEditingCommentId(targetCommentId);
-            selectedCommentIdRef.current = targetCommentId;
-            forceRender(n => n + 1);
-          },
-        },
-        { label: '', action: () => {}, divider: true },
-        {
-          label: 'Delete Comment',
-          action: () => {
-            store.getState().deleteComment(targetCommentId);
-            if (selectedCommentIdRef.current === targetCommentId) {
-              selectedCommentIdRef.current = null;
-            }
-            forceRender(n => n + 1);
-          },
-        },
-      ];
-    }
-
-    if (targetNode) {
-      // 노드 위에서 우클릭
-      const items: MenuItem[] = [
-        {
-          label: 'Delete Node',
-          action: () => {
-            store.getState().deleteNode(targetNode.id);
-            selectedNodeIdsRef.current.delete(targetNode.id);
-            forceRender(n => n + 1);
-          },
-        },
-        { label: '', action: () => {}, divider: true },
-        {
-          label: 'Duplicate',
-          action: () => {
-            const newNode: FlowNode = {
-              ...targetNode,
-              id: generateId('node'),
-              position: {
-                x: targetNode.position.x + 20,
-                y: targetNode.position.y + 20,
-              },
-            };
-            store.getState().addNode(newNode);
-            setSelectedNodes(new Set([newNode.id]));
-          },
-        },
-      ];
-
-      // 다중 선택 시 정렬 옵션 추가
-      if (selectedNodeIdsRef.current.size >= 2) {
-        items.push({ label: '', action: () => {}, divider: true });
-        items.push({ label: 'Align Left', action: () => alignNodes('left') });
-        items.push({ label: 'Align Center', action: () => alignNodes('center') });
-        items.push({ label: 'Align Right', action: () => alignNodes('right') });
-        items.push({ label: '', action: () => {}, divider: true });
-        items.push({ label: 'Align Top', action: () => alignNodes('top') });
-        items.push({ label: 'Align Middle', action: () => alignNodes('middle') });
-        items.push({ label: 'Align Bottom', action: () => alignNodes('bottom') });
-
-        if (selectedNodeIdsRef.current.size >= 3) {
-          items.push({ label: '', action: () => {}, divider: true });
-          items.push({ label: 'Distribute Horizontal', action: () => distributeNodes('horizontal') });
-          items.push({ label: 'Distribute Vertical', action: () => distributeNodes('vertical') });
-        }
-
-        // 그룹 옵션
-        items.push({ label: '', action: () => {}, divider: true });
-        const state = store.getState();
-        const existingGroup = state.getGroupForNode(targetNode.id);
-        if (existingGroup) {
-          items.push({
-            label: `Ungroup "${existingGroup.name}"`,
-            action: () => {
-              state.deleteGroup(existingGroup.id);
-              forceRender(n => n + 1);
-            },
-          });
-        } else {
-          items.push({
-            label: 'Group Selected (Ctrl+G)',
-            action: () => {
-              state.createGroup('New Group', Array.from(selectedNodeIdsRef.current));
-              forceRender(n => n + 1);
-            },
-          });
-        }
-
-        // 서브플로우 옵션
-        const existingSubflow = state.getSubflowForNode(targetNode.id);
-        if (existingSubflow) {
-          items.push({
-            label: existingSubflow.collapsed ? 'Expand Subflow' : 'Collapse Subflow',
-            action: () => {
-              if (existingSubflow.collapsed) {
-                state.expandSubflow(existingSubflow.id);
-              } else {
-                state.collapseSubflow(existingSubflow.id);
-              }
-              selectedSubflowIdRef.current = existingSubflow.id;
-              forceRender(n => n + 1);
-            },
-          });
-          items.push({
-            label: `Delete Subflow "${existingSubflow.name}"`,
-            action: () => {
-              state.deleteSubflow(existingSubflow.id);
-              selectedSubflowIdRef.current = null;
-              forceRender(n => n + 1);
-            },
-          });
-        } else {
-          items.push({
-            label: 'Create Subflow (Ctrl+Shift+G)',
-            action: () => {
-              const subflowId = state.createSubflow('New Subflow', Array.from(selectedNodeIdsRef.current));
-              if (subflowId) {
-                selectedSubflowIdRef.current = subflowId;
-                setSelectedNodes(new Set());
-                forceRender(n => n + 1);
-              }
-            },
-          });
-        }
-      }
-
-      return items;
-    } else {
-      // 빈 공간에서 우클릭 - 카테고리별 노드 추가 메뉴
-      const categories = nodeTypeRegistry.getCategories();
-      const items: MenuItem[] = [];
-
-      for (const category of categories) {
-        const types = nodeTypeRegistry.getByCategory(category);
-        items.push({
-          label: `Add ${category}`,
-          action: () => {
-            // 해당 카테고리의 첫 번째 노드 추가
-            if (types[0]) {
-              addNodeFromType(types[0], worldPos);
-            }
-          },
-        });
-      }
-
-      items.push({ label: '', action: () => {}, divider: true });
-      items.push({
-        label: 'Search Nodes... (Tab)',
-        action: () => {
-          setNodePalette({
-            x: contextMenu?.x ?? 0,
-            y: contextMenu?.y ?? 0,
-            worldPos,
-          });
-        },
-      });
-      items.push({ label: '', action: () => {}, divider: true });
-      items.push({
-        label: 'Add Comment (C)',
-        action: () => {
-          const state = store.getState();
-          const commentId = generateId('comment');
-          const newComment: Comment = {
-            id: commentId,
-            text: '',
-            position: worldPos,
-            size: { width: 200, height: 80 },
-            color: '#fff8dc',
-            createdAt: Date.now(),
-          };
-          state.addComment(newComment);
-          selectedCommentIdRef.current = commentId;
-          setSelectedNodes(new Set());
-          forceRender(n => n + 1);
-        },
-      });
-
-      return items;
-    }
+    return getMenuItemsFromContext({
+      store,
+      selectedNodeIds: selectedNodeIdsRef.current,
+      selectedCommentIdRef,
+      selectedSubflowIdRef,
+      targetNode: contextMenu.targetNode,
+      targetCommentId: contextMenu.targetCommentId,
+      worldPos: contextMenu.worldPos,
+      contextMenuPos: contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null,
+      setSelectedNodes,
+      setNodePalette,
+      setEditingCommentId,
+      forceRender,
+    });
   };
 
   return (
@@ -3233,247 +1997,68 @@ export function FlowCanvas() {
       )}
       {/* 데스크톱 툴바 */}
       {!isMobile && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            zIndex: 100,
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
+        <DesktopToolbar
+          colors={colors}
+          onUndo={() => {
+            storeRef.current?.getState().undo();
+            forceRender(n => n + 1);
           }}
-        >
-          {/* Undo/Redo 버튼 */}
-          <div style={{ display: 'flex', gap: 2 }}>
-            <button
-              onClick={() => {
-                storeRef.current?.getState().undo();
-                forceRender(n => n + 1);
-              }}
-              disabled={!storeRef.current?.getState().canUndo()}
-              title="Undo (Ctrl+Z)"
-              style={{
-                padding: '8px 10px',
-                background: colors.bgTertiary,
-                color: storeRef.current?.getState().canUndo() ? colors.textSecondary : colors.textMuted,
-                border: `1px solid ${colors.border}`,
-                borderRadius: '4px 0 0 4px',
-                fontSize: 14,
-                cursor: storeRef.current?.getState().canUndo() ? 'pointer' : 'not-allowed',
-                opacity: storeRef.current?.getState().canUndo() ? 1 : 0.5,
-              }}
-            >
-              {IconUndo({ size: 14 })}
-            </button>
-            <button
-              onClick={() => {
-                storeRef.current?.getState().redo();
-                forceRender(n => n + 1);
-              }}
-              disabled={!storeRef.current?.getState().canRedo()}
-              title="Redo (Ctrl+Y)"
-              style={{
-                padding: '8px 10px',
-                background: colors.bgTertiary,
-                color: storeRef.current?.getState().canRedo() ? colors.textSecondary : colors.textMuted,
-                border: `1px solid ${colors.border}`,
-                borderLeft: 'none',
-                borderRadius: '0 4px 4px 0',
-                fontSize: 14,
-                cursor: storeRef.current?.getState().canRedo() ? 'pointer' : 'not-allowed',
-                opacity: storeRef.current?.getState().canRedo() ? 1 : 0.5,
-              }}
-            >
-              {IconRedo({ size: 14 })}
-            </button>
-          </div>
-          {/* 자동 저장 상태 */}
-          <div
-            title="Auto-save status"
-            style={{
-              padding: '8px 12px',
-              background: colors.bgTertiary,
-              color: saveStatus === 'saved' ? colors.success : saveStatus === 'saving' ? colors.warning : colors.textSecondary,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 4,
-              fontSize: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <span style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: saveStatus === 'saved' ? colors.success : saveStatus === 'saving' ? colors.warning : colors.textSecondary,
-            }} />
-            {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
-          </div>
-          {/* 스냅 토글 */}
-          <button
-            onClick={() => setSnapToGrid(prev => !prev)}
-            title={`Snap to Grid: ${snapToGrid ? 'ON' : 'OFF'} (G)`}
-            style={{
-              padding: '8px 12px',
-              background: snapToGrid ? colors.bgActive : colors.bgTertiary,
-              color: snapToGrid ? colors.success : colors.textSecondary,
-              border: snapToGrid ? `1px solid ${colors.success}` : `1px solid ${colors.border}`,
-              borderRadius: 4,
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            Grid: {snapToGrid ? 'ON' : 'OFF'}
-          </button>
-          {/* 엣지 스타일 토글 */}
-          <button
-            onClick={() => {
-              const styles: EdgeStyle[] = ['bezier', 'straight', 'step'];
-              const currentIndex = styles.indexOf(edgeStyle);
-              setEdgeStyle(styles[(currentIndex + 1) % styles.length]);
-            }}
-            title="Edge Style (Click to cycle)"
-            style={{
-              padding: '8px 12px',
-              background: colors.bgActive,
-              color: colors.textSecondary,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 4,
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            Edge: {edgeStyle.charAt(0).toUpperCase() + edgeStyle.slice(1)}
-          </button>
-          {/* 언어 선택 */}
-          <LanguageSwitcher />
-          {/* 테마 토글 */}
-          <ThemeToggle />
-          {/* 내보내기/가져오기 */}
-          <div style={{ display: 'flex', gap: 2 }}>
-            <button
-              onClick={() => {
-                const store = storeRef.current;
-                if (!store) return;
-                const state = store.getState();
-                downloadFlow(
-                  state.nodes,
-                  state.edges,
-                  state.groups,
-                  state.viewport,
-                  'flowforge-export.json',
-                  state.comments,
-                  state.subflows
-                );
-              }}
-              title="Export Flow (JSON)"
-              style={{
-                padding: '8px 10px',
-                background: colors.bgTertiary,
-                color: colors.textSecondary,
-                border: `1px solid ${colors.border}`,
-                borderRadius: '4px 0 0 4px',
-                fontSize: 12,
-                cursor: 'pointer',
-              }}
-            >
-              {IconDownload({ size: 12 })} Export
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  const flow = await loadFlowFromFile();
-                  const store = storeRef.current;
-                  if (!store) return;
-                  const state = store.getState();
-                  // 현재 플로우를 새로 불러온 것으로 교체
-                  state.loadFlow(
-                    flow.nodes,
-                    flow.edges,
-                    flow.groups,
-                    flow.viewport,
-                    flow.comments,
-                    flow.subflows
-                  );
-                  setSelectedNodes(new Set());
-                  selectedCommentIdRef.current = null;
-                  selectedSubflowIdRef.current = null;
-                  forceRender(n => n + 1);
-                } catch (err) {
-                  console.error('Failed to import flow:', err);
-                }
-              }}
-              title="Import Flow (JSON)"
-              style={{
-                padding: '8px 10px',
-                background: colors.bgTertiary,
-                color: colors.textSecondary,
-                border: `1px solid ${colors.border}`,
-                borderLeft: 'none',
-                borderRadius: '0 4px 4px 0',
-                fontSize: 12,
-                cursor: 'pointer',
-              }}
-            >
-              {IconUpload({ size: 12 })} Import
-            </button>
-          </div>
-          {/* API 키 관리 */}
-          <button
-            onClick={() => setShowAPIKeys(true)}
-            title="API Keys"
-            style={{
-              padding: '8px 12px',
-              background: colors.bgTertiary,
-              color: colors.textSecondary,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 4,
-              fontSize: 12,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            {IconKey({ size: 14 })} API Keys
-          </button>
-          {executionState && (
-            <div
-              style={{
-                padding: '8px 12px',
-                background: executionState.status === 'success' ? '#28a745' :
-                           executionState.status === 'error' ? '#dc3545' : '#6c757d',
-                color: '#fff',
-                borderRadius: 4,
-                fontSize: 12,
-              }}
-            >
-              {executionState.status === 'success' ? 'Completed' :
-               executionState.status === 'error' ? 'Error' : 'Running...'}
-            </div>
-          )}
-          <button
-            onClick={handleRunFlow}
-            disabled={isRunning}
-            style={{
-              padding: '10px 20px',
-              background: isRunning ? '#4a5568' : '#3182ce',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: isRunning ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            {isRunning ? 'Running...' : 'Run Flow'}
-          </button>
-        </div>
+          onRedo={() => {
+            storeRef.current?.getState().redo();
+            forceRender(n => n + 1);
+          }}
+          canUndo={storeRef.current?.getState().canUndo() || false}
+          canRedo={storeRef.current?.getState().canRedo() || false}
+          saveStatus={saveStatus}
+          snapToGrid={snapToGrid}
+          onToggleSnap={() => setSnapToGrid(prev => !prev)}
+          edgeStyle={edgeStyle}
+          onEdgeStyleChange={() => {
+            const styles: EdgeStyle[] = ['bezier', 'straight', 'step'];
+            const currentIndex = styles.indexOf(edgeStyle);
+            setEdgeStyle(styles[(currentIndex + 1) % styles.length]);
+          }}
+          onExport={() => {
+            const store = storeRef.current;
+            if (!store) return;
+            const state = store.getState();
+            downloadFlow(
+              state.nodes,
+              state.edges,
+              state.groups,
+              state.viewport,
+              'flowforge-export.json',
+              state.comments,
+              state.subflows
+            );
+          }}
+          onImport={async () => {
+            try {
+              const flow = await loadFlowFromFile();
+              const store = storeRef.current;
+              if (!store) return;
+              const state = store.getState();
+              state.loadFlow(
+                flow.nodes,
+                flow.edges,
+                flow.groups,
+                flow.viewport,
+                flow.comments,
+                flow.subflows
+              );
+              setSelectedNodes(new Set());
+              selectedCommentIdRef.current = null;
+              selectedSubflowIdRef.current = null;
+              forceRender(n => n + 1);
+            } catch (err) {
+              console.error('Failed to import flow:', err);
+            }
+          }}
+          onAPIKeys={() => setShowAPIKeys(true)}
+          onRun={handleRunFlow}
+          isRunning={isRunning}
+          executionState={executionState}
+        />
       )}
       <canvas
         tabIndex={isTouchDevice ? -1 : 0}
@@ -3659,7 +2244,7 @@ export function FlowCanvas() {
           forceRender(n => n + 1);
         }}
         onUngroup={ungroupSelectedNodes}
-        onAutoArrange={autoArrangeNodes}
+        onAutoArrange={doAutoArrangeNodes}
         onDuplicate={() => {
           const store = storeRef.current;
           if (!store) return;
@@ -3702,11 +2287,11 @@ export function FlowCanvas() {
 
           setSelectedNodes(new Set(newNodeIds));
         }}
-        onAlignLeft={() => alignNodes('left')}
-        onAlignCenter={() => alignNodes('center')}
-        onAlignRight={() => alignNodes('right')}
-        onDistributeH={() => distributeNodes('horizontal')}
-        onDistributeV={() => distributeNodes('vertical')}
+        onAlignLeft={() => doAlignNodes('left')}
+        onAlignCenter={() => doAlignNodes('center')}
+        onAlignRight={() => doAlignNodes('right')}
+        onDistributeH={() => doDistributeNodes('horizontal')}
+        onDistributeV={() => doDistributeNodes('vertical')}
         onDeselect={() => setSelectedNodes(new Set())}
       />}
       {/* 줌 컨트롤 (데스크톱만 - 모바일은 핀치 줌 사용) */}
