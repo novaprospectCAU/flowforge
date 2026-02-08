@@ -2,6 +2,24 @@ import { WebGPURenderer } from './WebGPURenderer';
 import { WebGL2Renderer } from './WebGL2Renderer';
 import type { IRenderer } from './types';
 
+// roundRect 폴리필 (Safari < 16, Firefox < 112 등 구형 브라우저 지원)
+if (typeof CanvasRenderingContext2D !== 'undefined' &&
+    !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (
+    x: number, y: number, w: number, h: number,
+    radii?: number | number[]
+  ) {
+    const r = typeof radii === 'number' ? radii : Array.isArray(radii) ? radii[0] ?? 0 : 0;
+    const clampedR = Math.min(r, w / 2, h / 2);
+    this.moveTo(x + clampedR, y);
+    this.arcTo(x + w, y, x + w, y + h, clampedR);
+    this.arcTo(x + w, y + h, x, y + h, clampedR);
+    this.arcTo(x, y + h, x, y, clampedR);
+    this.arcTo(x, y, x + w, y, clampedR);
+    this.closePath();
+  };
+}
+
 export interface CreateRendererOptions {
   force?: 'webgpu' | 'webgl2';
   /** Enable debug logging for renderer initialization */

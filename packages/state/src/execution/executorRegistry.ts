@@ -708,6 +708,7 @@ executorRegistry.register('HTTPRequest', async (ctx: ExecutionContext): Promise<
       response: responseData,
       status: response.status,
       headers: responseHeaders,
+      error: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`,
     },
   };
 });

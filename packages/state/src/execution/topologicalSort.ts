@@ -18,8 +18,13 @@ export function topologicalSort(nodes: FlowNode[], edges: FlowEdge[]): string[] 
     inDegree.set(node.id, 0);
   }
 
-  // 엣지 정보로 그래프 구성
+  // 엣지 중복 제거 후 그래프 구성
+  const seenEdges = new Set<string>();
   for (const edge of edges) {
+    const key = `${edge.source}:${edge.sourcePort}->${edge.target}:${edge.targetPort}`;
+    if (seenEdges.has(key)) continue;
+    seenEdges.add(key);
+
     const targets = adjacency.get(edge.source);
     if (targets) {
       targets.push(edge.target);
@@ -36,10 +41,12 @@ export function topologicalSort(nodes: FlowNode[], edges: FlowEdge[]): string[] 
   }
 
   const result: string[] = [];
+  const resultSet = new Set<string>();
 
   while (queue.length > 0) {
     const nodeId = queue.shift()!;
     result.push(nodeId);
+    resultSet.add(nodeId);
 
     // 이 노드에서 나가는 엣지들의 대상 노드들의 진입 차수 감소
     const targets = adjacency.get(nodeId) ?? [];
@@ -56,7 +63,7 @@ export function topologicalSort(nodes: FlowNode[], edges: FlowEdge[]): string[] 
   // 모든 노드가 결과에 포함되지 않았다면 순환 의존성 존재
   if (result.length !== nodes.length) {
     const cycleNodeIds = nodes
-      .filter(n => !result.includes(n.id))
+      .filter(n => !resultSet.has(n.id))
       .map(n => n.id);
     const cyclePath = findCyclePath(cycleNodeIds, adjacency);
     throw new Error(`Circular dependency: ${cyclePath}`);
@@ -83,7 +90,13 @@ export function topologicalLevels(nodes: FlowNode[], edges: FlowEdge[]): string[
     inDegree.set(node.id, 0);
   }
 
+  // 엣지 중복 제거 후 그래프 구성
+  const seenEdges = new Set<string>();
   for (const edge of edges) {
+    const key = `${edge.source}:${edge.sourcePort}->${edge.target}:${edge.targetPort}`;
+    if (seenEdges.has(key)) continue;
+    seenEdges.add(key);
+
     const targets = adjacency.get(edge.source);
     if (targets) {
       targets.push(edge.target);
@@ -100,11 +113,11 @@ export function topologicalLevels(nodes: FlowNode[], edges: FlowEdge[]): string[
   }
 
   const levels: string[][] = [];
-  let processedCount = 0;
+  const processedIds = new Set<string>();
 
   while (currentLevel.length > 0) {
     levels.push(currentLevel);
-    processedCount += currentLevel.length;
+    for (const id of currentLevel) processedIds.add(id);
 
     const nextLevel: string[] = [];
 
@@ -123,9 +136,9 @@ export function topologicalLevels(nodes: FlowNode[], edges: FlowEdge[]): string[
     currentLevel = nextLevel;
   }
 
-  if (processedCount !== nodes.length) {
+  if (processedIds.size !== nodes.length) {
     const cycleNodeIds = nodes
-      .filter(n => !levels.flat().includes(n.id))
+      .filter(n => !processedIds.has(n.id))
       .map(n => n.id);
     const cyclePath = findCyclePath(cycleNodeIds, adjacency);
     throw new Error(`Circular dependency: ${cyclePath}`);

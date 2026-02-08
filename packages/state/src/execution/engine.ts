@@ -67,7 +67,7 @@ export class ExecutionEngine {
     // 내부 abort controller (외부 signal과 연결)
     this.abortController = new AbortController();
     if (signal) {
-      signal.addEventListener('abort', () => this.abortController?.abort());
+      signal.addEventListener('abort', () => this.abortController?.abort(), { once: true });
     }
 
     const emit = (event: ExecutionEvent) => {
@@ -109,7 +109,7 @@ export class ExecutionEngine {
             const typeDef = nodeTypeRegistry.get(node.type);
             if (typeDef?.errorResilient) {
               // errorResilient 노드: 에러 정보를 주입하여 실행
-              await this.executeErrorResilientNode(node, edges, failedNodes, emit, options);
+              await this.executeErrorResilientNode(node, edges, failedNodes, emit, options, nodeMap);
             } else {
               failedNodes.add(nodeId);
               const nodeState: NodeState = {
@@ -308,7 +308,8 @@ export class ExecutionEngine {
     edges: FlowEdge[],
     failedNodes: Set<string>,
     emit: (event: ExecutionEvent) => void,
-    _options: ExecutionOptions
+    _options: ExecutionOptions,
+    nodeMap?: Map<string, FlowNode>
   ): Promise<void> {
     const nodeState: NodeState = {
       status: 'running',
@@ -320,7 +321,7 @@ export class ExecutionEngine {
 
     try {
       const inputs = this.collectInputs(node.id, edges);
-      const upstreamErrors = this.collectUpstreamErrors(node.id, edges);
+      const upstreamErrors = this.collectUpstreamErrors(node.id, edges, nodeMap ?? new Map());
       inputs.__upstreamErrors = upstreamErrors;
 
       const executor = executorRegistry.get(node.type);
@@ -360,7 +361,8 @@ export class ExecutionEngine {
    */
   private collectUpstreamErrors(
     nodeId: string,
-    edges: FlowEdge[]
+    edges: FlowEdge[],
+    nodeMap: Map<string, FlowNode>
   ): Array<{ nodeId: string; nodeType: string; error: string; timing?: { start?: number; end?: number } }> {
     const errors: Array<{ nodeId: string; nodeType: string; error: string; timing?: { start?: number; end?: number } }> = [];
     const dependencies = edges.filter(e => e.target === nodeId).map(e => e.source);
@@ -368,11 +370,10 @@ export class ExecutionEngine {
     for (const depId of dependencies) {
       const depState = this.state.nodeStates.get(depId);
       if (depState?.status === 'error' && depState.error) {
-        // depState에서 nodeType을 알 수 없으므로 'unknown' 사용 가능하지만
-        // 이를 개선하기 위해 edges에서 소스 노드 타입 정보를 전달받는 것이 좋음
+        const depNode = nodeMap.get(depId);
         errors.push({
           nodeId: depId,
-          nodeType: 'unknown',
+          nodeType: depNode?.type ?? 'unknown',
           error: depState.error,
           timing: { start: depState.startTime, end: depState.endTime },
         });
@@ -398,6 +399,8 @@ export class ExecutionEngine {
       }
     }
 
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
     for (const node of nodes) {
       // 아직 실행되지 않은 errorResilient 노드
       if (this.state.nodeStates.has(node.id)) continue;
@@ -406,7 +409,7 @@ export class ExecutionEngine {
 
       // 업스트림에 실패한 노드가 있는 경우에만
       if (this.hasFailedDependency(node.id, edges, failedNodes)) {
-        await this.executeErrorResilientNode(node, edges, failedNodes, emit, options);
+        await this.executeErrorResilientNode(node, edges, failedNodes, emit, options, nodeMap);
       }
     }
   }

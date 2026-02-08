@@ -327,6 +327,7 @@ const BUILTIN_NODE_TYPES: NodeTypeDefinition[] = [
       { id: 'response', name: 'response', dataType: 'any' },
       { id: 'status', name: 'status', dataType: 'number' },
       { id: 'headers', name: 'headers', dataType: 'object' },
+      { id: 'error', name: 'error', dataType: 'string' },
     ],
     defaultSize: NODE_SIZES.STANDARD_LARGE,
   },
