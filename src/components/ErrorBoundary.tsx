@@ -5,6 +5,7 @@
 
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { IconWarning } from './Icons';
+import { getThemeColors, type ThemeMode, type ThemeColors } from '../hooks/useTheme';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -63,6 +64,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       // 기본 에러 UI
+      const themeMode = (document.documentElement.getAttribute('data-theme') as ThemeMode) || 'dark';
+      const colors = getThemeColors(themeMode);
+      const styles = getStyles(colors);
       return (
         <div style={styles.container}>
           <div style={styles.card}>
@@ -147,6 +151,9 @@ export class NodeErrorBoundary extends Component<NodeErrorBoundaryProps, NodeErr
 
   render(): ReactNode {
     if (this.state.hasError) {
+      const themeMode = (document.documentElement.getAttribute('data-theme') as ThemeMode) || 'dark';
+      const colors = getThemeColors(themeMode);
+      const nodeStyles = getNodeStyles(colors);
       return (
         <div style={nodeStyles.container}>
           <div style={nodeStyles.icon}>{IconWarning({ size: 32, color: '#f6e05e' })}</div>
@@ -163,131 +170,135 @@ export class NodeErrorBoundary extends Component<NodeErrorBoundaryProps, NodeErr
 }
 
 // 메인 에러 바운더리 스타일
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: '#1a1a1a',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    zIndex: 9999,
-  },
-  card: {
-    maxWidth: 500,
-    width: '100%',
-    background: '#252526',
-    border: '1px solid #3c3c3c',
-    borderRadius: 12,
-    padding: 32,
-    textAlign: 'center',
-  },
-  icon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  title: {
-    margin: '0 0 12px 0',
-    fontSize: 20,
-    fontWeight: 600,
-    color: '#ffffff',
-  },
-  message: {
-    margin: '0 0 20px 0',
-    fontSize: 14,
-    color: '#a0a0a0',
-    lineHeight: 1.5,
-  },
-  errorBox: {
-    background: '#3f1d1d',
-    border: '1px solid #ef4444',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  errorCode: {
-    fontSize: 12,
-    color: '#fca5a5',
-    wordBreak: 'break-word',
-  },
-  buttons: {
-    display: 'flex',
-    gap: 12,
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  primaryBtn: {
-    padding: '10px 20px',
-    background: '#3182ce',
-    border: 'none',
-    borderRadius: 6,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 500,
-    cursor: 'pointer',
-  },
-  secondaryBtn: {
-    padding: '10px 20px',
-    background: '#3c3c3c',
-    border: 'none',
-    borderRadius: 6,
-    color: '#e0e0e0',
-    fontSize: 14,
-    fontWeight: 500,
-    cursor: 'pointer',
-  },
-  details: {
-    textAlign: 'left',
-    marginTop: 16,
-  },
-  summary: {
-    cursor: 'pointer',
-    color: '#808080',
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  stack: {
-    background: '#1a1a1a',
-    border: '1px solid #3c3c3c',
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 10,
-    color: '#808080',
-    overflow: 'auto',
-    maxHeight: 200,
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-  },
-};
+function getStyles(colors: ThemeColors): Record<string, React.CSSProperties> {
+  return {
+    container: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: colors.bgPrimary,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+      zIndex: 9999,
+    },
+    card: {
+      maxWidth: 500,
+      width: '100%',
+      background: colors.bgSecondary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 12,
+      padding: 32,
+      textAlign: 'center',
+    },
+    icon: {
+      fontSize: 48,
+      marginBottom: 16,
+    },
+    title: {
+      margin: '0 0 12px 0',
+      fontSize: 20,
+      fontWeight: 600,
+      color: colors.textPrimary,
+    },
+    message: {
+      margin: '0 0 20px 0',
+      fontSize: 14,
+      color: colors.textMuted,
+      lineHeight: 1.5,
+    },
+    errorBox: {
+      background: colors.error + '15',
+      border: `1px solid ${colors.error}`,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 20,
+    },
+    errorCode: {
+      fontSize: 12,
+      color: colors.error,
+      wordBreak: 'break-word',
+    },
+    buttons: {
+      display: 'flex',
+      gap: 12,
+      justifyContent: 'center',
+      marginBottom: 20,
+    },
+    primaryBtn: {
+      padding: '10px 20px',
+      background: colors.accent,
+      border: 'none',
+      borderRadius: 6,
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: 500,
+      cursor: 'pointer',
+    },
+    secondaryBtn: {
+      padding: '10px 20px',
+      background: colors.bgTertiary,
+      border: 'none',
+      borderRadius: 6,
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: 500,
+      cursor: 'pointer',
+    },
+    details: {
+      textAlign: 'left',
+      marginTop: 16,
+    },
+    summary: {
+      cursor: 'pointer',
+      color: colors.textMuted,
+      fontSize: 12,
+      marginBottom: 8,
+    },
+    stack: {
+      background: colors.bgPrimary,
+      border: `1px solid ${colors.border}`,
+      borderRadius: 6,
+      padding: 12,
+      fontSize: 10,
+      color: colors.textMuted,
+      overflow: 'auto',
+      maxHeight: 200,
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+    },
+  };
+}
 
 // 노드 에러 바운더리 스타일
-const nodeStyles: Record<string, React.CSSProperties> = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    gap: 8,
-  },
-  icon: {
-    fontSize: 24,
-  },
-  message: {
-    fontSize: 11,
-    color: '#ef4444',
-  },
-  retryBtn: {
-    padding: '4px 12px',
-    background: '#3c3c3c',
-    border: 'none',
-    borderRadius: 4,
-    color: '#a0a0a0',
-    fontSize: 10,
-    cursor: 'pointer',
-  },
-};
+function getNodeStyles(colors: ThemeColors): Record<string, React.CSSProperties> {
+  return {
+    container: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 12,
+      gap: 8,
+    },
+    icon: {
+      fontSize: 24,
+    },
+    message: {
+      fontSize: 11,
+      color: colors.error,
+    },
+    retryBtn: {
+      padding: '4px 12px',
+      background: colors.bgHover,
+      border: 'none',
+      borderRadius: 4,
+      color: colors.textMuted,
+      fontSize: 10,
+      cursor: 'pointer',
+    },
+  };
+}

@@ -91,7 +91,7 @@ export function SubflowPanel({
     },
     nodeType: {
       fontSize: 10,
-      color: 'rgba(255,255,255,0.7)',
+      color: 'rgba(255, 255, 255, 0.7)',
       textTransform: 'uppercase',
       letterSpacing: 0.5,
       marginBottom: 4,
@@ -99,7 +99,7 @@ export function SubflowPanel({
     nodeTitle: {
       fontSize: 16,
       fontWeight: 600,
-      color: '#ffffff',
+      color: '#fff',
     },
     content: {
       padding: 16,
