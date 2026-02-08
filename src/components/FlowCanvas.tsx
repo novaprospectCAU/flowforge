@@ -3254,9 +3254,9 @@ export function FlowCanvas() {
               title="Undo (Ctrl+Z)"
               style={{
                 padding: '8px 10px',
-                background: '#2d3748',
-                color: storeRef.current?.getState().canUndo() ? '#a0aec0' : '#4a5568',
-                border: '1px solid #4a5568',
+                background: colors.bgTertiary,
+                color: storeRef.current?.getState().canUndo() ? colors.textSecondary : colors.textMuted,
+                border: `1px solid ${colors.border}`,
                 borderRadius: '4px 0 0 4px',
                 fontSize: 14,
                 cursor: storeRef.current?.getState().canUndo() ? 'pointer' : 'not-allowed',
@@ -3274,9 +3274,9 @@ export function FlowCanvas() {
               title="Redo (Ctrl+Y)"
               style={{
                 padding: '8px 10px',
-                background: '#2d3748',
-                color: storeRef.current?.getState().canRedo() ? '#a0aec0' : '#4a5568',
-                border: '1px solid #4a5568',
+                background: colors.bgTertiary,
+                color: storeRef.current?.getState().canRedo() ? colors.textSecondary : colors.textMuted,
+                border: `1px solid ${colors.border}`,
                 borderLeft: 'none',
                 borderRadius: '0 4px 4px 0',
                 fontSize: 14,
@@ -3292,9 +3292,9 @@ export function FlowCanvas() {
             title="Auto-save status"
             style={{
               padding: '8px 12px',
-              background: '#2d3748',
-              color: saveStatus === 'saved' ? '#68d391' : saveStatus === 'saving' ? '#f6e05e' : '#a0aec0',
-              border: '1px solid #4a5568',
+              background: colors.bgTertiary,
+              color: saveStatus === 'saved' ? colors.success : saveStatus === 'saving' ? colors.warning : colors.textSecondary,
+              border: `1px solid ${colors.border}`,
               borderRadius: 4,
               fontSize: 12,
               display: 'flex',
@@ -3306,7 +3306,7 @@ export function FlowCanvas() {
               width: 8,
               height: 8,
               borderRadius: '50%',
-              background: saveStatus === 'saved' ? '#68d391' : saveStatus === 'saving' ? '#f6e05e' : '#a0aec0',
+              background: saveStatus === 'saved' ? colors.success : saveStatus === 'saving' ? colors.warning : colors.textSecondary,
             }} />
             {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
           </div>
@@ -3316,9 +3316,9 @@ export function FlowCanvas() {
             title={`Snap to Grid: ${snapToGrid ? 'ON' : 'OFF'} (G)`}
             style={{
               padding: '8px 12px',
-              background: snapToGrid ? '#4a5568' : '#2d3748',
-              color: snapToGrid ? '#68d391' : '#a0aec0',
-              border: snapToGrid ? '1px solid #68d391' : '1px solid #4a5568',
+              background: snapToGrid ? colors.bgActive : colors.bgTertiary,
+              color: snapToGrid ? colors.success : colors.textSecondary,
+              border: snapToGrid ? `1px solid ${colors.success}` : `1px solid ${colors.border}`,
               borderRadius: 4,
               fontSize: 12,
               cursor: 'pointer',
@@ -3336,9 +3336,9 @@ export function FlowCanvas() {
             title="Edge Style (Click to cycle)"
             style={{
               padding: '8px 12px',
-              background: '#4a5568',
-              color: '#a0aec0',
-              border: '1px solid #4a5568',
+              background: colors.bgActive,
+              color: colors.textSecondary,
+              border: `1px solid ${colors.border}`,
               borderRadius: 4,
               fontSize: 12,
               cursor: 'pointer',
@@ -3370,9 +3370,9 @@ export function FlowCanvas() {
               title="Export Flow (JSON)"
               style={{
                 padding: '8px 10px',
-                background: '#2d3748',
-                color: '#a0aec0',
-                border: '1px solid #4a5568',
+                background: colors.bgTertiary,
+                color: colors.textSecondary,
+                border: `1px solid ${colors.border}`,
                 borderRadius: '4px 0 0 4px',
                 fontSize: 12,
                 cursor: 'pointer',
@@ -3407,9 +3407,9 @@ export function FlowCanvas() {
               title="Import Flow (JSON)"
               style={{
                 padding: '8px 10px',
-                background: '#2d3748',
-                color: '#a0aec0',
-                border: '1px solid #4a5568',
+                background: colors.bgTertiary,
+                color: colors.textSecondary,
+                border: `1px solid ${colors.border}`,
                 borderLeft: 'none',
                 borderRadius: '0 4px 4px 0',
                 fontSize: 12,
@@ -3425,9 +3425,9 @@ export function FlowCanvas() {
             title="API Keys"
             style={{
               padding: '8px 12px',
-              background: '#2d3748',
-              color: '#a0aec0',
-              border: '1px solid #4a5568',
+              background: colors.bgTertiary,
+              color: colors.textSecondary,
+              border: `1px solid ${colors.border}`,
               borderRadius: 4,
               fontSize: 12,
               cursor: 'pointer',
