@@ -30,11 +30,11 @@ export const darkCanvasTheme: CanvasThemeColors = {
 
 export const lightCanvasTheme: CanvasThemeColors = {
   canvasBg: { r: 248, g: 248, b: 248, a: 255 },
-  gridMinor: { r: 200, g: 200, b: 200, a: 255 },
+  gridMinor: { r: 230, g: 230, b: 230, a: 255 },
   gridMajor: { r: 170, g: 170, b: 170, a: 255 },
   nodeBg: { r: 255, g: 255, b: 255, a: 255 },
   nodeHeader: { r: 240, g: 240, b: 240, a: 255 },
-  nodeBorder: { r: 208, g: 208, b: 208, a: 255 },
+  nodeBorder: { r: 180, g: 180, b: 180, a: 255 },
   nodeText: { r: 26, g: 26, b: 26, a: 255 },
   nodePortLabel: { r: 102, g: 102, b: 102, a: 255 },
   minimapBg: { r: 232, g: 232, b: 232, a: 230 },

@@ -89,9 +89,9 @@ export function drawNode(
   // 0.5. 기본 테두리 (상태 테두리가 없을 때)
   if (!borderColor) {
     renderer.drawRoundedRect(
-      x - 1, y - 1,
-      width + 2, height + 2,
-      NODE_STYLE.borderRadius + 1,
+      x - 2, y - 2,
+      width + 4, height + 4,
+      NODE_STYLE.borderRadius + 2,
       theme.nodeBorder
     );
   }
