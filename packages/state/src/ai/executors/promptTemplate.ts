@@ -78,11 +78,14 @@ executorRegistry.register(
       }
     }
 
+    // 원본 템플릿에서 변수 추출
+    const templateVars = extractVariables(template);
+
     // 템플릿 치환
     const result = substituteTemplate(template, values);
 
-    // 미치환 변수 확인
-    const remainingVars = extractVariables(result);
+    // 미치환 = 원본 변수 중 값이 제공되지 않은 것
+    const remainingVars = templateVars.filter(v => values[v] === undefined || values[v] === null);
     const hasUnsubstituted = remainingVars.length > 0;
 
     return {

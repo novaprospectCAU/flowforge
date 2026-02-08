@@ -294,18 +294,42 @@ executorRegistry.register('Compare', async (ctx: ExecutionContext): Promise<Exec
     case '!==':
       result = a !== b;
       break;
-    case '<':
-      result = Number(a) < Number(b);
+    case '<': {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (isNaN(numA) || isNaN(numB)) {
+        throw new Error(`Cannot compare non-numeric values: ${String(a)}, ${String(b)}`);
+      }
+      result = numA < numB;
       break;
-    case '>':
-      result = Number(a) > Number(b);
+    }
+    case '>': {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (isNaN(numA) || isNaN(numB)) {
+        throw new Error(`Cannot compare non-numeric values: ${String(a)}, ${String(b)}`);
+      }
+      result = numA > numB;
       break;
-    case '<=':
-      result = Number(a) <= Number(b);
+    }
+    case '<=': {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (isNaN(numA) || isNaN(numB)) {
+        throw new Error(`Cannot compare non-numeric values: ${String(a)}, ${String(b)}`);
+      }
+      result = numA <= numB;
       break;
-    case '>=':
-      result = Number(a) >= Number(b);
+    }
+    case '>=': {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (isNaN(numA) || isNaN(numB)) {
+        throw new Error(`Cannot compare non-numeric values: ${String(a)}, ${String(b)}`);
+      }
+      result = numA >= numB;
       break;
+    }
     default:
       result = a == b;
   }
@@ -334,6 +358,8 @@ executorRegistry.register('Switch', async (ctx: ExecutionContext): Promise<Execu
 
   if (index >= 0 && index <= 2) {
     outputs[`out${index}`] = input;
+  } else {
+    console.warn(`[Switch ${ctx.nodeId}] Index ${index} out of range (0-2), input dropped`);
   }
 
   return { outputs };
@@ -714,7 +740,11 @@ executorRegistry.register('ForEach', async (ctx: ExecutionContext): Promise<Exec
 
 // Range: 숫자 범위 배열 생성
 executorRegistry.register('Range', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
+  const MAX_RANGE = 100_000;
   const count = Math.max(0, Math.floor(Number(ctx.inputs.count ?? ctx.nodeData.count ?? 0)));
+  if (count > MAX_RANGE) {
+    throw new Error(`Range count ${count} exceeds maximum of ${MAX_RANGE}`);
+  }
 
   const array = Array.from({ length: count }, (_, i) => i);
 

@@ -163,13 +163,11 @@ class AnthropicProvider extends BaseProvider {
       body.temperature = request.temperature;
     }
 
-    if (request.tools?.length) {
+    if (request.tools?.length && request.toolChoice !== 'none') {
       body.tools = this.convertTools(request.tools);
       if (request.toolChoice) {
         if (request.toolChoice === 'auto') {
           body.tool_choice = { type: 'auto' };
-        } else if (request.toolChoice === 'none') {
-          // Anthropic doesn't have 'none', skip tools
         } else {
           body.tool_choice = { type: 'tool', name: request.toolChoice.name };
         }
@@ -260,12 +258,12 @@ class AnthropicProvider extends BaseProvider {
       body.temperature = request.temperature;
     }
 
-    if (request.tools?.length) {
+    if (request.tools?.length && request.toolChoice !== 'none') {
       body.tools = this.convertTools(request.tools);
       if (request.toolChoice) {
         if (request.toolChoice === 'auto') {
           body.tool_choice = { type: 'auto' };
-        } else if (request.toolChoice !== 'none') {
+        } else {
           body.tool_choice = { type: 'tool', name: request.toolChoice.name };
         }
       }
