@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createRenderer, screenToWorld, worldToScreen } from '@flowforge/canvas';
 import type { IRenderer } from '@flowforge/canvas';
 import type { Viewport, CanvasSize, Color } from '@flowforge/types';
-import { IconParty, IconWarning, IconClipboard, IconCheck, IconClose } from '../components/Icons';
+import { IconSmile, IconWarning, IconClipboard, IconCheck, IconClose } from '../components/Icons';
 
 interface TestResult {
   name: string;
@@ -298,7 +298,7 @@ export function CanvasContractTest() {
             textAlign: 'center',
           }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>
-              {allPassed ? IconParty({ size: 32 }) : IconWarning({ size: 32 })}
+              {allPassed ? IconSmile({ size: 32 }) : IconWarning({ size: 32 })}
             </div>
             <div style={{ fontSize: 18, fontWeight: 'bold', color: allPassed ? '#155724' : '#721c24' }}>
               {allPassed 

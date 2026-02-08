@@ -60,9 +60,10 @@ export function IconUpload(props: IconProps = {}) {
 export function IconKey(props: IconProps = {}) {
   return svg(props,
     createElement('circle', { cx: 8, cy: 15, r: 4 }),
-    createElement('path', { d: 'M11.3 11.7 20 3' }),
-    createElement('path', { d: 'M17 3h3v3' }),
-    createElement('path', { d: 'M15 7l2 2' }),
+    createElement('path', { d: 'M11.3 11.7 21 2' }),
+    createElement('path', { d: 'M18 2h3v3' }),
+    createElement('path', { d: 'M16.5 7.5l-2 2' }),
+    createElement('path', { d: 'M14 10l-2 2' }),
   );
 }
 
@@ -177,10 +178,14 @@ export function IconWave(props: IconProps = {}) {
     strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
     style: { display: 'inline-block', verticalAlign: 'middle' },
   },
-    createElement('path', { d: 'M7 11.5V7a2 2 0 0 1 4 0v3' }),
-    createElement('path', { d: 'M11 9.5V5a2 2 0 0 1 4 0v5' }),
-    createElement('path', { d: 'M15 9.5V7a2 2 0 0 1 4 0v7c0 4-3 7-7 7H9c-2 0-4.5-2.5-6-4' }),
-    createElement('path', { d: 'M7 11.5a2 2 0 0 0-4 0v2' }),
+    // 손바닥 + 다섯 손가락
+    createElement('path', { d: 'M18 11V6a2 2 0 0 0-4 0' }),
+    createElement('path', { d: 'M14 6V4a2 2 0 0 0-4 0v7' }),
+    createElement('path', { d: 'M10 11V5a2 2 0 0 0-4 0v9' }),
+    createElement('path', { d: 'M18 11a2 2 0 0 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-1.5-5.5-3' }),
+    // 흔드는 모션 라인
+    createElement('path', { d: 'M2 10c1-1.5 1-3.5 0-5', strokeWidth: 1.5 }),
+    createElement('path', { d: 'M5 9c.6-1 .6-2.2 0-3.2', strokeWidth: 1.5 }),
   );
 }
 
@@ -218,14 +223,12 @@ export function IconPlayCircle(props: IconProps = {}) {
   );
 }
 
-export function IconParty(props: IconProps = {}) {
+export function IconSmile(props: IconProps = {}) {
   return svg(props,
-    createElement('path', { d: 'M5.8 11.3L2 22l10.7-3.8' }),
-    createElement('path', { d: 'M4 3l2.5 2.5' }),
-    createElement('path', { d: 'M14 6l2-2' }),
-    createElement('path', { d: 'M18 10l2.5-2.5' }),
-    createElement('path', { d: 'M12.4 2.3c.7-.3 1.5 0 2 .5l6.8 6.8c.5.5.8 1.3.5 2' }),
-    createElement('path', { d: 'M5.8 11.3c-.3.7 0 1.5.5 2l4.4 4.4c.5.5 1.3.8 2 .5' }),
+    createElement('circle', { cx: 12, cy: 12, r: 10 }),
+    createElement('path', { d: 'M8 14s1.5 2 4 2 4-2 4-2' }),
+    createElement('line', { x1: 9, y1: 9, x2: 9.01, y2: 9 }),
+    createElement('line', { x1: 15, y1: 9, x2: 15.01, y2: 9 }),
   );
 }
 
@@ -251,7 +254,7 @@ const onboardingIconMap: Record<string, (props: IconProps) => ReturnType<typeof 
   compass: IconCompass,
   folder: IconFolder,
   play: IconPlayCircle,
-  party: IconParty,
+  party: IconSmile,
 };
 
 export function OnboardingIcon({ name, size = 48, color }: { name: string; size?: number; color?: string }) {
