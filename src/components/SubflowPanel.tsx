@@ -3,6 +3,7 @@ import type { Subflow, SubflowPortMapping, FlowNode, FlowEdge } from '@flowforge
 import { saveAsTemplate } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
+import { PublishNodeDialog } from './packs/PublishNodeDialog';
 
 interface SubflowPanelProps {
   subflow: Subflow;
@@ -24,6 +25,7 @@ export function SubflowPanel({
   onExpand,
 }: SubflowPanelProps) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [localName, setLocalName] = useState(subflow.name);
   const [localInputs, setLocalInputs] = useState<SubflowPortMapping[]>(subflow.inputMappings);
   const [localOutputs, setLocalOutputs] = useState<SubflowPortMapping[]>(subflow.outputMappings);
@@ -205,6 +207,13 @@ export function SubflowPanel({
       borderColor: colors.success + '44',
       color: colors.success,
     },
+    publishBtn: {
+      width: '100%',
+      marginTop: 8,
+      background: colors.accent + '22',
+      borderColor: colors.accent + '44',
+      color: colors.accent,
+    },
     saveMessage: {
       marginTop: 8,
       fontSize: 11,
@@ -321,6 +330,12 @@ export function SubflowPanel({
             Save as Template
           </button>
           {saveMessage && <div style={styles.saveMessage} role="status">{saveMessage}</div>}
+          <button
+            onClick={() => setShowPublishDialog(true)}
+            style={{ ...styles.actionBtn, ...styles.publishBtn }}
+          >
+            Publish as Custom Node
+          </button>
         </div>
 
         {/* 서브플로우 정보 */}
@@ -339,6 +354,14 @@ export function SubflowPanel({
           </div>
         </div>
       </div>
+      {showPublishDialog && (
+        <PublishNodeDialog
+          subflow={subflow}
+          nodes={nodes}
+          edges={edges}
+          onClose={() => setShowPublishDialog(false)}
+        />
+      )}
     </div>
   );
 }

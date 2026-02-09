@@ -108,6 +108,13 @@ class ExecutorRegistry {
   }
 
   /**
+   * 노드 타입에 대한 실행자 제거
+   */
+  unregister(nodeType: string): boolean {
+    return this.executors.delete(nodeType);
+  }
+
+  /**
    * 등록된 모든 노드 타입 목록
    */
   getRegisteredTypes(): string[] {

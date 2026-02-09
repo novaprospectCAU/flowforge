@@ -517,6 +517,14 @@ class NodeTypeRegistry {
     const categories = new Set(this.getAll().map(t => t.category));
     return Array.from(categories);
   }
+
+  unregister(type: string): boolean {
+    return this.types.delete(type);
+  }
+
+  getByNamespace(ns: string): NodeTypeDefinition[] {
+    return this.getAll().filter(t => t.type.startsWith(ns + ':'));
+  }
 }
 
 // 싱글톤 인스턴스

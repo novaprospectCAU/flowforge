@@ -14,6 +14,8 @@ export const STORAGE_KEYS = {
   ONBOARDING_COMPLETED: 'flowforge-onboarding-completed',
   /** 언어 설정 */
   LANGUAGE: 'flowforge-language',
+  /** 팩 상태 */
+  PACK_STATES: 'flowforge-pack-states',
 } as const;
 
 /**

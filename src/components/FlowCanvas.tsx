@@ -42,7 +42,9 @@ import {
   getVisibleNodes,
   instantiateTemplate,
   registerAINodeTypes,
-  getAINodeDefaultData,
+  getNodeDefaultData,
+  registerBuiltinPacks,
+  packRegistry,
   cullNodesByViewport,
   cullEdgesByViewport,
   cullCommentsByViewport,
@@ -54,6 +56,9 @@ import {
 
 // AI 노드 타입 등록
 registerAINodeTypes();
+// 빌트인 팩 등록 + localStorage에서 팩 상태 복원
+registerBuiltinPacks();
+packRegistry.initialize();
 import { ZOOM_CONFIG, type FlowNode, type FlowEdge, type CanvasSize, type Position, type ExecutionStatus, type DataType, type Comment, type Subflow, type NodeGroup, type SubflowTemplate } from '@flowforge/types';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
@@ -74,6 +79,7 @@ import { IconCenterView } from './Icons';
 import { DesktopToolbar } from './DesktopToolbar';
 import { APIKeyManager } from './ai';
 import { HistoryPanel } from './HistoryPanel';
+import { PackBrowser } from './packs/PackBrowser';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
@@ -170,6 +176,7 @@ export function FlowCanvas() {
   const [showHelp, setShowHelp] = useState(false);
   const [showAPIKeys, setShowAPIKeys] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showPackBrowser, setShowPackBrowser] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
   const [cursorStyle, setCursorStyle] = useState<string>('grab');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
@@ -1694,6 +1701,7 @@ export function FlowCanvas() {
       setShowSearch,
       setShowHelp,
       setShowHistory,
+      setShowPackBrowser,
       setNodePalette,
       setTemplateBrowser,
       setContextMenu,
@@ -1839,15 +1847,15 @@ export function FlowCanvas() {
       y: worldPos.y - typeDef.defaultSize.height / 2,
     };
 
-    // AI 노드의 경우 기본 데이터 가져오기
-    const aiDefaultData = getAINodeDefaultData(typeDef.type);
+    // 노드 타입별 기본 데이터 가져오기 (AI + 팩)
+    const defaultData = getNodeDefaultData(typeDef.type);
 
     const newNode: FlowNode = {
       id: generateId('node'),
       type: typeDef.type,
       position: snapToGridRef.current ? snapPosition(rawPosition) : rawPosition,
       size: typeDef.defaultSize,
-      data: { title: typeDef.title, ...aiDefaultData },
+      data: { title: typeDef.title, ...defaultData },
       inputs: typeDef.inputs,
       outputs: typeDef.outputs,
     };
@@ -2319,6 +2327,10 @@ export function FlowCanvas() {
       {/* 단축키 도움말 */}
       {showHelp && (
         <ShortcutsHelp onClose={() => setShowHelp(false)} />
+      )}
+      {/* Pack Browser */}
+      {showPackBrowser && (
+        <PackBrowser onClose={() => setShowPackBrowser(false)} />
       )}
       {/* 히스토리 패널 */}
       <HistoryPanel

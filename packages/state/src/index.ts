@@ -141,5 +141,24 @@ export {
   substituteTemplate,
 } from './ai';
 
+// 팩 시스템
+export {
+  packRegistry,
+  registerBuiltinPacks,
+  getNodeDefaultData,
+  createSubflowExecutor,
+  convertSubflowToPackNode,
+  type PackManifest,
+  type PackNodeDefinition,
+  type NodePack,
+  type BuiltinNodePack,
+  type SubflowNodeDefinition,
+  type CustomNodePack,
+  type SerializedCustomPack,
+  type PackState,
+  type ConvertConfig,
+  type ConvertResult,
+} from './packs';
+
 // 공통 유틸리티 및 상수
 export { generateId, STORAGE_KEYS, DB_CONFIG } from './utils';

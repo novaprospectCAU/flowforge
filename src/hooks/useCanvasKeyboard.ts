@@ -57,6 +57,7 @@ export interface UseCanvasKeyboardParams {
     setShowSearch: Dispatch<SetStateAction<boolean>>;
     setShowHelp: Dispatch<SetStateAction<boolean>>;
     setShowHistory: Dispatch<SetStateAction<boolean>>;
+    setShowPackBrowser: Dispatch<SetStateAction<boolean>>;
     setNodePalette: Dispatch<SetStateAction<NodePaletteState | null>>;
     setTemplateBrowser: Dispatch<SetStateAction<TemplateBrowserState | null>>;
     setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
@@ -77,7 +78,7 @@ export function useCanvasKeyboard({ refs, setters, callbacks, gridSize }: UseCan
     clipboardRef, canvasRef, snapToGridRef, edgeStyleRef,
   } = refs;
   const {
-    setSpacePressed, setShowSearch, setShowHelp, setShowHistory,
+    setSpacePressed, setShowSearch, setShowHelp, setShowHistory, setShowPackBrowser,
     setNodePalette, setTemplateBrowser, setContextMenu, setSnapToGrid, setCurrentZoom,
   } = setters;
   const { setSelectedNodes, forceRender, toggleThemeRef } = callbacks;
@@ -928,6 +929,13 @@ export function useCanvasKeyboard({ refs, setters, callbacks, gridSize }: UseCan
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 't' || e.key === 'T')) {
         e.preventDefault();
         toggleThemeRef.current();
+        return;
+      }
+
+      // Pack Browser: Ctrl+Shift+P / Cmd+Shift+P
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        setShowPackBrowser(prev => !prev);
         return;
       }
 

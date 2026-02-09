@@ -14,6 +14,8 @@ export interface ExecutionContext {
   inputs: Record<string, unknown>;
   /** 실행 중단 시그널 */
   signal?: AbortSignal;
+  /** 서브플로우 실행 깊이 (재귀 방지) */
+  depth?: number;
 }
 
 /**
@@ -107,4 +109,6 @@ export interface ExecutionOptions {
   errorMode?: ErrorMode;
   /** 입력 검증 건너뛰기 */
   skipValidation?: boolean;
+  /** 서브플로우 실행 깊이 (재귀 방지) */
+  depth?: number;
 }

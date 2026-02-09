@@ -1,5 +1,6 @@
 import type { FlowNode, FlowEdge, NodeGroup, Viewport, Comment, Subflow } from '@flowforge/types';
 import { STORAGE_KEYS } from './utils';
+import { nodeTypeRegistry } from './nodeTypes';
 
 /**
  * 저장 가능한 플로우 데이터 형식
@@ -15,6 +16,7 @@ export interface SerializedFlow {
   viewport: Viewport;
   createdAt: string;
   updatedAt: string;
+  requiredPacks?: string[];
 }
 
 const CURRENT_VERSION = '1.2.0';
@@ -31,6 +33,15 @@ export function serializeFlow(
   comments: Comment[] = [],
   subflows: Subflow[] = []
 ): string {
+  // 사용된 팩 감지 (네임스페이스가 있는 노드 타입)
+  const packIds = new Set<string>();
+  for (const node of nodes) {
+    const colonIdx = node.type.indexOf(':');
+    if (colonIdx > 0) {
+      packIds.add(node.type.substring(0, colonIdx));
+    }
+  }
+
   const flow: SerializedFlow = {
     version: CURRENT_VERSION,
     name,
@@ -42,6 +53,7 @@ export function serializeFlow(
     viewport,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    ...(packIds.size > 0 ? { requiredPacks: Array.from(packIds) } : {}),
   };
 
   return JSON.stringify(flow, null, 2);
@@ -65,6 +77,20 @@ export function deserializeFlow(json: string): SerializedFlow {
   if (!flow.comments) flow.comments = [];
   if (!flow.subflows) flow.subflows = [];
   if (!flow.viewport) flow.viewport = { x: 0, y: 0, zoom: 1 };
+
+  // 고아 노드 감지: 등록되지 않은 노드 타입 경고
+  const orphanTypes = new Set<string>();
+  for (const node of flow.nodes) {
+    if (!nodeTypeRegistry.get(node.type)) {
+      orphanTypes.add(node.type);
+    }
+  }
+  if (orphanTypes.size > 0) {
+    console.warn(
+      `[FlowForge] Unregistered node types detected: ${Array.from(orphanTypes).join(', ')}. ` +
+      `Enable the required packs to use these nodes.`
+    );
+  }
 
   return flow;
 }

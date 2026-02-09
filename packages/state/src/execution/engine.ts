@@ -254,6 +254,7 @@ export class ExecutionEngine {
         nodeData: node.data,
         inputs,
         signal: nodeController.signal,
+        depth: options.depth,
       };
 
       // 타임아웃이 있으면 Promise.race로 감싸기
