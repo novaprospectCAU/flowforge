@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { packRegistry, type PackManifest, type PackState } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { SHADOWS } from '../../theme/shadows';
 import { Z_INDEX } from '../../constants/zIndex';
 
@@ -17,6 +18,7 @@ type TabId = 'all' | 'builtin' | 'custom' | 'installed';
 
 export function PackBrowser({ onClose }: PackBrowserProps) {
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<TabId>('all');
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [, setVersion] = useState(0); // 리렌더 트리거
@@ -101,7 +103,7 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
       zIndex: Z_INDEX.MODAL,
     },
     dialog: {
-      width: 680,
+      width: isMobile ? 'calc(100vw - 32px)' : 680,
       maxHeight: '85vh',
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
@@ -151,6 +153,7 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
     },
     body: {
       display: 'flex',
+      flexDirection: isMobile ? 'column' : 'row',
       flex: 1,
       overflow: 'hidden',
     },
@@ -227,8 +230,10 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
       color: colors.textMuted,
     },
     detail: {
-      width: 280,
-      borderLeft: `1px solid ${colors.border}`,
+      width: isMobile ? '100%' : 280,
+      ...(isMobile
+        ? { borderTop: `1px solid ${colors.border}` }
+        : { borderLeft: `1px solid ${colors.border}` }),
       overflowY: 'auto',
       padding: 16,
     },

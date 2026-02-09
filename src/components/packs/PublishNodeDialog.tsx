@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import type { Subflow, FlowNode, FlowEdge } from '@flowforge/types';
 import { packRegistry, convertSubflowToPackNode } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { SHADOWS } from '../../theme/shadows';
 import { Z_INDEX } from '../../constants/zIndex';
 
@@ -18,6 +19,7 @@ interface PublishNodeDialogProps {
 
 export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNodeDialogProps) {
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
   const [title, setTitle] = useState(subflow.name || 'Custom Node');
   const [category, setCategory] = useState('Custom');
   const [description, setDescription] = useState('');
@@ -90,14 +92,14 @@ export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNod
       zIndex: Z_INDEX.MODAL,
     },
     dialog: {
-      width: 420,
+      width: isMobile ? 'calc(100vw - 32px)' : 420,
       maxHeight: '80vh',
       overflowY: 'auto',
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 12,
       boxShadow: SHADOWS.mediumDark,
-      padding: 24,
+      padding: isMobile ? 16 : 24,
     },
     title: {
       fontSize: 18,

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Subflow, SubflowPortMapping, FlowNode, FlowEdge } from '@flowforge/types';
 import { saveAsTemplate } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { SHADOWS } from '../theme/shadows';
 import { PublishNodeDialog } from './packs/PublishNodeDialog';
 
@@ -30,6 +31,7 @@ export function SubflowPanel({
   const [localInputs, setLocalInputs] = useState<SubflowPortMapping[]>(subflow.inputMappings);
   const [localOutputs, setLocalOutputs] = useState<SubflowPortMapping[]>(subflow.outputMappings);
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
 
   // 서브플로우가 바뀌면 로컬 상태 갱신
   useEffect(() => {
@@ -74,9 +76,10 @@ export function SubflowPanel({
   const styles: Record<string, React.CSSProperties> = {
     panel: {
       position: 'absolute',
-      top: 16,
-      left: 16,
-      width: 280,
+      ...(isMobile
+        ? { bottom: 16, left: 16, right: 16 }
+        : { top: 16, left: 16 }),
+      width: isMobile ? 'auto' : 280,
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 8,

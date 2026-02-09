@@ -4,6 +4,7 @@ import { loadTemplates, deleteTemplate } from '@flowforge/state';
 import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { SHADOWS } from '../theme/shadows';
 import { IconClose, IconTrash } from './Icons';
 
@@ -19,6 +20,7 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
   const lang = useLanguage();
   const t = uiTranslations[lang];
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setTemplates(loadTemplates());
@@ -150,8 +152,12 @@ export function TemplateBrowser({ position, onInsert, onClose }: TemplateBrowser
     <div
       style={{
         ...styles.container,
-        left: position.x,
-        top: position.y,
+        ...(isMobile
+          ? { position: 'fixed', left: 16, right: 16, bottom: 16, width: 'auto' }
+          : {
+              left: Math.min(position.x, window.innerWidth - 316),
+              top: Math.min(position.y, window.innerHeight - 416),
+            }),
       }}
       onClick={e => e.stopPropagation()}
       role="dialog"

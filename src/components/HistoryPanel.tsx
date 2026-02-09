@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../i18n';
 import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { SHADOWS } from '../theme/shadows';
 import { IconClose, IconUndo, IconRedo } from './Icons';
 
@@ -32,6 +33,7 @@ export function HistoryPanel({
 }: HistoryPanelProps) {
   const lang = useLanguage();
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   // ESC 키로 닫기
@@ -86,7 +88,7 @@ export function HistoryPanel({
       zIndex: 1000,
     },
     panel: {
-      width: 320,
+      width: isMobile ? 'calc(100vw - 32px)' : 320,
       maxHeight: '70vh',
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,

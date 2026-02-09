@@ -1,6 +1,7 @@
 import { useLanguage } from '../i18n';
 import { shortcutsTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { SHADOWS } from '../theme/shadows';
 import { IconClose } from './Icons';
 
@@ -12,6 +13,7 @@ export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
   const lang = useLanguage();
   const t = shortcutsTranslations[lang];
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
 
   const styles: Record<string, React.CSSProperties> = {
     overlay: {
@@ -27,7 +29,7 @@ export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
       zIndex: 1000,
     },
     dialog: {
-      width: 720,
+      width: isMobile ? 'calc(100vw - 32px)' : 720,
       maxHeight: '85vh',
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
@@ -68,7 +70,7 @@ export function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
       overflowY: 'auto',
       padding: '8px 20px 20px',
       display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
+      gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
       gap: 12,
     },
     group: {

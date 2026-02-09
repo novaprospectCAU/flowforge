@@ -4,6 +4,7 @@ import { useLanguage } from '../i18n';
 import { uiTranslations } from '../i18n/translations';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { SHADOWS } from '../theme/shadows';
 
@@ -24,6 +25,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
   const t = uiTranslations[lang];
   const isTouchDevice = useIsTouchDevice();
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
 
   useClickOutside(containerRef, onClose);
 
@@ -80,10 +82,14 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
       className="node-palette"
       style={{
         position: 'fixed',
-        left: x,
-        top: y,
-        width: 280,
-        maxHeight: 400,
+        ...(isMobile
+          ? { left: 16, right: 16, bottom: 16, width: 'auto', maxHeight: 'calc(100vh - 100px)' }
+          : {
+              left: Math.min(x, window.innerWidth - 296),
+              top: Math.min(y, window.innerHeight - 416),
+              width: 280,
+              maxHeight: 400,
+            }),
         background: colors.bgSecondary,
         border: `1px solid ${colors.border}`,
         borderRadius: 6,

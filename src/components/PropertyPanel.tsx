@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FlowNode } from '@flowforge/types';
 import { nodeTypeRegistry } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { SHADOWS } from '../theme/shadows';
 
 interface PropertyPanelProps {
@@ -12,6 +13,7 @@ interface PropertyPanelProps {
 export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
   const [localData, setLocalData] = useState<Record<string, unknown>>(node.data);
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
 
   // 노드가 바뀌면 로컬 데이터 갱신
   useEffect(() => {
@@ -29,9 +31,10 @@ export function PropertyPanel({ node, onUpdate }: PropertyPanelProps) {
   const styles: Record<string, React.CSSProperties> = {
     panel: {
       position: 'absolute',
-      top: 16,
-      left: 16,
-      width: 280,
+      ...(isMobile
+        ? { bottom: 16, left: 16, right: 16 }
+        : { top: 16, left: 16 }),
+      width: isMobile ? 'auto' : 280,
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
       borderRadius: 8,

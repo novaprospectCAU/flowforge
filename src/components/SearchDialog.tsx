@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { FlowNode } from '@flowforge/types';
 import { useLanguage } from '../i18n';
 import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { SHADOWS } from '../theme/shadows';
 import { Z_INDEX } from '../constants/zIndex';
 
@@ -18,6 +19,7 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const lang = useLanguage();
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
 
   const filteredNodes = search
     ? nodes.filter(node => {
@@ -74,11 +76,11 @@ export function SearchDialog({ nodes, onSelect, onClose }: SearchDialogProps) {
       display: 'flex',
       alignItems: 'flex-start',
       justifyContent: 'center',
-      paddingTop: 100,
+      paddingTop: isMobile ? 40 : 100,
       zIndex: Z_INDEX.MODAL,
     },
     dialog: {
-      width: 400,
+      width: isMobile ? 'calc(100vw - 32px)' : 400,
       maxHeight: 500,
       background: colors.bgSecondary,
       border: `1px solid ${colors.border}`,
