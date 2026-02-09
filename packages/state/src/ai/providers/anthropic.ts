@@ -195,14 +195,15 @@ class AnthropicProvider extends BaseProvider {
     const data: AnthropicChatResponse = await response.json();
 
     // text content 추출
-    const content = data.content
+    const contentBlocks = data.content ?? [];
+    const content = contentBlocks
       .filter(c => c.type === 'text')
       .map(c => c.text ?? '')
       .join('');
 
     // tool_use content blocks → ToolCall[]
     let toolCalls: ToolCall[] | undefined;
-    const toolUseBlocks = data.content.filter(c => c.type === 'tool_use');
+    const toolUseBlocks = contentBlocks.filter(c => c.type === 'tool_use');
     if (toolUseBlocks.length > 0) {
       toolCalls = toolUseBlocks.map(block => ({
         id: block.id ?? '',

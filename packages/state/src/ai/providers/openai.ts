@@ -215,9 +215,9 @@ class OpenAIProvider extends BaseProvider {
       content: choice?.message?.content || '',
       model: data.model,
       usage: {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
+        promptTokens: data.usage?.prompt_tokens ?? 0,
+        completionTokens: data.usage?.completion_tokens ?? 0,
+        totalTokens: data.usage?.total_tokens ?? 0,
       },
       finishReason: choice?.finish_reason,
       toolCalls,
