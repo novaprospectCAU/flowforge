@@ -165,6 +165,8 @@ export async function processOpenAIStream(
             for (const tc of chunk.choices[0].delta.tool_calls) {
               const existing = toolCallAccumulators.get(tc.index);
               if (existing) {
+                if (tc.id) existing.id = tc.id;
+                if (tc.function?.name) existing.name = tc.function.name;
                 if (tc.function?.arguments) {
                   existing.arguments += tc.function.arguments;
                 }

@@ -20,18 +20,24 @@ const SALT = new Uint8Array([
 class KeyManager {
   private db: IDBDatabase | null = null;
   private cryptoKey: CryptoKey | null = null;
+  private initPromise: Promise<void> | null = null;
 
   /**
    * KeyManager 초기화
    */
   async init(): Promise<void> {
     if (this.db) return;
+    if (this.initPromise) return this.initPromise;
 
-    // IndexedDB 초기화
-    this.db = await this.openDatabase();
+    this.initPromise = (async () => {
+      // IndexedDB 초기화
+      this.db = await this.openDatabase();
 
-    // 암호화 키 생성/로드
-    this.cryptoKey = await this.getOrCreateCryptoKey();
+      // 암호화 키 생성/로드
+      this.cryptoKey = await this.getOrCreateCryptoKey();
+    })();
+
+    return this.initPromise;
   }
 
   /**
