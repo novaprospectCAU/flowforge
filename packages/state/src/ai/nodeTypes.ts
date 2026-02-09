@@ -12,7 +12,7 @@ export const AI_NODE_TYPES: NodeTypeDefinition[] = [
     type: 'LLMChat',
     title: 'LLM Chat',
     category: 'AI',
-    description: 'Chat with GPT, Claude, or other LLMs',
+    description: 'Chat with GPT, Claude, Gemini, or other LLMs',
     inputs: [
       { id: 'prompt', name: 'prompt', dataType: 'string', required: true },
       { id: 'systemPrompt', name: 'system', dataType: 'string' },
@@ -29,7 +29,7 @@ export const AI_NODE_TYPES: NodeTypeDefinition[] = [
     type: 'ImageGenerate',
     title: 'Image Generate',
     category: 'AI',
-    description: 'Generate images with DALL-E',
+    description: 'Generate images with AI',
     inputs: [
       { id: 'prompt', name: 'prompt', dataType: 'string', required: true },
       { id: 'negative', name: 'negative', dataType: 'string' },
@@ -83,7 +83,7 @@ export const DEFAULT_LLM_CHAT_DATA = {
 export const DEFAULT_IMAGE_GENERATE_DATA = {
   provider: 'openai',
   apiKeyId: '',
-  model: 'dall-e-3',
+  model: 'gpt-image-1',
   size: '1024x1024',
   quality: 'standard',
   generatedImage: '',

@@ -194,6 +194,7 @@ class KeyManager {
   private envKeys: Record<AIProviderType, string | null> = {
     openai: null,
     anthropic: null,
+    gemini: null,
   };
 
   /**
@@ -202,6 +203,7 @@ class KeyManager {
   setEnvKeys(keys: Partial<Record<AIProviderType, string>>): void {
     if (keys.openai) this.envKeys.openai = keys.openai;
     if (keys.anthropic) this.envKeys.anthropic = keys.anthropic;
+    if (keys.gemini) this.envKeys.gemini = keys.gemini;
   }
 
   /**

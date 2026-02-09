@@ -123,6 +123,7 @@ export {
   BaseProvider,
   openaiProvider,
   anthropicProvider,
+  geminiProvider,
   // 노드 타입
   AI_NODE_TYPES,
   registerAINodeTypes,
@@ -134,6 +135,7 @@ export {
   parseSSELines,
   processOpenAIStream,
   processAnthropicStream,
+  processGeminiStream,
   // 유틸리티
   extractVariables,
   substituteTemplate,

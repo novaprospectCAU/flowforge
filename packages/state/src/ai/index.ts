@@ -46,6 +46,7 @@ export { RequestQueue } from './rateLimiter';
 export { providerRegistry, BaseProvider } from './providers';
 export { openaiProvider } from './providers/openai';
 export { anthropicProvider } from './providers/anthropic';
+export { geminiProvider } from './providers/gemini';
 
 // 노드 타입
 export {
@@ -62,6 +63,7 @@ export {
   parseSSELines,
   processOpenAIStream,
   processAnthropicStream,
+  processGeminiStream,
 } from './streaming';
 
 // 실행자 (import 시 자동 등록)

@@ -5,3 +5,4 @@
 export { providerRegistry, BaseProvider } from './base';
 export { openaiProvider } from './openai';
 export { anthropicProvider } from './anthropic';
+export { geminiProvider } from './gemini';

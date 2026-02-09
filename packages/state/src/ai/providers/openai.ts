@@ -134,17 +134,17 @@ class OpenAIProvider extends BaseProvider {
   name = 'openai' as const;
 
   models = [
+    'gpt-4.1',
+    'gpt-4.1-mini',
+    'gpt-4.1-nano',
+    'o3',
+    'o3-mini',
+    'o4-mini',
     'gpt-4o',
     'gpt-4o-mini',
-    'gpt-4-turbo',
-    'gpt-4',
-    'gpt-3.5-turbo',
-    'o1',
-    'o1-mini',
-    'o1-preview',
   ];
 
-  imageModels = ['dall-e-3', 'dall-e-2'];
+  imageModels = ['gpt-image-1', 'gpt-image-1-mini'];
 
   constructor() {
     super(5); // OpenAI: maxConcurrent 5
@@ -282,7 +282,7 @@ class OpenAIProvider extends BaseProvider {
     request: ImageGenerateRequest,
     apiKey: string
   ): Promise<ImageGenerateResponse> {
-    const model = request.model || 'dall-e-3';
+    const model = request.model || 'gpt-image-1';
     const size = request.size || '1024x1024';
 
     const response = await this.fetchWithTimeout(

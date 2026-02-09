@@ -217,6 +217,109 @@ export async function processOpenAIStream(
 }
 
 /**
+ * Gemini SSE 스트리밍 청크
+ */
+interface GeminiStreamChunk {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+        functionCall?: {
+          name: string;
+          args: Record<string, unknown>;
+        };
+      }>;
+    };
+    finishReason?: string;
+  }>;
+  usageMetadata?: {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    totalTokenCount: number;
+  };
+}
+
+/**
+ * Gemini SSE 스트림 처리
+ */
+export async function processGeminiStream(
+  response: Response,
+  onChunk: StreamChunkCallback
+): Promise<StreamResult> {
+  if (!response.body) {
+    throw new Error('Response body is null');
+  }
+
+  const reader = response.body.getReader();
+  let content = '';
+  let model = '';
+  let usage: TokenUsage | undefined;
+  let finishReason: StreamResult['finishReason'];
+  const toolCalls: ToolCall[] = [];
+  let toolCallIndex = 0;
+
+  try {
+    for await (const line of parseSSELines(reader)) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+
+        try {
+          const chunk: GeminiStreamChunk = JSON.parse(data);
+          const candidate = chunk.candidates?.[0];
+
+          if (candidate?.content?.parts) {
+            for (const part of candidate.content.parts) {
+              if (part.text) {
+                content += part.text;
+                onChunk(part.text);
+              }
+              if (part.functionCall) {
+                toolCalls.push({
+                  id: `call_${toolCallIndex++}`,
+                  name: part.functionCall.name,
+                  arguments: JSON.stringify(part.functionCall.args ?? {}),
+                });
+              }
+            }
+          }
+
+          if (candidate?.finishReason) {
+            const reason = candidate.finishReason;
+            if (reason === 'STOP') {
+              finishReason = toolCalls.length > 0 ? 'tool_calls' : 'stop';
+            } else if (reason === 'MAX_TOKENS') {
+              finishReason = 'length';
+            } else if (reason === 'SAFETY') {
+              finishReason = 'content_filter';
+            }
+          }
+
+          if (chunk.usageMetadata) {
+            usage = {
+              promptTokens: chunk.usageMetadata.promptTokenCount ?? 0,
+              completionTokens: chunk.usageMetadata.candidatesTokenCount ?? 0,
+              totalTokens: chunk.usageMetadata.totalTokenCount ?? 0,
+            };
+          }
+        } catch {
+          // JSON 파싱 실패 무시
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return {
+    content,
+    model,
+    usage,
+    finishReason,
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+  };
+}
+
+/**
  * Anthropic SSE 스트림 처리
  */
 export async function processAnthropicStream(

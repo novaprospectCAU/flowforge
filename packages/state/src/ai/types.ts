@@ -7,7 +7,7 @@
 // =============================================================================
 
 /** 지원하는 AI 프로바이더 */
-export type AIProviderType = 'openai' | 'anthropic';
+export type AIProviderType = 'openai' | 'anthropic' | 'gemini';
 
 /** API 키 엔트리 */
 export interface APIKeyEntry {
