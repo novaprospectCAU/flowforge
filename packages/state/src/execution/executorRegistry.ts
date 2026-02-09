@@ -526,7 +526,13 @@ executorRegistry.register('Delay', async (ctx: ExecutionContext): Promise<Execut
   const input = ctx.inputs.input;
   const ms = Math.max(0, Math.floor(Number(ctx.nodeData.ms ?? ctx.inputs.ms ?? 1000)));
 
-  await new Promise(resolve => setTimeout(resolve, ms));
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    ctx.signal?.addEventListener('abort', () => {
+      clearTimeout(timer);
+      reject(new Error('Execution aborted'));
+    }, { once: true });
+  });
   return { outputs: { out: input } };
 });
 

@@ -388,7 +388,11 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
 
       setViewport: (viewport) => {
         const { yjsDoc } = get();
-        setViewportToYjs(yjsDoc.viewport, viewport);
+        const clamped = {
+          ...viewport,
+          zoom: Math.max(0.1, Math.min(5, viewport.zoom)),
+        };
+        setViewportToYjs(yjsDoc.viewport, clamped);
       },
 
       pan: (dx, dy) => {

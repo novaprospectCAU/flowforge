@@ -36,7 +36,7 @@ export class WebGPURenderer implements IRenderer {
           const device = await adapter.requestDevice();
           if (device) {
             this._isWebGPU = true;
-            console.log('WebGPU available, using Canvas2D for MVP rendering');
+            // WebGPU available, using Canvas2D for MVP rendering
           }
         }
       } catch (e) {
