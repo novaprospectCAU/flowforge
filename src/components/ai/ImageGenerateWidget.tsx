@@ -24,7 +24,10 @@ const IMAGE_SIZES: ImageSize[] = [
   '1024x1792',
 ];
 
-const IMAGE_MODELS = ['dall-e-3', 'dall-e-2'];
+const IMAGE_MODELS_BY_PROVIDER: Record<string, string[]> = {
+  openai: ['gpt-image-1', 'gpt-image-1-mini'],
+  gemini: ['gemini-2.5-flash-image'],
+};
 
 /**
  * Image Generate 노드 위젯
@@ -42,7 +45,8 @@ export function ImageGenerateWidget({
   // 노드 데이터 추출
   const provider = (node.data.provider as AIProviderType) || 'openai';
   const apiKeyId = (node.data.apiKeyId as string) || '';
-  const model = (node.data.model as string) || 'dall-e-3';
+  const model = (node.data.model as string) || 'gpt-image-1';
+  const imageModels = IMAGE_MODELS_BY_PROVIDER[provider] || IMAGE_MODELS_BY_PROVIDER.openai;
   const size = (node.data.size as ImageSize) || '1024x1024';
   const quality = (node.data.quality as 'standard' | 'hd') || 'standard';
   const generatedImage = (node.data.generatedImage as string) || '';
@@ -95,8 +99,28 @@ export function ImageGenerateWidget({
       onMouseUp={() => onInteraction?.(false)}
       onMouseLeave={() => onInteraction?.(false)}
     >
-      {/* 모델 & 크기 선택 */}
+      {/* 프로바이더 & 모델 & 크기 선택 */}
       <div style={{ display: 'flex', gap: 4 * zoom }}>
+        <select
+          style={{
+            ...inputStyle,
+            flex: 1,
+            fontSize: baseFontSize,
+            padding: `${4 * zoom}px`,
+          }}
+          value={provider}
+          onChange={e => {
+            handleChange('provider', e.target.value);
+            handleChange('apiKeyId', '');
+            const models = IMAGE_MODELS_BY_PROVIDER[e.target.value];
+            if (models?.[0]) handleChange('model', models[0]);
+          }}
+          aria-label="AI Provider"
+        >
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Gemini</option>
+        </select>
+
         <select
           style={{
             ...inputStyle,
@@ -108,7 +132,7 @@ export function ImageGenerateWidget({
           onChange={e => handleChange('model', e.target.value)}
           aria-label="Image model"
         >
-          {IMAGE_MODELS.map(m => (
+          {imageModels.map(m => (
             <option key={m} value={m}>
               {m}
             </option>

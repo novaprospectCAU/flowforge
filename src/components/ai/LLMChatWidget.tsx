@@ -103,12 +103,18 @@ export function LLMChatWidget({
           onChange={e => {
             handleChange('provider', e.target.value);
             handleChange('apiKeyId', '');
-            handleChange('model', e.target.value === 'openai' ? 'gpt-4o-mini' : 'claude-3-haiku-20240307');
+            const defaultModels: Record<string, string> = {
+              openai: 'gpt-4.1-mini',
+              anthropic: 'claude-haiku-4-5-20251001',
+              gemini: 'gemini-2.5-flash',
+            };
+            handleChange('model', defaultModels[e.target.value] || '');
           }}
           aria-label="AI Provider"
         >
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
+          <option value="gemini">Gemini</option>
         </select>
 
         <select

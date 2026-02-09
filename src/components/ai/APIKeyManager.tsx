@@ -395,6 +395,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                     >
                       <option value="openai">OpenAI</option>
                       <option value="anthropic">Anthropic</option>
+                      <option value="gemini">Gemini</option>
                     </select>
                   </div>
 
