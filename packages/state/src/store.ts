@@ -134,23 +134,36 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
 
       deleteNode: (id) => {
         const { yjsDoc } = get();
-        yjsDoc.nodes.delete(id);
-        // 연결된 엣지도 삭제
-        yjsDoc.edges.forEach((edge, edgeId) => {
-          if (edge.source === id || edge.target === id) {
-            yjsDoc.edges.delete(edgeId);
-          }
-        });
-        // 그룹에서도 제거
-        yjsDoc.groups.forEach((group, groupId) => {
-          if (group.nodeIds.includes(id)) {
-            const newNodeIds = group.nodeIds.filter(nid => nid !== id);
-            if (newNodeIds.length === 0) {
-              yjsDoc.groups.delete(groupId);
-            } else {
-              yjsDoc.groups.set(groupId, { ...group, nodeIds: newNodeIds });
+        yjsDoc.doc.transact(() => {
+          yjsDoc.nodes.delete(id);
+          // 연결된 엣지도 삭제
+          yjsDoc.edges.forEach((edge, edgeId) => {
+            if (edge.source === id || edge.target === id) {
+              yjsDoc.edges.delete(edgeId);
             }
-          }
+          });
+          // 그룹에서도 제거
+          yjsDoc.groups.forEach((group, groupId) => {
+            if (group.nodeIds.includes(id)) {
+              const newNodeIds = group.nodeIds.filter(nid => nid !== id);
+              if (newNodeIds.length === 0) {
+                yjsDoc.groups.delete(groupId);
+              } else {
+                yjsDoc.groups.set(groupId, { ...group, nodeIds: newNodeIds });
+              }
+            }
+          });
+          // 서브플로우에서도 제거
+          yjsDoc.subflows.forEach((subflow, subflowId) => {
+            if (subflow.nodeIds.includes(id)) {
+              const newNodeIds = subflow.nodeIds.filter(nid => nid !== id);
+              if (newNodeIds.length === 0) {
+                yjsDoc.subflows.delete(subflowId);
+              } else {
+                yjsDoc.subflows.set(subflowId, { ...subflow, nodeIds: newNodeIds });
+              }
+            }
+          });
         });
       },
 
@@ -405,6 +418,7 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       },
 
       zoom: (factor, centerX, centerY) => {
+        if (!Number.isFinite(factor) || factor <= 0) return;
         const { viewport, setViewport } = get();
         const newZoom = Math.max(0.1, Math.min(5, viewport.zoom * factor));
 

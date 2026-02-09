@@ -397,8 +397,8 @@ executorRegistry.register('TextReplace', async (ctx: ExecutionContext): Promise<
     try {
       const regex = new RegExp(find, 'g');
       result = text.replace(regex, replace);
-    } catch {
-      result = text.split(find).join(replace);
+    } catch (e) {
+      throw new Error(`Invalid regex pattern: ${find} - ${e instanceof Error ? e.message : String(e)}`);
     }
   } else {
     result = text.split(find).join(replace);
