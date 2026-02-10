@@ -83,7 +83,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
       style={{
         position: 'fixed',
         ...(isMobile
-          ? { left: 16, right: 16, bottom: 16, width: 'auto', maxHeight: 'calc(100vh - 100px)' }
+          ? { left: 16, right: 16, bottom: 16, width: 'auto', maxHeight: '50vh' }
           : {
               left: Math.min(x, window.innerWidth - 296),
               top: Math.min(y, window.innerHeight - 416),
@@ -101,7 +101,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
       role="listbox"
       aria-label={lang === 'en' ? 'Node types' : '노드 타입'}
     >
-      <div style={{ padding: 8, borderBottom: `1px solid ${colors.border}` }}>
+      <div style={{ padding: isMobile ? 6 : 8, borderBottom: `1px solid ${colors.border}` }}>
         <input
           ref={inputRef}
           type="text"
@@ -110,12 +110,12 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
           onChange={e => setSearch(e.target.value)}
           style={{
             width: '100%',
-            padding: '8px 12px',
+            padding: isMobile ? '6px 10px' : '8px 12px',
             background: colors.bgHover,
             border: 'none',
             borderRadius: 4,
             color: colors.textSecondary,
-            fontSize: 14,
+            fontSize: isMobile ? 13 : 14,
             outline: 'none',
             boxSizing: 'border-box',
           }}
@@ -133,8 +133,8 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
           <div key={category} role="group" aria-label={category}>
             <div
               style={{
-                padding: '6px 12px',
-                fontSize: 11,
+                padding: isMobile ? '4px 10px' : '6px 12px',
+                fontSize: isMobile ? 10 : 11,
                 color: colors.textMuted,
                 textTransform: 'uppercase',
                 letterSpacing: 0.5,
@@ -150,17 +150,18 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
                   key={type.type}
                   onClick={() => onSelect(type)}
                   style={{
-                    padding: '8px 12px',
+                    padding: isMobile ? '5px 10px' : '8px 12px',
                     cursor: 'pointer',
                     background: isSelected ? colors.accent + '44' : 'transparent',
                     color: colors.textSecondary,
+                    fontSize: isMobile ? 13 : undefined,
                   }}
                   onMouseEnter={() => setSelectedIndex(globalIndex)}
                   role="option"
                   aria-selected={isSelected}
                 >
                   <div style={{ fontWeight: 500 }}>{type.title}</div>
-                  {type.description && (
+                  {!isMobile && type.description && (
                     <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                       {type.description}
                     </div>
