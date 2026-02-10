@@ -345,15 +345,11 @@ interface NumberWidgetProps {
 
 function NumberWidget({ value, onChange, fontSize, min, max, step = 1, showSlider }: NumberWidgetProps) {
   const [localValue, setLocalValue] = useState(value);
-  const [isDragging, setIsDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const { colors } = useTheme();
 
   useEffect(() => {
-    if (!isDragging) {
-      setLocalValue(value);
-    }
-  }, [value, isDragging]);
+    setLocalValue(value);
+  }, [value]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseFloat(e.target.value) || 0;
@@ -367,35 +363,6 @@ function NumberWidget({ value, onChange, fontSize, min, max, step = 1, showSlide
     onChange(newValue);
   };
 
-  // 드래그로 값 조절
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target === inputRef.current) return;
-
-    e.preventDefault();
-    setIsDragging(true);
-    const startX = e.clientX;
-    const startValue = localValue;
-
-    const handleMouseMove = (moveE: MouseEvent) => {
-      const delta = (moveE.clientX - startX) * (step || 1) * 0.1;
-      let newValue = startValue + delta;
-      if (min !== undefined) newValue = Math.max(min, newValue);
-      if (max !== undefined) newValue = Math.min(max, newValue);
-      newValue = Math.round(newValue / (step || 1)) * (step || 1);
-      setLocalValue(newValue);
-      onChange(newValue);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
       <div
@@ -405,12 +372,9 @@ function NumberWidget({ value, onChange, fontSize, min, max, step = 1, showSlide
           background: colors.bgTertiary,
           borderRadius: 4,
           padding: '2px 6px',
-          cursor: 'ew-resize',
         }}
-        onMouseDown={handleMouseDown}
       >
         <input
-          ref={inputRef}
           type="number"
           value={localValue}
           onChange={handleInputChange}
