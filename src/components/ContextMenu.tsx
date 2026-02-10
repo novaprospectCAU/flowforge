@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { useClickOutside, useEscapeKey } from '../hooks/useClickOutside';
 import { SHADOWS } from '../theme/shadows';
 
@@ -20,6 +21,7 @@ interface ContextMenuProps {
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const { colors } = useTheme();
+  const isMobile = useIsMobile();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useClickOutside(menuRef, onClose);
@@ -30,13 +32,17 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
       ref={menuRef}
       style={{
         position: 'fixed',
-        left: x,
-        top: y,
+        ...(isMobile
+          ? { left: 16, right: 16, bottom: 16 }
+          : { left: x, top: y }),
         background: colors.bgSecondary,
         border: `1px solid ${colors.border}`,
-        borderRadius: 4,
+        borderRadius: isMobile ? 8 : 4,
         padding: '4px 0',
-        minWidth: 160,
+        minWidth: isMobile ? undefined : 160,
+        maxHeight: isMobile ? '50vh' : undefined,
+        overflowY: isMobile ? 'auto' : undefined,
+        WebkitOverflowScrolling: isMobile ? 'touch' : undefined,
         boxShadow: SHADOWS.mediumDark,
         zIndex: 1000,
       }}
@@ -66,7 +72,8 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
             onMouseEnter={() => setHoveredIndex(index)}
             onMouseLeave={() => setHoveredIndex(null)}
             style={{
-              padding: '6px 12px',
+              padding: isMobile ? '10px 14px' : '6px 12px',
+              fontSize: isMobile ? 14 : undefined,
               cursor: item.disabled ? 'default' : 'pointer',
               color: item.disabled ? colors.textMuted : colors.textSecondary,
               background: !item.disabled && hoveredIndex === index ? colors.accent : 'transparent',
