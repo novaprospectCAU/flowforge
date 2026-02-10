@@ -69,6 +69,7 @@ export function NodeWidgets({
           onUpdate={(data) => onUpdateNode(node.id, data)}
           onInteraction={onWidgetInteraction}
           isCanvasDragging={isCanvasDragging}
+          isAnyNodeDragging={!!draggingNodeIds?.size}
         />
       ))}
     </div>
@@ -82,9 +83,10 @@ interface NodeWidgetProps {
   onUpdate: (data: Record<string, unknown>) => void;
   onInteraction?: (interacting: boolean) => void;
   isCanvasDragging?: boolean;
+  isAnyNodeDragging?: boolean;
 }
 
-function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCanvasDragging }: NodeWidgetProps) {
+function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCanvasDragging, isAnyNodeDragging }: NodeWidgetProps) {
   // 스크린 좌표 계산
   const screenPos = worldToScreen(node.position, viewport, canvasSize);
   const scaledWidth = node.size.width * viewport.zoom;
@@ -310,7 +312,7 @@ function NodeWidget({ node, viewport, canvasSize, onUpdate, onInteraction, isCan
     <div
       style={{
         position: 'absolute',
-        pointerEvents: isCanvasDragging ? 'none' : 'auto',
+        pointerEvents: (isCanvasDragging || isAnyNodeDragging) ? 'none' : 'auto',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
