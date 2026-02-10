@@ -2,6 +2,8 @@
 
 **AI-Native Visual Node Editor for Building Workflows**
 
+<img width="984" height="628" alt="image" src="https://github.com/user-attachments/assets/7fd8a31c-433d-42b5-b927-a5a491682d98" />
+
 FlowForge는 AI 워크플로우를 시각적으로 설계하고 실행할 수 있는 노드 기반 에디터입니다. ComfyUI와 유사한 인터페이스로, LLM 채팅, 이미지 생성 등 다양한 AI 작업을 노드로 연결하여 복잡한 파이프라인을 구축할 수 있습니다.
 
 ## Quick Start
