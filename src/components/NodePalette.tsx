@@ -96,6 +96,8 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
         boxShadow: SHADOWS.largeDark,
         zIndex: 1000,
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
       }}
       onKeyDown={handleKeyDown}
       role="listbox"
@@ -125,8 +127,10 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
       <div
         ref={listRef}
         style={{
-          maxHeight: 320,
+          flex: 1,
+          maxHeight: isMobile ? undefined : 320,
           overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {Object.entries(grouped).map(([category, types]) => (
