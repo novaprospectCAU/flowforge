@@ -134,37 +134,41 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
 
       deleteNode: (id) => {
         const { yjsDoc } = get();
-        yjsDoc.doc.transact(() => {
-          yjsDoc.nodes.delete(id);
-          // 연결된 엣지도 삭제
-          yjsDoc.edges.forEach((edge, edgeId) => {
-            if (edge.source === id || edge.target === id) {
-              yjsDoc.edges.delete(edgeId);
-            }
-          });
-          // 그룹에서도 제거
-          yjsDoc.groups.forEach((group, groupId) => {
-            if (group.nodeIds.includes(id)) {
-              const newNodeIds = group.nodeIds.filter(nid => nid !== id);
-              if (newNodeIds.length === 0) {
-                yjsDoc.groups.delete(groupId);
-              } else {
-                yjsDoc.groups.set(groupId, { ...group, nodeIds: newNodeIds });
+        try {
+          yjsDoc.doc.transact(() => {
+            yjsDoc.nodes.delete(id);
+            // 연결된 엣지도 삭제
+            yjsDoc.edges.forEach((edge, edgeId) => {
+              if (edge.source === id || edge.target === id) {
+                yjsDoc.edges.delete(edgeId);
               }
-            }
-          });
-          // 서브플로우에서도 제거
-          yjsDoc.subflows.forEach((subflow, subflowId) => {
-            if (subflow.nodeIds.includes(id)) {
-              const newNodeIds = subflow.nodeIds.filter(nid => nid !== id);
-              if (newNodeIds.length === 0) {
-                yjsDoc.subflows.delete(subflowId);
-              } else {
-                yjsDoc.subflows.set(subflowId, { ...subflow, nodeIds: newNodeIds });
+            });
+            // 그룹에서도 제거
+            yjsDoc.groups.forEach((group, groupId) => {
+              if (group.nodeIds.includes(id)) {
+                const newNodeIds = group.nodeIds.filter(nid => nid !== id);
+                if (newNodeIds.length === 0) {
+                  yjsDoc.groups.delete(groupId);
+                } else {
+                  yjsDoc.groups.set(groupId, { ...group, nodeIds: newNodeIds });
+                }
               }
-            }
+            });
+            // 서브플로우에서도 제거
+            yjsDoc.subflows.forEach((subflow, subflowId) => {
+              if (subflow.nodeIds.includes(id)) {
+                const newNodeIds = subflow.nodeIds.filter(nid => nid !== id);
+                if (newNodeIds.length === 0) {
+                  yjsDoc.subflows.delete(subflowId);
+                } else {
+                  yjsDoc.subflows.set(subflowId, { ...subflow, nodeIds: newNodeIds });
+                }
+              }
+            });
           });
-        });
+        } catch (error) {
+          console.error(`[FlowStore] deleteNode failed for node "${id}":`, error);
+        }
       },
 
       addEdge: (edge) => {
@@ -263,101 +267,106 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       createSubflow: (name, nodeIds) => {
         if (nodeIds.length < 2) return null;
 
-        const { yjsDoc, nodes, edges } = get();
-        const subflowId = generateId('subflow', false);
-        const nodeIdSet = new Set(nodeIds);
+        try {
+          const { yjsDoc, nodes, edges } = get();
+          const subflowId = generateId('subflow', false);
+          const nodeIdSet = new Set(nodeIds);
 
-        // 선택된 노드들 가져오기
-        const selectedNodes = nodes.filter(n => nodeIdSet.has(n.id));
-        if (selectedNodes.length < 2) return null;
+          // 선택된 노드들 가져오기
+          const selectedNodes = nodes.filter(n => nodeIdSet.has(n.id));
+          if (selectedNodes.length < 2) return null;
 
-        // 엣지 분류: 내부, 외부에서 들어오는, 외부로 나가는
-        const internalEdgeIds: string[] = [];
-        const inputMappings: SubflowPortMapping[] = [];
-        const outputMappings: SubflowPortMapping[] = [];
+          // 엣지 분류: 내부, 외부에서 들어오는, 외부로 나가는
+          const internalEdgeIds: string[] = [];
+          const inputMappings: SubflowPortMapping[] = [];
+          const outputMappings: SubflowPortMapping[] = [];
 
-        for (const edge of edges) {
-          const sourceInSubflow = nodeIdSet.has(edge.source);
-          const targetInSubflow = nodeIdSet.has(edge.target);
+          for (const edge of edges) {
+            const sourceInSubflow = nodeIdSet.has(edge.source);
+            const targetInSubflow = nodeIdSet.has(edge.target);
 
-          if (sourceInSubflow && targetInSubflow) {
-            // 내부 엣지
-            internalEdgeIds.push(edge.id);
-          } else if (!sourceInSubflow && targetInSubflow) {
-            // 외부에서 들어오는 엣지 → 입력 포트 매핑
-            const targetNode = selectedNodes.find(n => n.id === edge.target);
-            const targetPort = targetNode?.inputs?.find(p => p.id === edge.targetPort);
-            if (targetNode && targetPort) {
-              // 중복 방지
-              const existing = inputMappings.find(
-                m => m.internalNodeId === edge.target && m.internalPortId === edge.targetPort
-              );
-              if (!existing) {
-                inputMappings.push({
-                  exposedPortId: `subflow-in-${inputMappings.length}`,
-                  exposedPortName: targetPort.name,
-                  internalNodeId: edge.target,
-                  internalPortId: edge.targetPort,
-                  dataType: targetPort.dataType,
-                  isOutput: false,
-                });
+            if (sourceInSubflow && targetInSubflow) {
+              // 내부 엣지
+              internalEdgeIds.push(edge.id);
+            } else if (!sourceInSubflow && targetInSubflow) {
+              // 외부에서 들어오는 엣지 → 입력 포트 매핑
+              const targetNode = selectedNodes.find(n => n.id === edge.target);
+              const targetPort = targetNode?.inputs?.find(p => p.id === edge.targetPort);
+              if (targetNode && targetPort) {
+                // 중복 방지
+                const existing = inputMappings.find(
+                  m => m.internalNodeId === edge.target && m.internalPortId === edge.targetPort
+                );
+                if (!existing) {
+                  inputMappings.push({
+                    exposedPortId: `subflow-in-${inputMappings.length}`,
+                    exposedPortName: targetPort.name,
+                    internalNodeId: edge.target,
+                    internalPortId: edge.targetPort,
+                    dataType: targetPort.dataType,
+                    isOutput: false,
+                  });
+                }
               }
-            }
-          } else if (sourceInSubflow && !targetInSubflow) {
-            // 외부로 나가는 엣지 → 출력 포트 매핑
-            const sourceNode = selectedNodes.find(n => n.id === edge.source);
-            const sourcePort = sourceNode?.outputs?.find(p => p.id === edge.sourcePort);
-            if (sourceNode && sourcePort) {
-              // 중복 방지
-              const existing = outputMappings.find(
-                m => m.internalNodeId === edge.source && m.internalPortId === edge.sourcePort
-              );
-              if (!existing) {
-                outputMappings.push({
-                  exposedPortId: `subflow-out-${outputMappings.length}`,
-                  exposedPortName: sourcePort.name,
-                  internalNodeId: edge.source,
-                  internalPortId: edge.sourcePort,
-                  dataType: sourcePort.dataType,
-                  isOutput: true,
-                });
+            } else if (sourceInSubflow && !targetInSubflow) {
+              // 외부로 나가는 엣지 → 출력 포트 매핑
+              const sourceNode = selectedNodes.find(n => n.id === edge.source);
+              const sourcePort = sourceNode?.outputs?.find(p => p.id === edge.sourcePort);
+              if (sourceNode && sourcePort) {
+                // 중복 방지
+                const existing = outputMappings.find(
+                  m => m.internalNodeId === edge.source && m.internalPortId === edge.sourcePort
+                );
+                if (!existing) {
+                  outputMappings.push({
+                    exposedPortId: `subflow-out-${outputMappings.length}`,
+                    exposedPortName: sourcePort.name,
+                    internalNodeId: edge.source,
+                    internalPortId: edge.sourcePort,
+                    dataType: sourcePort.dataType,
+                    isOutput: true,
+                  });
+                }
               }
             }
           }
+
+          // 바운딩 박스 계산 (접힌 위치용)
+          let minX = Infinity, minY = Infinity;
+          let maxX = -Infinity, maxY = -Infinity;
+          for (const node of selectedNodes) {
+            minX = Math.min(minX, node.position.x);
+            minY = Math.min(minY, node.position.y);
+            maxX = Math.max(maxX, node.position.x + node.size.width);
+            maxY = Math.max(maxY, node.position.y + node.size.height);
+          }
+          const centerX = (minX + maxX) / 2;
+          const centerY = (minY + maxY) / 2;
+
+          // 접힌 크기 계산 (포트 수 기반)
+          const portCount = Math.max(inputMappings.length, outputMappings.length, 1);
+          const collapsedHeight = SUBFLOW_LAYOUT.HEADER_HEIGHT + portCount * SUBFLOW_LAYOUT.PORT_SPACING + SUBFLOW_LAYOUT.PADDING_BOTTOM;
+          const collapsedWidth = SUBFLOW_LAYOUT.COLLAPSED_WIDTH;
+
+          const subflow: Subflow = {
+            id: subflowId,
+            name,
+            nodeIds: [...nodeIds],
+            internalEdgeIds,
+            inputMappings,
+            outputMappings,
+            collapsed: false,
+            collapsedPosition: { x: centerX - collapsedWidth / 2, y: centerY - collapsedHeight / 2 },
+            collapsedSize: { width: collapsedWidth, height: collapsedHeight },
+            color: DEFAULT_COLORS.SUBFLOW,
+          };
+
+          yjsDoc.subflows.set(subflowId, subflow);
+          return subflowId;
+        } catch (error) {
+          console.error(`[FlowStore] createSubflow failed for "${name}" with nodes [${nodeIds.join(', ')}]:`, error);
+          return null;
         }
-
-        // 바운딩 박스 계산 (접힌 위치용)
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
-        for (const node of selectedNodes) {
-          minX = Math.min(minX, node.position.x);
-          minY = Math.min(minY, node.position.y);
-          maxX = Math.max(maxX, node.position.x + node.size.width);
-          maxY = Math.max(maxY, node.position.y + node.size.height);
-        }
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-
-        // 접힌 크기 계산 (포트 수 기반)
-        const portCount = Math.max(inputMappings.length, outputMappings.length, 1);
-        const collapsedHeight = SUBFLOW_LAYOUT.HEADER_HEIGHT + portCount * SUBFLOW_LAYOUT.PORT_SPACING + SUBFLOW_LAYOUT.PADDING_BOTTOM;
-        const collapsedWidth = SUBFLOW_LAYOUT.COLLAPSED_WIDTH;
-
-        const subflow: Subflow = {
-          id: subflowId,
-          name,
-          nodeIds: [...nodeIds],
-          internalEdgeIds,
-          inputMappings,
-          outputMappings,
-          collapsed: false,
-          collapsedPosition: { x: centerX - collapsedWidth / 2, y: centerY - collapsedHeight / 2 },
-          collapsedSize: { width: collapsedWidth, height: collapsedHeight },
-          color: DEFAULT_COLORS.SUBFLOW,
-        };
-
-        yjsDoc.subflows.set(subflowId, subflow);
-        return subflowId;
       },
 
       // 서브플로우 삭제 (노드는 유지)
@@ -440,54 +449,70 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       // 플로우 초기화 (모든 노드, 엣지, 그룹, 코멘트, 서브플로우 삭제)
       clearFlow: () => {
         const { yjsDoc } = get();
-        yjsDoc.doc.transact(() => {
-          yjsDoc.nodes.clear();
-          yjsDoc.edges.clear();
-          yjsDoc.groups.clear();
-          yjsDoc.comments.clear();
-          yjsDoc.subflows.clear();
-        });
+        try {
+          yjsDoc.doc.transact(() => {
+            yjsDoc.nodes.clear();
+            yjsDoc.edges.clear();
+            yjsDoc.groups.clear();
+            yjsDoc.comments.clear();
+            yjsDoc.subflows.clear();
+          });
+        } catch (error) {
+          console.error('[FlowStore] clearFlow failed:', error);
+        }
       },
 
       // 플로우 불러오기
       loadFlow: (nodes, edges, groups, viewport, comments = [], subflows = []) => {
         const { yjsDoc } = get();
-        yjsDoc.doc.transact(() => {
-          // 기존 데이터 삭제
-          yjsDoc.nodes.clear();
-          yjsDoc.edges.clear();
-          yjsDoc.groups.clear();
-          yjsDoc.comments.clear();
-          yjsDoc.subflows.clear();
+        try {
+          yjsDoc.doc.transact(() => {
+            // 기존 데이터 삭제
+            yjsDoc.nodes.clear();
+            yjsDoc.edges.clear();
+            yjsDoc.groups.clear();
+            yjsDoc.comments.clear();
+            yjsDoc.subflows.clear();
 
-          // 새 데이터 추가
-          for (const node of nodes) {
-            yjsDoc.nodes.set(node.id, node);
-          }
-          for (const edge of edges) {
-            yjsDoc.edges.set(edge.id, edge);
-          }
-          for (const group of groups) {
-            yjsDoc.groups.set(group.id, group);
-          }
-          for (const comment of comments) {
-            yjsDoc.comments.set(comment.id, comment);
-          }
-          for (const subflow of subflows) {
-            yjsDoc.subflows.set(subflow.id, subflow);
-          }
+            // 새 데이터 추가
+            for (const node of nodes) {
+              yjsDoc.nodes.set(node.id, node);
+            }
+            for (const edge of edges) {
+              yjsDoc.edges.set(edge.id, edge);
+            }
+            for (const group of groups) {
+              yjsDoc.groups.set(group.id, group);
+            }
+            for (const comment of comments) {
+              yjsDoc.comments.set(comment.id, comment);
+            }
+            for (const subflow of subflows) {
+              yjsDoc.subflows.set(subflow.id, subflow);
+            }
 
-          // 뷰포트 설정
-          setViewportToYjs(yjsDoc.viewport, viewport);
-        });
+            // 뷰포트 설정
+            setViewportToYjs(yjsDoc.viewport, viewport);
+          });
+        } catch (error) {
+          console.error(`[FlowStore] loadFlow failed (${nodes.length} nodes, ${edges.length} edges):`, error);
+        }
       },
 
       undo: () => {
-        undoManager.undo();
+        try {
+          undoManager.undo();
+        } catch (error) {
+          console.error('[FlowStore] undo failed:', error);
+        }
       },
 
       redo: () => {
-        undoManager.redo();
+        try {
+          undoManager.redo();
+        } catch (error) {
+          console.error('[FlowStore] redo failed:', error);
+        }
       },
 
       canUndo: () => undoManager.undoStack.length > 0,
@@ -499,17 +524,25 @@ export const createFlowStore = (initialDoc?: FlowYjsDoc) => {
       getRedoStackLength: () => undoManager.redoStack.length,
 
       undoToIndex: (targetIndex: number) => {
-        const currentLength = undoManager.undoStack.length;
-        const steps = currentLength - targetIndex - 1;
-        for (let i = 0; i < steps; i++) {
-          undoManager.undo();
+        try {
+          const currentLength = undoManager.undoStack.length;
+          const steps = currentLength - targetIndex - 1;
+          for (let i = 0; i < steps; i++) {
+            undoManager.undo();
+          }
+        } catch (error) {
+          console.error(`[FlowStore] undoToIndex failed at target index ${targetIndex}:`, error);
         }
       },
 
       redoToIndex: (targetIndex: number) => {
-        const steps = targetIndex + 1;
-        for (let i = 0; i < steps; i++) {
-          undoManager.redo();
+        try {
+          const steps = targetIndex + 1;
+          for (let i = 0; i < steps; i++) {
+            undoManager.redo();
+          }
+        } catch (error) {
+          console.error(`[FlowStore] redoToIndex failed at target index ${targetIndex}:`, error);
         }
       },
     };
