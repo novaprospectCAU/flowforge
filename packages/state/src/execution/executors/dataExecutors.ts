@@ -1,6 +1,52 @@
 import type { ExecutionContext, ExecutionResult } from '../types';
 import { executorRegistry } from '../executorRegistry';
 
+/**
+ * URL 검증 함수 (SSRF 방지)
+ * 허용되지 않는 프로토콜 및 내부 네트워크 주소를 차단
+ */
+function validateUrl(url: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`Invalid URL: '${url}'`);
+  }
+
+  // 프로토콜 검증: http/https만 허용
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(
+      `URL protocol '${parsed.protocol}' is not allowed. Only HTTP and HTTPS are supported.`
+    );
+  }
+
+  // 호스트네임 추출 (IPv6 브라켓 제거)
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+
+  // 내부 네트워크 주소 차단
+  const privatePatterns: Array<{ pattern: RegExp; description: string }> = [
+    { pattern: /^localhost$/i, description: 'localhost' },
+    { pattern: /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/, description: 'loopback (127.x.x.x)' },
+    { pattern: /^0\.0\.0\.0$/, description: '0.0.0.0' },
+    { pattern: /^::1$/, description: 'IPv6 loopback (::1)' },
+    { pattern: /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/, description: 'private network (10.x.x.x)' },
+    {
+      pattern: /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/,
+      description: 'private network (172.16-31.x.x)',
+    },
+    { pattern: /^192\.168\.\d{1,3}\.\d{1,3}$/, description: 'private network (192.168.x.x)' },
+    { pattern: /^169\.254\.\d{1,3}\.\d{1,3}$/, description: 'link-local (169.254.x.x)' },
+  ];
+
+  for (const { pattern, description } of privatePatterns) {
+    if (pattern.test(hostname)) {
+      throw new Error(
+        `URL points to a private/internal network address (${description}) which is not allowed.`
+      );
+    }
+  }
+}
+
 // Merge: 여러 입력 병합
 executorRegistry.register('Merge', async (ctx: ExecutionContext): Promise<ExecutionResult> => {
   const a = ctx.inputs.a;
@@ -105,6 +151,9 @@ executorRegistry.register('HTTPRequest', async (ctx: ExecutionContext): Promise<
   if (!url) {
     throw new Error('URL is required');
   }
+
+  // URL 검증 (SSRF 방지)
+  validateUrl(url);
 
   const fetchOptions: RequestInit = {
     method,

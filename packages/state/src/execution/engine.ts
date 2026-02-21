@@ -439,25 +439,34 @@ export class ExecutionEngine {
   /**
    * 입력 검증
    * 노드 타입 정의의 required 필드와 dataType을 확인
+   * 호환 가능한 타입은 자동 변환 (coercion)
    */
   private validateInputs(node: FlowNode, inputs: Record<string, unknown>): void {
     const typeDef = nodeTypeRegistry.get(node.type);
     if (!typeDef) return; // 타입 정의 없으면 검증 건너뛰기
 
     for (const portDef of typeDef.inputs) {
-      if (!portDef.required) continue;
-
       const value = inputs[portDef.id];
 
       // required 필드가 없거나 undefined/null인 경우
-      if (value === undefined || value === null) {
+      if (portDef.required && (value === undefined || value === null)) {
         throw new Error(
           `Missing required input '${portDef.name}' for node '${typeDef.title}' (${node.id})`
         );
       }
 
+      // 값이 없으면 타입 검사 건너뛰기
+      if (value === undefined || value === null) continue;
+
       // dataType 기반 타입 매칭 (any는 모든 타입 허용)
       if (portDef.dataType !== 'any') {
+        // 자동 변환 시도
+        const coerced = this.coerceInput(value, portDef.dataType);
+        if (coerced !== undefined) {
+          inputs[portDef.id] = coerced;
+          continue;
+        }
+
         const valid = this.checkDataType(value, portDef.dataType);
         if (!valid) {
           throw new Error(
@@ -465,6 +474,41 @@ export class ExecutionEngine {
           );
         }
       }
+    }
+  }
+
+  /**
+   * 호환 가능한 타입 자동 변환
+   * 변환 성공 시 변환된 값 반환, 불필요하거나 불가능하면 undefined 반환
+   */
+  private coerceInput(value: unknown, expectedType: string): unknown {
+    // 이미 올바른 타입이면 변환 불필요
+    if (this.checkDataType(value, expectedType)) return undefined;
+
+    switch (expectedType) {
+      case 'number': {
+        // 문자열 → 숫자 변환
+        if (typeof value === 'string') {
+          const num = Number(value);
+          if (!isNaN(num)) return num;
+        }
+        return undefined;
+      }
+      case 'string': {
+        // 숫자 → 문자열 변환
+        if (typeof value === 'number') return String(value);
+        return undefined;
+      }
+      case 'boolean': {
+        // 문자열 "true"/"false" → boolean 변환
+        if (typeof value === 'string') {
+          if (value === 'true') return true;
+          if (value === 'false') return false;
+        }
+        return undefined;
+      }
+      default:
+        return undefined;
     }
   }
 
