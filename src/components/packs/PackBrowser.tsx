@@ -7,6 +7,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { packRegistry, type PackManifest, type PackState } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useLanguage } from '../../i18n';
+import { uiTranslations } from '../../i18n/translations';
 import { SHADOWS } from '../../theme/shadows';
 import { Z_INDEX } from '../../constants/zIndex';
 
@@ -19,6 +21,8 @@ type TabId = 'all' | 'builtin' | 'custom' | 'installed';
 export function PackBrowser({ onClose }: PackBrowserProps) {
   const { colors } = useTheme();
   const isMobile = useIsMobile();
+  const lang = useLanguage();
+  const tt = uiTranslations[lang];
   const [tab, setTab] = useState<TabId>('all');
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [, setVersion] = useState(0); // 리렌더 트리거
@@ -61,7 +65,7 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
       a.download = `${packId}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      setMessage('Pack exported!');
+      setMessage(tt.packExported);
       setTimeout(() => setMessage(null), 2000);
     }
   }, []);
@@ -70,7 +74,7 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
     setImportError(null);
     const preview = packRegistry.previewImport(importJson);
     if (!preview) {
-      setImportError('Invalid pack JSON. Must be a custom pack with valid manifest.');
+      setImportError(tt.invalidPackJson);
       return;
     }
     packRegistry.installCustomPack(preview);
@@ -335,10 +339,10 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
   };
 
   const tabs: { id: TabId; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'builtin', label: 'Built-in' },
-    { id: 'custom', label: 'Custom' },
-    { id: 'installed', label: 'Installed' },
+    { id: 'all', label: tt.all },
+    { id: 'builtin', label: tt.builtin },
+    { id: 'custom', label: tt.custom },
+    { id: 'installed', label: tt.installed },
   ];
 
   return (
@@ -346,7 +350,7 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
       <div style={styles.dialog} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={styles.header}>
-          <span style={styles.title}>Pack Browser</span>
+          <span style={styles.title}>{tt.packBrowser}</span>
           <button style={styles.closeBtn} onClick={onClose} aria-label="Close">x</button>
         </div>
 
@@ -370,7 +374,7 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
           {/* Pack list */}
           <div style={styles.list}>
             {filteredPacks.length === 0 && (
-              <div style={styles.emptyState}>No packs found</div>
+              <div style={styles.emptyState}>{tt.noPacksFound}</div>
             )}
             {filteredPacks.map(({ manifest, state }) => (
               <div
@@ -398,14 +402,14 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
                     }}
                     onClick={(e) => { e.stopPropagation(); handleToggle(manifest.id); }}
                   >
-                    {state.enabled ? 'Enabled' : 'Enable'}
+                    {state.enabled ? tt.enabled : tt.enable}
                   </button>
                 </div>
                 <div style={styles.cardMeta}>
                   <span style={styles.badge}>{manifest.kind}</span>
                   <span style={styles.badge}>v{manifest.version}</span>
                   <span style={styles.badge}>
-                    {packRegistry.getPackNodes(manifest.id).length} nodes
+                    {packRegistry.getPackNodes(manifest.id).length} {tt.nodes}
                   </span>
                 </div>
               </div>
@@ -431,14 +435,14 @@ export function PackBrowser({ onClose }: PackBrowserProps) {
               style={styles.importInput}
               value={importJson}
               onChange={e => setImportJson(e.target.value)}
-              placeholder="Paste pack JSON to import..."
+              placeholder={tt.pastePackJson}
             />
             <button
               style={styles.importBtn}
               onClick={handleImport}
               disabled={!importJson.trim()}
             >
-              Import
+              {tt.import}
             </button>
           </div>
           {importError && <div style={styles.importError}>{importError}</div>}
@@ -463,6 +467,8 @@ function PackDetail({
   onExport: (packId: string) => void;
   onUninstall: (packId: string) => void;
 }) {
+  const lang = useLanguage();
+  const tt = uiTranslations[lang];
   const nodes = packRegistry.getPackNodes(manifest.id);
 
   return (
@@ -471,17 +477,17 @@ function PackDetail({
       <div style={styles.detailDesc}>{manifest.description}</div>
 
       <div style={styles.detailSection}>
-        <div style={styles.detailLabel}>Info</div>
+        <div style={styles.detailLabel}>{tt.info}</div>
         <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.6 }}>
-          <div>Version: {manifest.version}</div>
-          <div>Author: {manifest.author}</div>
-          <div>Category: {manifest.category}</div>
-          <div>Installed: {new Date(state.installedAt).toLocaleDateString()}</div>
+          <div>{tt.version}: {manifest.version}</div>
+          <div>{tt.author}: {manifest.author}</div>
+          <div>{tt.category}: {manifest.category}</div>
+          <div>{tt.installedAt}: {new Date(state.installedAt).toLocaleDateString()}</div>
         </div>
       </div>
 
       <div style={styles.detailSection}>
-        <div style={styles.detailLabel}>Nodes ({nodes.length})</div>
+        <div style={styles.detailLabel}>{tt.nodes} ({nodes.length})</div>
         {nodes.map(n => (
           <div key={n.nodeType.type} style={styles.nodeItem}>
             <strong>{n.nodeType.title}</strong>
@@ -502,13 +508,13 @@ function PackDetail({
               style={styles.detailBtn}
               onClick={() => onExport(manifest.id)}
             >
-              Export JSON
+              {tt.exportJson}
             </button>
             <button
               style={{ ...styles.detailBtn, ...styles.detailDeleteBtn }}
               onClick={() => onUninstall(manifest.id)}
             >
-              Uninstall
+              {tt.uninstall}
             </button>
           </>
         )}

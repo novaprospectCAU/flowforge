@@ -4,24 +4,13 @@ import { onboardingTranslations } from '../i18n/translations';
 import { useTheme } from '../hooks/useTheme';
 import { SHADOWS } from '../theme/shadows';
 import { OnboardingIcon } from './Icons';
+import { markOnboardingComplete } from './onboardingUtils';
+
+export { hasCompletedOnboarding, markOnboardingComplete, resetOnboarding } from './onboardingUtils';
 
 interface OnboardingTutorialProps {
   onComplete: () => void;
   onSkip: () => void;
-}
-
-const ONBOARDING_KEY = 'flowforge-onboarding-completed';
-
-export function hasCompletedOnboarding(): boolean {
-  return localStorage.getItem(ONBOARDING_KEY) === 'true';
-}
-
-export function markOnboardingComplete(): void {
-  localStorage.setItem(ONBOARDING_KEY, 'true');
-}
-
-export function resetOnboarding(): void {
-  localStorage.removeItem(ONBOARDING_KEY);
 }
 
 export function OnboardingTutorial({ onComplete, onSkip }: OnboardingTutorialProps) {

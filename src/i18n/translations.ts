@@ -524,6 +524,114 @@ export const uiTranslations: Record<Language, {
   size: string;
   // Language
   language: string;
+  // Common
+  loading: string;
+  cancel: string;
+  close: string;
+  save: string;
+  name: string;
+  // API Keys
+  apiKeys: string;
+  noApiKeys: string;
+  addApiKey: string;
+  addNewKey: string;
+  provider: string;
+  apiKey: string;
+  keyValid: string;
+  keyInvalid: string;
+  testKey: string;
+  saveKey: string;
+  savingKey: string;
+  nameKeyRequired: string;
+  enterKeyToTest: string;
+  confirmDeleteKey: string;
+  envTip: string;
+  envTipDesc: string;
+  // AI Widgets
+  selectApiKey: string;
+  temperature: string;
+  maxTokens: string;
+  stream: string;
+  standard: string;
+  hd: string;
+  // Desktop toolbar
+  undoShortcut: string;
+  redoShortcut: string;
+  autoSaveStatus: string;
+  snapToGrid: string;
+  edgeStyle: string;
+  exportFlow: string;
+  importFlow: string;
+  export: string;
+  import: string;
+  runFlow: string;
+  completed: string;
+  error: string;
+  // Error boundary
+  somethingWentWrong: string;
+  errorDescription: string;
+  tryAgain: string;
+  reloadPage: string;
+  errorDetails: string;
+  widgetError: string;
+  retry: string;
+  // Subflow panel
+  subflow: string;
+  untitled: string;
+  subflowName: string;
+  inputPorts: string;
+  outputPorts: string;
+  noInputPorts: string;
+  noOutputPorts: string;
+  expand: string;
+  collapse: string;
+  templateSaved: string;
+  publishAsCustomNode: string;
+  status: string;
+  collapsed: string;
+  expanded: string;
+  // Pack Browser
+  packBrowser: string;
+  all: string;
+  builtin: string;
+  custom: string;
+  installed: string;
+  enabled: string;
+  enable: string;
+  noPacksFound: string;
+  info: string;
+  version: string;
+  author: string;
+  category: string;
+  installedAt: string;
+  exportJson: string;
+  uninstall: string;
+  pastePackJson: string;
+  invalidPackJson: string;
+  packExported: string;
+  // Publish dialog
+  title: string;
+  description: string;
+  color: string;
+  targetPack: string;
+  createNewPack: string;
+  newPackName: string;
+  portPreview: string;
+  inputs: string;
+  outputs: string;
+  none: string;
+  publish: string;
+  // Mobile toolbar
+  quickAccess: string;
+  searchNodesMenu: string;
+  settings: string;
+  gridSnap: string;
+  theme: string;
+  data: string;
+  // Debug widget
+  waitingForExecution: string;
+  // Node palette
+  noNodesFound: string;
 }> = {
   en: {
     undo: 'Undo',
@@ -573,6 +681,114 @@ export const uiTranslations: Record<Language, {
     position: 'Position',
     size: 'Size',
     language: 'Language',
+    // Common
+    loading: 'Loading...',
+    cancel: 'Cancel',
+    close: 'Close',
+    save: 'Save',
+    name: 'Name',
+    // API Keys
+    apiKeys: 'API Keys',
+    noApiKeys: 'No API keys saved. Add one below.',
+    addApiKey: '+ Add API Key',
+    addNewKey: 'Add New Key',
+    provider: 'Provider',
+    apiKey: 'API Key',
+    keyValid: 'Key is valid',
+    keyInvalid: 'Key is invalid',
+    testKey: 'Test Key',
+    saveKey: 'Save Key',
+    savingKey: 'Saving...',
+    nameKeyRequired: 'Name and key are required',
+    enterKeyToTest: 'Enter a key to test',
+    confirmDeleteKey: 'Are you sure you want to delete this API key?',
+    envTip: 'Tip:',
+    envTipDesc: 'You can also set API keys via environment variables:',
+    // AI Widgets
+    selectApiKey: 'Select API Key',
+    temperature: 'Temp:',
+    maxTokens: 'Max:',
+    stream: 'Stream',
+    standard: 'Standard',
+    hd: 'HD',
+    // Desktop toolbar
+    undoShortcut: 'Undo (Ctrl+Z)',
+    redoShortcut: 'Redo (Ctrl+Y)',
+    autoSaveStatus: 'Auto-save status',
+    snapToGrid: 'Snap to Grid',
+    edgeStyle: 'Edge Style (Click to cycle)',
+    exportFlow: 'Export Flow (JSON)',
+    importFlow: 'Import Flow (JSON)',
+    export: 'Export',
+    import: 'Import',
+    runFlow: 'Run Flow',
+    completed: 'Completed',
+    error: 'Error',
+    // Error boundary
+    somethingWentWrong: 'Something went wrong',
+    errorDescription: 'An unexpected error occurred. You can try to recover or reload the page.',
+    tryAgain: 'Try Again',
+    reloadPage: 'Reload Page',
+    errorDetails: 'Error Details',
+    widgetError: 'Widget Error',
+    retry: 'Retry',
+    // Subflow panel
+    subflow: 'Subflow',
+    untitled: 'Untitled',
+    subflowName: 'Subflow name',
+    inputPorts: 'Input Ports',
+    outputPorts: 'Output Ports',
+    noInputPorts: 'No input ports',
+    noOutputPorts: 'No output ports',
+    expand: 'Expand',
+    collapse: 'Collapse',
+    templateSaved: 'Template saved!',
+    publishAsCustomNode: 'Publish as Custom Node',
+    status: 'Status',
+    collapsed: 'Collapsed',
+    expanded: 'Expanded',
+    // Pack Browser
+    packBrowser: 'Pack Browser',
+    all: 'All',
+    builtin: 'Built-in',
+    custom: 'Custom',
+    installed: 'Installed',
+    enabled: 'Enabled',
+    enable: 'Enable',
+    noPacksFound: 'No packs found',
+    info: 'Info',
+    version: 'Version',
+    author: 'Author',
+    category: 'Category',
+    installedAt: 'Installed',
+    exportJson: 'Export JSON',
+    uninstall: 'Uninstall',
+    pastePackJson: 'Paste pack JSON to import...',
+    invalidPackJson: 'Invalid pack JSON. Must be a custom pack with valid manifest.',
+    packExported: 'Pack exported!',
+    // Publish dialog
+    title: 'Title',
+    description: 'Description',
+    color: 'Color',
+    targetPack: 'Target Pack',
+    createNewPack: '+ Create new pack',
+    newPackName: 'New Pack Name',
+    portPreview: 'Port Preview',
+    inputs: 'Inputs',
+    outputs: 'Outputs',
+    none: 'none',
+    publish: 'Publish',
+    // Mobile toolbar
+    quickAccess: 'Quick Access',
+    searchNodesMenu: 'Search Nodes',
+    settings: 'Settings',
+    gridSnap: 'Grid Snap',
+    theme: 'Theme',
+    data: 'Data',
+    // Debug widget
+    waitingForExecution: 'Waiting for execution...',
+    // Node palette
+    noNodesFound: 'No nodes found',
   },
   ko: {
     undo: '실행 취소',
@@ -622,5 +838,113 @@ export const uiTranslations: Record<Language, {
     position: '위치',
     size: '크기',
     language: '언어',
+    // Common
+    loading: '로딩 중...',
+    cancel: '취소',
+    close: '닫기',
+    save: '저장',
+    name: '이름',
+    // API Keys
+    apiKeys: 'API 키',
+    noApiKeys: '저장된 API 키가 없습니다. 아래에서 추가하세요.',
+    addApiKey: '+ API 키 추가',
+    addNewKey: '새 키 추가',
+    provider: '제공자',
+    apiKey: 'API 키',
+    keyValid: '유효한 키입니다',
+    keyInvalid: '유효하지 않은 키입니다',
+    testKey: '키 테스트',
+    saveKey: '키 저장',
+    savingKey: '저장 중...',
+    nameKeyRequired: '이름과 키를 입력하세요',
+    enterKeyToTest: '테스트할 키를 입력하세요',
+    confirmDeleteKey: '이 API 키를 삭제하시겠습니까?',
+    envTip: '팁:',
+    envTipDesc: '환경 변수로 API 키를 설정할 수도 있습니다:',
+    // AI Widgets
+    selectApiKey: 'API 키 선택',
+    temperature: '온도:',
+    maxTokens: '최대:',
+    stream: '스트림',
+    standard: '표준',
+    hd: 'HD',
+    // Desktop toolbar
+    undoShortcut: '실행 취소 (Ctrl+Z)',
+    redoShortcut: '다시 실행 (Ctrl+Y)',
+    autoSaveStatus: '자동 저장 상태',
+    snapToGrid: '그리드 스냅',
+    edgeStyle: '엣지 스타일 (클릭하여 변경)',
+    exportFlow: '플로우 내보내기 (JSON)',
+    importFlow: '플로우 가져오기 (JSON)',
+    export: '내보내기',
+    import: '가져오기',
+    runFlow: '플로우 실행',
+    completed: '완료',
+    error: '오류',
+    // Error boundary
+    somethingWentWrong: '문제가 발생했습니다',
+    errorDescription: '예기치 않은 오류가 발생했습니다. 복구하거나 페이지를 새로고침할 수 있습니다.',
+    tryAgain: '다시 시도',
+    reloadPage: '페이지 새로고침',
+    errorDetails: '오류 상세',
+    widgetError: '위젯 오류',
+    retry: '재시도',
+    // Subflow panel
+    subflow: '서브플로우',
+    untitled: '제목 없음',
+    subflowName: '서브플로우 이름',
+    inputPorts: '입력 포트',
+    outputPorts: '출력 포트',
+    noInputPorts: '입력 포트 없음',
+    noOutputPorts: '출력 포트 없음',
+    expand: '펼치기',
+    collapse: '접기',
+    templateSaved: '템플릿 저장됨!',
+    publishAsCustomNode: '커스텀 노드로 퍼블리시',
+    status: '상태',
+    collapsed: '접힘',
+    expanded: '펼침',
+    // Pack Browser
+    packBrowser: '팩 브라우저',
+    all: '전체',
+    builtin: '내장',
+    custom: '커스텀',
+    installed: '설치됨',
+    enabled: '활성화됨',
+    enable: '활성화',
+    noPacksFound: '팩을 찾을 수 없습니다',
+    info: '정보',
+    version: '버전',
+    author: '작성자',
+    category: '카테고리',
+    installedAt: '설치일',
+    exportJson: 'JSON 내보내기',
+    uninstall: '제거',
+    pastePackJson: '팩 JSON을 붙여넣어 가져오기...',
+    invalidPackJson: '유효하지 않은 팩 JSON입니다. 유효한 매니페스트가 포함된 커스텀 팩이어야 합니다.',
+    packExported: '팩 내보내기 완료!',
+    // Publish dialog
+    title: '제목',
+    description: '설명',
+    color: '색상',
+    targetPack: '대상 팩',
+    createNewPack: '+ 새 팩 생성',
+    newPackName: '새 팩 이름',
+    portPreview: '포트 미리보기',
+    inputs: '입력',
+    outputs: '출력',
+    none: '없음',
+    publish: '퍼블리시',
+    // Mobile toolbar
+    quickAccess: '빠른 접근',
+    searchNodesMenu: '노드 검색',
+    settings: '설정',
+    gridSnap: '그리드 스냅',
+    theme: '테마',
+    data: '데이터',
+    // Debug widget
+    waitingForExecution: '실행 대기 중...',
+    // Node palette
+    noNodesFound: '노드를 찾을 수 없습니다',
   },
 };

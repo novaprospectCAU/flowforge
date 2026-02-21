@@ -177,7 +177,7 @@ export function NodePalette({ x, y, onSelect, onClose }: NodePaletteProps) {
         ))}
         {filteredTypes.length === 0 && (
           <div style={{ padding: 16, color: colors.textMuted, textAlign: 'center' }}>
-            {lang === 'en' ? 'No nodes found' : '노드를 찾을 수 없습니다'}
+            {t.noNodesFound}
           </div>
         )}
       </div>

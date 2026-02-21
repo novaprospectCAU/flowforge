@@ -8,6 +8,8 @@ import type { FlowNode } from '@flowforge/types';
 import { keyManager } from '@flowforge/state';
 import type { AIProviderType, ImageSize, MaskedAPIKeyEntry } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../i18n';
+import { uiTranslations } from '../../i18n/translations';
 
 interface ImageGenerateWidgetProps {
   node: FlowNode;
@@ -41,6 +43,8 @@ export function ImageGenerateWidget({
   const [keys, setKeys] = useState<MaskedAPIKeyEntry[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(true);
   const { colors } = useTheme();
+  const lang = useLanguage();
+  const tr = uiTranslations[lang];
 
   // 노드 데이터 추출
   const provider = (node.data.provider as AIProviderType) || 'openai';
@@ -171,8 +175,8 @@ export function ImageGenerateWidget({
           onChange={e => handleChange('quality', e.target.value)}
           aria-label="Image quality"
         >
-          <option value="standard">Standard</option>
-          <option value="hd">HD</option>
+          <option value="standard">{tr.standard}</option>
+          <option value="hd">{tr.hd}</option>
         </select>
 
         <select
@@ -188,7 +192,7 @@ export function ImageGenerateWidget({
           aria-label="API Key"
         >
           <option value="">
-            {isLoadingKeys ? 'Loading...' : 'Select API Key'}
+            {isLoadingKeys ? tr.loading : tr.selectApiKey}
           </option>
           {keys.map(key => (
             <option key={key.id} value={key.id}>

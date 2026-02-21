@@ -7,6 +7,8 @@ import type { Subflow, FlowNode, FlowEdge } from '@flowforge/types';
 import { packRegistry, convertSubflowToPackNode } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useLanguage } from '../../i18n';
+import { uiTranslations } from '../../i18n/translations';
 import { SHADOWS } from '../../theme/shadows';
 import { Z_INDEX } from '../../constants/zIndex';
 
@@ -20,6 +22,8 @@ interface PublishNodeDialogProps {
 export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNodeDialogProps) {
   const { colors } = useTheme();
   const isMobile = useIsMobile();
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
   const [title, setTitle] = useState(subflow.name || 'Custom Node');
   const [category, setCategory] = useState('Custom');
   const [description, setDescription] = useState('');
@@ -226,12 +230,12 @@ export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNod
   return (
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.dialog} onClick={e => e.stopPropagation()}>
-        <div style={styles.title}>Publish as Custom Node</div>
+        <div style={styles.title}>{t.publishAsCustomNode}</div>
 
         {error && <div style={styles.error}>{error}</div>}
 
         <div style={styles.field}>
-          <label style={styles.label}>Title</label>
+          <label style={styles.label}>{t.title}</label>
           <input
             style={styles.input}
             value={title}
@@ -241,7 +245,7 @@ export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNod
         </div>
 
         <div style={styles.field}>
-          <label style={styles.label}>Category</label>
+          <label style={styles.label}>{t.category}</label>
           <input
             style={styles.input}
             value={category}
@@ -251,7 +255,7 @@ export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNod
         </div>
 
         <div style={styles.field}>
-          <label style={styles.label}>Description</label>
+          <label style={styles.label}>{t.description}</label>
           <input
             style={styles.input}
             value={description}
@@ -261,7 +265,7 @@ export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNod
         </div>
 
         <div style={styles.field}>
-          <label style={styles.label}>Color</label>
+          <label style={styles.label}>{t.color}</label>
           <div style={styles.colorRow}>
             <input
               type="color"
@@ -274,13 +278,13 @@ export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNod
         </div>
 
         <div style={styles.field}>
-          <label style={styles.label}>Target Pack</label>
+          <label style={styles.label}>{t.targetPack}</label>
           <select
             style={styles.select}
             value={targetPackId}
             onChange={e => setTargetPackId(e.target.value)}
           >
-            <option value="__new__">+ Create new pack</option>
+            <option value="__new__">{t.createNewPack}</option>
             {allPacks.map(p => (
               <option key={p.manifest.id} value={p.manifest.id}>
                 {p.manifest.name}
@@ -291,7 +295,7 @@ export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNod
 
         {targetPackId === '__new__' && (
           <div style={styles.field}>
-            <label style={styles.label}>New Pack Name</label>
+            <label style={styles.label}>{t.newPackName}</label>
             <input
               style={styles.input}
               value={newPackName}
@@ -303,39 +307,39 @@ export function PublishNodeDialog({ subflow, nodes, edges, onClose }: PublishNod
 
         {/* 포트 미리보기 */}
         <div style={styles.preview}>
-          <div style={styles.previewTitle}>Port Preview</div>
+          <div style={styles.previewTitle}>{t.portPreview}</div>
           <div>
-            <strong>Inputs ({subflow.inputMappings.length}):</strong>
+            <strong>{t.inputs} ({subflow.inputMappings.length}):</strong>
             {subflow.inputMappings.length > 0 ? (
               <ul style={styles.portList}>
                 {subflow.inputMappings.map(m => (
                   <li key={m.exposedPortId}>{m.exposedPortName} ({m.dataType})</li>
                 ))}
               </ul>
-            ) : <span> none</span>}
+            ) : <span> {t.none}</span>}
           </div>
           <div style={{ marginTop: 8 }}>
-            <strong>Outputs ({subflow.outputMappings.length}):</strong>
+            <strong>{t.outputs} ({subflow.outputMappings.length}):</strong>
             {subflow.outputMappings.length > 0 ? (
               <ul style={styles.portList}>
                 {subflow.outputMappings.map(m => (
                   <li key={m.exposedPortId}>{m.exposedPortName} ({m.dataType})</li>
                 ))}
               </ul>
-            ) : <span> none</span>}
+            ) : <span> {t.none}</span>}
           </div>
         </div>
 
         <div style={styles.actions}>
           <button style={{ ...styles.btn, ...styles.cancelBtn }} onClick={onClose}>
-            Cancel
+            {t.cancel}
           </button>
           <button
             style={{ ...styles.btn, ...styles.publishBtn }}
             onClick={handlePublish}
             disabled={!title.trim()}
           >
-            Publish
+            {t.publish}
           </button>
         </div>
       </div>

@@ -3,6 +3,8 @@ import type { Subflow, SubflowPortMapping, FlowNode, FlowEdge } from '@flowforge
 import { saveAsTemplate } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useLanguage } from '../i18n';
+import { uiTranslations } from '../i18n/translations';
 import { SHADOWS } from '../theme/shadows';
 import { PublishNodeDialog } from './packs/PublishNodeDialog';
 
@@ -32,6 +34,8 @@ export function SubflowPanel({
   const [localOutputs, setLocalOutputs] = useState<SubflowPortMapping[]>(subflow.outputMappings);
   const { colors } = useTheme();
   const isMobile = useIsMobile();
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
 
   // 서브플로우가 바뀌면 로컬 상태 갱신
   useEffect(() => {
@@ -246,7 +250,7 @@ export function SubflowPanel({
 
   const renderPortList = (ports: SubflowPortMapping[], isOutput: boolean) => {
     if (ports.length === 0) {
-      return <div style={styles.emptyPorts}>No {isOutput ? 'output' : 'input'} ports</div>;
+      return <div style={styles.emptyPorts}>{isOutput ? t.noOutputPorts : t.noInputPorts}</div>;
     }
 
     return ports.map(port => (
@@ -274,33 +278,33 @@ export function SubflowPanel({
   return (
     <div style={styles.panel} role="region" aria-label="Subflow panel">
       <div style={styles.header}>
-        <div style={styles.nodeType}>Subflow</div>
-        <div style={styles.nodeTitle}>{localName || 'Untitled'}</div>
+        <div style={styles.nodeType}>{t.subflow}</div>
+        <div style={styles.nodeTitle}>{localName || t.untitled}</div>
       </div>
 
       <div style={styles.content}>
         {/* 이름 편집 */}
         <div style={styles.field}>
-          <label style={styles.label}>Name</label>
+          <label style={styles.label}>{t.name}</label>
           <input
             type="text"
             value={localName}
             onChange={e => handleNameChange(e.target.value)}
             style={styles.input}
-            placeholder="Subflow name"
+            placeholder={t.subflowName}
             aria-label="Subflow name"
           />
         </div>
 
         {/* 입력 포트 */}
         <div style={styles.section} role="group" aria-label="Input ports">
-          <div style={styles.sectionHeader}>Input Ports ({localInputs.length})</div>
+          <div style={styles.sectionHeader}>{t.inputPorts} ({localInputs.length})</div>
           {renderPortList(localInputs, false)}
         </div>
 
         {/* 출력 포트 */}
         <div style={styles.section} role="group" aria-label="Output ports">
-          <div style={styles.sectionHeader}>Output Ports ({localOutputs.length})</div>
+          <div style={styles.sectionHeader}>{t.outputPorts} ({localOutputs.length})</div>
           {renderPortList(localOutputs, true)}
         </div>
 
@@ -310,13 +314,13 @@ export function SubflowPanel({
             onClick={() => subflow.collapsed ? onExpand(subflow.id) : onCollapse(subflow.id)}
             style={styles.actionBtn}
           >
-            {subflow.collapsed ? 'Expand' : 'Collapse'}
+            {subflow.collapsed ? t.expand : t.collapse}
           </button>
           <button
             onClick={() => onDelete(subflow.id)}
             style={{ ...styles.actionBtn, ...styles.deleteBtn }}
           >
-            Delete
+            {t.delete}
           </button>
         </div>
 
@@ -325,19 +329,19 @@ export function SubflowPanel({
           <button
             onClick={() => {
               saveAsTemplate(subflow, nodes, edges);
-              setSaveMessage('Template saved!');
+              setSaveMessage(t.templateSaved);
               setTimeout(() => setSaveMessage(null), 2000);
             }}
             style={{ ...styles.actionBtn, ...styles.templateBtn }}
           >
-            Save as Template
+            {t.saveAsTemplate}
           </button>
           {saveMessage && <div style={styles.saveMessage} role="status">{saveMessage}</div>}
           <button
             onClick={() => setShowPublishDialog(true)}
             style={{ ...styles.actionBtn, ...styles.publishBtn }}
           >
-            Publish as Custom Node
+            {t.publishAsCustomNode}
           </button>
         </div>
 
@@ -348,12 +352,12 @@ export function SubflowPanel({
             <span style={styles.infoValue}>{subflow.id}</span>
           </div>
           <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Nodes</span>
+            <span style={styles.infoLabel}>{t.nodes}</span>
             <span style={styles.infoValue}>{subflow.nodeIds.length}</span>
           </div>
           <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Status</span>
-            <span style={styles.infoValue}>{subflow.collapsed ? 'Collapsed' : 'Expanded'}</span>
+            <span style={styles.infoLabel}>{t.status}</span>
+            <span style={styles.infoValue}>{subflow.collapsed ? t.collapsed : t.expanded}</span>
           </div>
         </div>
       </div>

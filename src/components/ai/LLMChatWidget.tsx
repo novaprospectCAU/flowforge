@@ -8,6 +8,8 @@ import type { FlowNode } from '@flowforge/types';
 import { keyManager, providerRegistry } from '@flowforge/state';
 import type { AIProviderType, MaskedAPIKeyEntry } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../i18n';
+import { uiTranslations } from '../../i18n/translations';
 
 interface LLMChatWidgetProps {
   node: FlowNode;
@@ -28,6 +30,8 @@ export function LLMChatWidget({
   const [keys, setKeys] = useState<MaskedAPIKeyEntry[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(true);
   const { colors } = useTheme();
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
 
   // 노드 데이터 추출
   const provider = (node.data.provider as AIProviderType) || 'openai';
@@ -149,7 +153,7 @@ export function LLMChatWidget({
         aria-label="API Key"
       >
         <option value="">
-          {isLoadingKeys ? 'Loading...' : 'Select API Key'}
+          {isLoadingKeys ? t.loading : t.selectApiKey}
         </option>
         {keys.map(key => (
           <option key={key.id} value={key.id}>
@@ -161,7 +165,7 @@ export function LLMChatWidget({
       {/* Temperature & Max Tokens */}
       <div style={{ display: 'flex', gap: 4 * zoom, alignItems: 'center' }}>
         <label style={{ color: colors.textMuted, fontSize: baseFontSize * 0.9 }}>
-          Temp:
+          {t.temperature}
         </label>
         <input
           type="number"
@@ -180,7 +184,7 @@ export function LLMChatWidget({
         />
 
         <label style={{ color: colors.textMuted, fontSize: baseFontSize * 0.9, marginLeft: 4 * zoom }}>
-          Max:
+          {t.maxTokens}
         </label>
         <input
           type="number"
@@ -213,7 +217,7 @@ export function LLMChatWidget({
             checked={stream}
             onChange={e => handleChange('stream', e.target.checked)}
           />
-          Stream
+          {t.stream}
         </label>
       </div>
 

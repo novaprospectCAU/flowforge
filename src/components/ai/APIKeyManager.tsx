@@ -7,6 +7,8 @@ import { keyManager } from '@flowforge/state';
 import type { AIProviderType, MaskedAPIKeyEntry } from '@flowforge/state';
 import { providerRegistry } from '@flowforge/state';
 import { useTheme } from '../../hooks/useTheme';
+import { useLanguage } from '../../i18n';
+import { uiTranslations } from '../../i18n/translations';
 import { SHADOWS } from '../../theme/shadows';
 
 interface APIKeyManagerProps {
@@ -22,6 +24,8 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { colors } = useTheme();
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
 
   // 새 키 추가 폼 상태
   const [showAddForm, setShowAddForm] = useState(false);
@@ -54,7 +58,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
   // 키 추가
   const handleAddKey = async () => {
     if (!newKeyName.trim() || !newKeyValue.trim()) {
-      setError('Name and key are required');
+      setError(t.nameKeyRequired);
       return;
     }
 
@@ -76,7 +80,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
 
   // 키 삭제
   const handleDeleteKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to delete this API key?')) {
+    if (!confirm(t.confirmDeleteKey)) {
       return;
     }
 
@@ -91,7 +95,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
   // 키 테스트
   const handleTestKey = async () => {
     if (!newKeyValue.trim()) {
-      setError('Enter a key to test');
+      setError(t.enterKeyToTest);
       return;
     }
 
@@ -332,7 +336,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
     <div style={styles.overlay} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="api-keys-title">
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.header}>
-          <h2 id="api-keys-title" style={styles.title}>API Keys</h2>
+          <h2 id="api-keys-title" style={styles.title}>{t.apiKeys}</h2>
           <button style={styles.closeButton} onClick={onClose} aria-label="Close">
             &times;
           </button>
@@ -342,14 +346,14 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
 
         <div style={styles.content}>
           {isLoading ? (
-            <div style={styles.loading}>Loading...</div>
+            <div style={styles.loading}>{t.loading}</div>
           ) : (
             <>
               {/* 저장된 키 목록 */}
               <div style={styles.keyList} role="list" aria-label="Saved API keys">
                 {keys.length === 0 ? (
                   <div style={styles.emptyState}>
-                    No API keys saved. Add one below.
+                    {t.noApiKeys}
                   </div>
                 ) : (
                   keys.map(key => (
@@ -364,7 +368,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                         onClick={() => handleDeleteKey(key.id)}
                         aria-label={`Delete ${key.name}`}
                       >
-                        Delete
+                        {t.delete}
                       </button>
                     </div>
                   ))
@@ -377,14 +381,14 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                   style={styles.addButton}
                   onClick={() => setShowAddForm(true)}
                 >
-                  + Add API Key
+                  {t.addApiKey}
                 </button>
               ) : (
                 <div style={styles.addForm}>
-                  <h3 style={styles.formTitle}>Add New Key</h3>
+                  <h3 style={styles.formTitle}>{t.addNewKey}</h3>
 
                   <div style={styles.formField}>
-                    <label style={styles.label}>Provider</label>
+                    <label style={styles.label}>{t.provider}</label>
                     <select
                       style={styles.select}
                       value={newKeyProvider}
@@ -400,7 +404,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                   </div>
 
                   <div style={styles.formField}>
-                    <label style={styles.label}>Name</label>
+                    <label style={styles.label}>{t.name}</label>
                     <input
                       style={styles.input}
                       type="text"
@@ -412,7 +416,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                   </div>
 
                   <div style={styles.formField}>
-                    <label style={styles.label}>API Key</label>
+                    <label style={styles.label}>{t.apiKey}</label>
                     <input
                       style={styles.input}
                       type="password"
@@ -434,7 +438,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                       }}
                       role="status"
                     >
-                      {testResult === 'success' ? 'Key is valid' : 'Key is invalid'}
+                      {testResult === 'success' ? t.keyValid : t.keyInvalid}
                     </div>
                   )}
 
@@ -444,7 +448,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                       onClick={handleTestKey}
                       disabled={!newKeyValue.trim()}
                     >
-                      Test Key
+                      {t.testKey}
                     </button>
                     <div style={styles.formActionRight}>
                       <button
@@ -456,14 +460,14 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
                           setTestResult(null);
                         }}
                       >
-                        Cancel
+                        {t.cancel}
                       </button>
                       <button
                         style={styles.saveButton}
                         onClick={handleAddKey}
                         disabled={isSaving}
                       >
-                        {isSaving ? 'Saving...' : 'Save Key'}
+                        {isSaving ? t.savingKey : t.saveKey}
                       </button>
                     </div>
                   </div>
@@ -475,7 +479,7 @@ export function APIKeyManager({ isOpen, onClose }: APIKeyManagerProps) {
 
         {/* 환경 변수 안내 */}
         <div style={styles.envNote}>
-          <strong>Tip:</strong> You can also set API keys via environment variables:
+          <strong>{t.envTip}</strong> {t.envTipDesc}
           <br />
           <code style={styles.code}>VITE_OPENAI_KEY</code>,{' '}
           <code style={styles.code}>VITE_ANTHROPIC_KEY</code>

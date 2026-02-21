@@ -6,6 +6,8 @@
 import type { FlowNode } from '@flowforge/types';
 import { getErrorExplanation } from '@flowforge/state';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../i18n';
+import { uiTranslations } from '../i18n/translations';
 
 interface DebugWidgetProps {
   node: FlowNode;
@@ -14,6 +16,8 @@ interface DebugWidgetProps {
 
 export function DebugWidget({ node, fontSize }: DebugWidgetProps) {
   const { colors } = useTheme();
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
   const debugMode = node.data.debugMode as string | undefined;
 
   // idle 상태
@@ -29,7 +33,7 @@ export function DebugWidget({ node, fontSize }: DebugWidgetProps) {
         color: colors.textMuted,
         fontFamily: 'monospace',
       }}>
-        Waiting for execution...
+        {t.waitingForExecution}
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, lazy, Suspense } from 'react';
 import {
   createRenderer,
   drawGrid,
@@ -64,22 +64,23 @@ import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NodePalette } from './NodePalette';
 import { PropertyPanel } from './PropertyPanel';
 import { SubflowPanel } from './SubflowPanel';
-import { TemplateBrowser } from './TemplateBrowser';
+const TemplateBrowser = lazy(() => import('./TemplateBrowser').then(m => ({ default: m.TemplateBrowser })));
 import { ContextHints } from './ContextHints';
 import { loadTemplates } from '@flowforge/state';
 import { ZoomControls } from './ZoomControls';
-import { SearchDialog } from './SearchDialog';
-import { ShortcutsHelp } from './ShortcutsHelp';
+const SearchDialog = lazy(() => import('./SearchDialog').then(m => ({ default: m.SearchDialog })));
+const ShortcutsHelp = lazy(() => import('./ShortcutsHelp').then(m => ({ default: m.ShortcutsHelp })));
 import { SelectionBar } from './SelectionBar';
 import { NodeWidgets } from './NodeWidgets';
 import { CommentWidgets } from './CommentWidgets';
-import { OnboardingTutorial, hasCompletedOnboarding } from './OnboardingTutorial';
+import { hasCompletedOnboarding } from './onboardingUtils';
+const OnboardingTutorial = lazy(() => import('./OnboardingTutorial').then(m => ({ default: m.OnboardingTutorial })));
 import { MobileToolbar } from './MobileToolbar';
 import { IconCenterView } from './Icons';
 import { DesktopToolbar } from './DesktopToolbar';
-import { APIKeyManager } from './ai';
-import { HistoryPanel } from './HistoryPanel';
-import { PackBrowser } from './packs/PackBrowser';
+const APIKeyManager = lazy(() => import('./ai/APIKeyManager').then(m => ({ default: m.APIKeyManager })));
+const HistoryPanel = lazy(() => import('./HistoryPanel').then(m => ({ default: m.HistoryPanel })));
+const PackBrowser = lazy(() => import('./packs/PackBrowser').then(m => ({ default: m.PackBrowser })));
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useIsTouchDevice } from '../hooks/useIsTouchDevice';
 import { useTheme } from '../hooks/useTheme';
@@ -2139,6 +2140,7 @@ export function FlowCanvas() {
       )}
       {/* 템플릿 브라우저 */}
       {templateBrowser && (
+        <Suspense fallback={null}>
         <TemplateBrowser
           position={{ x: templateBrowser.x, y: templateBrowser.y }}
           onInsert={(template: SubflowTemplate) => {
@@ -2168,6 +2170,7 @@ export function FlowCanvas() {
           }}
           onClose={() => setTemplateBrowser(null)}
         />
+        </Suspense>
       )}
       {/* 프로퍼티 패널 - 단일 노드 선택 시 (데스크톱만) */}
       {!isMobile && (() => {
@@ -2315,45 +2318,61 @@ export function FlowCanvas() {
       )}
       {/* 검색 다이얼로그 */}
       {showSearch && storeRef.current && (
-        <SearchDialog
-          nodes={storeRef.current.getState().nodes}
-          onSelect={(node) => {
-            navigateToNode(node);
-            setShowSearch(false);
-          }}
-          onClose={() => setShowSearch(false)}
-        />
+        <Suspense fallback={null}>
+          <SearchDialog
+            nodes={storeRef.current.getState().nodes}
+            onSelect={(node) => {
+              navigateToNode(node);
+              setShowSearch(false);
+            }}
+            onClose={() => setShowSearch(false)}
+          />
+        </Suspense>
       )}
       {/* 단축키 도움말 */}
       {showHelp && (
-        <ShortcutsHelp onClose={() => setShowHelp(false)} />
+        <Suspense fallback={null}>
+          <ShortcutsHelp onClose={() => setShowHelp(false)} />
+        </Suspense>
       )}
       {/* Pack Browser */}
       {showPackBrowser && (
-        <PackBrowser onClose={() => setShowPackBrowser(false)} />
+        <Suspense fallback={null}>
+          <PackBrowser onClose={() => setShowPackBrowser(false)} />
+        </Suspense>
       )}
       {/* 히스토리 패널 */}
-      <HistoryPanel
-        isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
-        undoStackLength={storeRef.current?.getState().getUndoStackLength() ?? 0}
-        redoStackLength={storeRef.current?.getState().getRedoStackLength() ?? 0}
-        onUndoToIndex={(index) => storeRef.current?.getState().undoToIndex(index)}
-        onRedoToIndex={(index) => storeRef.current?.getState().redoToIndex(index)}
-        onUndo={() => storeRef.current?.getState().undo()}
-        onRedo={() => storeRef.current?.getState().redo()}
-      />
+      {showHistory && (
+        <Suspense fallback={null}>
+          <HistoryPanel
+            isOpen={showHistory}
+            onClose={() => setShowHistory(false)}
+            undoStackLength={storeRef.current?.getState().getUndoStackLength() ?? 0}
+            redoStackLength={storeRef.current?.getState().getRedoStackLength() ?? 0}
+            onUndoToIndex={(index) => storeRef.current?.getState().undoToIndex(index)}
+            onRedoToIndex={(index) => storeRef.current?.getState().redoToIndex(index)}
+            onUndo={() => storeRef.current?.getState().undo()}
+            onRedo={() => storeRef.current?.getState().redo()}
+          />
+        </Suspense>
+      )}
       {/* API 키 관리 */}
-      <APIKeyManager
-        isOpen={showAPIKeys}
-        onClose={() => setShowAPIKeys(false)}
-      />
+      {showAPIKeys && (
+        <Suspense fallback={null}>
+          <APIKeyManager
+            isOpen={showAPIKeys}
+            onClose={() => setShowAPIKeys(false)}
+          />
+        </Suspense>
+      )}
       {/* 온보딩 튜토리얼 */}
       {showOnboarding && (
-        <OnboardingTutorial
-          onComplete={() => setShowOnboarding(false)}
-          onSkip={() => setShowOnboarding(false)}
-        />
+        <Suspense fallback={null}>
+          <OnboardingTutorial
+            onComplete={() => setShowOnboarding(false)}
+            onSkip={() => setShowOnboarding(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

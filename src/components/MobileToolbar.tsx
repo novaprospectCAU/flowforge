@@ -240,7 +240,7 @@ export function MobileToolbar({
             {(onSearch || onTemplates) && (
               <>
                 <div style={styles.menuSection}>
-                  {lang === 'en' ? 'Quick Access' : '빠른 접근'}
+                  {t.quickAccess}
                 </div>
                 {onSearch && (
                   <button
@@ -248,7 +248,7 @@ export function MobileToolbar({
                     style={styles.menuItem}
                     role="menuitem"
                   >
-                    <span>{lang === 'en' ? 'Search Nodes' : '노드 검색'}</span>
+                    <span>{t.searchNodesMenu}</span>
                     <span>{IconSearch({ size: 16 })}</span>
                   </button>
                 )}
@@ -258,7 +258,7 @@ export function MobileToolbar({
                     style={styles.menuItem}
                     role="menuitem"
                   >
-                    <span>{lang === 'en' ? 'Templates' : '템플릿'}</span>
+                    <span>{t.templates}</span>
                     <span>{IconClipboard({ size: 16 })}</span>
                   </button>
                 )}
@@ -268,14 +268,14 @@ export function MobileToolbar({
 
             {/* 설정 */}
             <div style={styles.menuSection}>
-              {lang === 'en' ? 'Settings' : '설정'}
+              {t.settings}
             </div>
             <button
               onClick={() => { onToggleSnap(); setMenuOpen(false); }}
               style={styles.menuItem}
               role="menuitem"
             >
-              <span>Grid Snap</span>
+              <span>{t.gridSnap}</span>
               <span style={{ color: snapToGrid ? colors.success : colors.textMuted }}>
                 {snapToGrid ? 'ON' : 'OFF'}
               </span>
@@ -285,7 +285,7 @@ export function MobileToolbar({
               style={styles.menuItem}
               role="menuitem"
             >
-              <span>{lang === 'en' ? 'Theme' : '테마'}</span>
+              <span>{t.theme}</span>
               <span>{mode === 'dark' ? IconSun({ size: 16 }) : IconMoon({ size: 16 })}</span>
             </button>
             <button
@@ -300,14 +300,14 @@ export function MobileToolbar({
 
             {/* API & 데이터 */}
             <div style={styles.menuSection}>
-              {lang === 'en' ? 'Data' : '데이터'}
+              {t.data}
             </div>
             <button
               onClick={() => { onAPIKeys(); setMenuOpen(false); }}
               style={styles.menuItem}
               role="menuitem"
             >
-              <span>API Keys</span>
+              <span>{t.apiKeys}</span>
               <span>{IconKey({ size: 16 })}</span>
             </button>
             <button
@@ -315,7 +315,7 @@ export function MobileToolbar({
               style={styles.menuItem}
               role="menuitem"
             >
-              <span>{lang === 'en' ? 'Export Flow' : '플로우 내보내기'}</span>
+              <span>{t.exportFlow}</span>
               <span>{IconDownload({ size: 14 })}</span>
             </button>
             <button
@@ -323,7 +323,7 @@ export function MobileToolbar({
               style={styles.menuItem}
               role="menuitem"
             >
-              <span>{lang === 'en' ? 'Import Flow' : '플로우 가져오기'}</span>
+              <span>{t.importFlow}</span>
               <span>{IconUpload({ size: 14 })}</span>
             </button>
             <div style={styles.menuDivider} />

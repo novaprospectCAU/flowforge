@@ -3,6 +3,8 @@ import type { ExecutionState } from '@flowforge/state';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { IconUndo, IconRedo, IconDownload, IconUpload, IconKey } from './Icons';
+import { useLanguage } from '../i18n';
+import { uiTranslations } from '../i18n/translations';
 
 interface ThemeColors {
   bgTertiary: string;
@@ -51,6 +53,9 @@ export function DesktopToolbar({
   isRunning,
   executionState,
 }: DesktopToolbarProps) {
+  const lang = useLanguage();
+  const t = uiTranslations[lang];
+
   return (
     <div
       style={{
@@ -68,7 +73,7 @@ export function DesktopToolbar({
         <button
           onClick={onUndo}
           disabled={!canUndo}
-          title="Undo (Ctrl+Z)"
+          title={t.undoShortcut}
           style={{
             padding: '8px 10px',
             background: colors.bgTertiary,
@@ -85,7 +90,7 @@ export function DesktopToolbar({
         <button
           onClick={onRedo}
           disabled={!canRedo}
-          title="Redo (Ctrl+Y)"
+          title={t.redoShortcut}
           style={{
             padding: '8px 10px',
             background: colors.bgTertiary,
@@ -103,7 +108,7 @@ export function DesktopToolbar({
       </div>
       {/* 자동 저장 상태 */}
       <div
-        title="Auto-save status"
+        title={t.autoSaveStatus}
         style={{
           padding: '8px 12px',
           background: colors.bgTertiary,
@@ -122,12 +127,12 @@ export function DesktopToolbar({
           borderRadius: '50%',
           background: saveStatus === 'saved' ? colors.success : saveStatus === 'saving' ? colors.warning : colors.textSecondary,
         }} />
-        {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
+        {saveStatus === 'saved' ? t.saved : saveStatus === 'saving' ? t.saving : t.unsaved}
       </div>
       {/* 스냅 토글 */}
       <button
         onClick={onToggleSnap}
-        title={`Snap to Grid: ${snapToGrid ? 'ON' : 'OFF'} (G)`}
+        title={`${t.snapToGrid}: ${snapToGrid ? 'ON' : 'OFF'} (G)`}
         style={{
           padding: '8px 12px',
           background: snapToGrid ? colors.bgActive : colors.bgTertiary,
@@ -138,12 +143,12 @@ export function DesktopToolbar({
           cursor: 'pointer',
         }}
       >
-        Grid: {snapToGrid ? 'ON' : 'OFF'}
+        {snapToGrid ? t.gridOn : t.gridOff}
       </button>
       {/* 엣지 스타일 토글 */}
       <button
         onClick={onEdgeStyleChange}
-        title="Edge Style (Click to cycle)"
+        title={t.edgeStyle}
         style={{
           padding: '8px 12px',
           background: colors.bgActive,
@@ -164,7 +169,7 @@ export function DesktopToolbar({
       <div style={{ display: 'flex', gap: 2 }}>
         <button
           onClick={onExport}
-          title="Export Flow (JSON)"
+          title={t.exportFlow}
           style={{
             padding: '8px 10px',
             background: colors.bgTertiary,
@@ -175,11 +180,11 @@ export function DesktopToolbar({
             cursor: 'pointer',
           }}
         >
-          {IconDownload({ size: 12 })} Export
+          {IconDownload({ size: 12 })} {t.export}
         </button>
         <button
           onClick={onImport}
-          title="Import Flow (JSON)"
+          title={t.importFlow}
           style={{
             padding: '8px 10px',
             background: colors.bgTertiary,
@@ -191,13 +196,13 @@ export function DesktopToolbar({
             cursor: 'pointer',
           }}
         >
-          {IconUpload({ size: 12 })} Import
+          {IconUpload({ size: 12 })} {t.import}
         </button>
       </div>
       {/* API 키 관리 */}
       <button
         onClick={onAPIKeys}
-        title="API Keys"
+        title={t.apiKeys}
         style={{
           padding: '8px 12px',
           background: colors.bgTertiary,
@@ -211,7 +216,7 @@ export function DesktopToolbar({
           gap: 4,
         }}
       >
-        {IconKey({ size: 14 })} API Keys
+        {IconKey({ size: 14 })} {t.apiKeys}
       </button>
       {executionState && (
         <div
@@ -224,8 +229,8 @@ export function DesktopToolbar({
             fontSize: 12,
           }}
         >
-          {executionState.status === 'success' ? 'Completed' :
-           executionState.status === 'error' ? 'Error' : 'Running...'}
+          {executionState.status === 'success' ? t.completed :
+           executionState.status === 'error' ? t.error : t.running}
         </div>
       )}
       <button
@@ -245,7 +250,7 @@ export function DesktopToolbar({
           gap: 6,
         }}
       >
-        {isRunning ? 'Running...' : 'Run Flow'}
+        {isRunning ? t.running : t.runFlow}
       </button>
     </div>
   );
