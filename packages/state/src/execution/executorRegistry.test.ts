@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { executorRegistry } from './executorRegistry';
+import './executors';
 import type { ExecutionContext } from './types';
 
 describe('executorRegistry', () => {

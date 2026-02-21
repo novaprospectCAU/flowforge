@@ -40,7 +40,7 @@ export class WebGPURenderer implements IRenderer {
           }
         }
       } catch (e) {
-        console.log('WebGPU not available:', e);
+        // WebGPU not available, falling back to Canvas2D
       }
     }
     

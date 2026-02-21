@@ -23,6 +23,9 @@ export {
 // 실행자 레지스트리
 export { executorRegistry } from './executorRegistry';
 
+// 기본 실행자 등록 (side-effect import)
+import './executors';
+
 // 실행 엔진
 export { ExecutionEngine, executeFlow } from './engine';
 
